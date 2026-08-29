@@ -52,10 +52,11 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id: int = payload.get("sub")
-        if user_id is None:
+        sub = payload.get("sub")
+        if sub is None:
             raise credentials_exception
-    except JWTError:
+        user_id = int(sub)
+    except (JWTError, ValueError):
         raise credentials_exception
 
     stmt = select(User).where(User.id == user_id)
@@ -70,7 +71,8 @@ async def get_current_user(
 def require_role(*roles: str):
     """Dependency factory: restrict access to specific roles."""
     async def role_checker(current_user: User = Depends(get_current_user)):
-        if current_user.role.value not in roles:
+        user_role = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+        if user_role not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Accès réservé aux rôles : {', '.join(roles)}",
@@ -100,7 +102,7 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
         )
 
     access_token = create_access_token(
-        data={"sub": user.id, "role": user.role.value, "email": user.email}
+        data={"sub": str(user.id), "role": user.role.value, "email": user.email}
     )
 
     return TokenResponse(
