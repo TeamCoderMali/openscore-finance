@@ -1,0 +1,32 @@
+<div class="fixed top-5 right-5 z-50 flex flex-col gap-2.5 max-w-md w-full pointer-events-none px-4 sm:px-0">
+  <div
+    *ngFor="let toast of toastService.toasts()"
+    class="pointer-events-auto flex items-start gap-3 p-3.5 rounded-md border border-zinc-200 border-l-4 transition-all duration-200 toast-enter"
+    [ngClass]="getBorderClass(toast.type)"
+    role="alert"
+  >
+    <div class="p-1.5 rounded-md shrink-0 mt-0.5" [ngClass]="getIconColorClass(toast.type)">
+      <app-svg-icon [name]="getIcon(toast.type)" [size]="16"></app-svg-icon>
+    </div>
+
+    <div class="flex-1 min-w-0 pr-1">
+      <div class="flex items-center justify-between gap-2">
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-zinc-900 truncate">
+          {{ toast.title }}
+        </h4>
+        <span class="text-[10px] font-mono text-zinc-400 shrink-0">{{ toast.timestamp }}</span>
+      </div>
+      <p class="text-xs text-zinc-600 mt-1 leading-relaxed break-words">
+        {{ toast.message }}
+      </p>
+    </div>
+
+    <button
+      (click)="dismiss(toast)"
+      class="text-zinc-400 hover:text-zinc-700 p-1 rounded transition-colors shrink-0 -mr-1 -mt-1"
+      aria-label="Fermer"
+    >
+      <app-svg-icon name="x-circle" [size]="14"></app-svg-icon>
+    </button>
+  </div>
+</div>

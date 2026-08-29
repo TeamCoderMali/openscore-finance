@@ -1,0 +1,350 @@
+<div class="space-y-6 animate-fade-in">
+  <!-- Fullscreen AI Processing Spinner Overlay -->
+  <app-spinner
+    *ngIf="extractionProgress()"
+    size="fullscreen"
+    label="Extraction documentaire Gemini 1.5 Flash"
+    sublabel="Traitement securise en memoire vive • Purge immediate des binaires apres extraction"
+  ></app-spinner>
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-zinc-900">Espace Client</h1>
+      <p class="text-sm text-zinc-500 mt-0.5">Demande de microcredit — soumission et suivi</p>
+    </div>
+    <div *ngIf="application()" class="text-right">
+      <span class="text-xs text-zinc-500">Dossier</span>
+      <p class="font-mono text-sm text-zinc-900">{{ application()!.reference }}</p>
+    </div>
+  </div>
+
+  <!-- Step indicator -->
+  <div class="card">
+    <div class="card-body">
+      <div class="flex items-center gap-1">
+        <ng-container *ngFor="let step of steps; let i = index; let last = last">
+          <button
+            (click)="goToStep(step)"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+            [class.bg-blue-900]="currentStep() === step"
+            [class.text-white]="currentStep() === step"
+            [class.text-zinc-500]="currentStep() !== step"
+            [class.hover:bg-zinc-100]="currentStep() !== step"
+          >
+            <span class="w-5 h-5 rounded-full border flex items-center justify-center text-xs font-mono"
+              [class.bg-white]="currentStep() === step"
+              [class.text-blue-900]="currentStep() === step"
+              [class.border-zinc-300]="currentStep() !== step"
+              [class.border-transparent]="currentStep() === step"
+            >{{ i + 1 }}</span>
+            <span>{{ stepLabels[step] }}</span>
+          </button>
+          <div *ngIf="!last" class="flex-1 h-px bg-zinc-200"></div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error()" class="px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700 flex items-center gap-2 animate-fade-in">
+    <app-svg-icon name="alert" [size]="16"></app-svg-icon>
+    <span>{{ error() }}</span>
+  </div>
+
+  <!-- ═══ STEP 1: Profile & Amount ═══ -->
+  <div *ngIf="currentStep() === 'profile'" class="card animate-slide-up">
+    <div class="card-header">
+      <h3 class="flex items-center gap-2">
+        <app-svg-icon name="user" [size]="18"></app-svg-icon>
+        Profil d'activite et montant sollicite
+      </h3>
+    </div>
+    <div class="card-body space-y-5">
+      <!-- Activity Sector -->
+      <div>
+        <label class="form-label">Secteur d'activite</label>
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <button *ngFor="let sector of sectors"
+            (click)="activitySector.set(sector)"
+            class="px-4 py-3 border rounded-md text-sm font-medium transition-all"
+            [class.border-blue-900]="activitySector() === sector"
+            [class.bg-blue-900]="activitySector() === sector"
+            [class.text-white]="activitySector() === sector"
+            [class.border-zinc-200]="activitySector() !== sector"
+            [class.text-zinc-700]="activitySector() !== sector"
+            [class.hover:border-zinc-300]="activitySector() !== sector"
+          >
+            {{ sector }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Amount -->
+      <div>
+        <label for="amount" class="form-label">Montant demande (FCFA)</label>
+        <input
+          id="amount"
+          type="number"
+          [ngModel]="requestedAmount()"
+          (ngModelChange)="requestedAmount.set($event)"
+          class="form-input font-mono text-lg"
+          min="50000"
+          max="10000000"
+          step="50000"
+          placeholder="500 000"
+        />
+        <p class="mt-1 text-xs text-zinc-400 font-mono">Min : 50 000 FCFA — Max : 10 000 000 FCFA</p>
+      </div>
+
+      <!-- Duration -->
+      <div>
+        <label for="duration" class="form-label">Duree souhaitee (mois)</label>
+        <select
+          id="duration"
+          [ngModel]="durationMonths()"
+          (ngModelChange)="durationMonths.set($event)"
+          class="form-select"
+        >
+          <option [value]="6">6 mois</option>
+          <option [value]="12">12 mois</option>
+          <option [value]="18">18 mois</option>
+          <option [value]="24">24 mois</option>
+          <option [value]="36">36 mois</option>
+        </select>
+      </div>
+
+      <!-- Business description -->
+      <div>
+        <label for="description" class="form-label">Description de l'activite (optionnel)</label>
+        <textarea
+          id="description"
+          [ngModel]="businessDescription()"
+          (ngModelChange)="businessDescription.set($event)"
+          class="form-input"
+          rows="3"
+          placeholder="Decrivez brievement votre activite..."
+        ></textarea>
+      </div>
+
+      <!-- Summary & Submit -->
+      <div class="flex items-center justify-between pt-4 border-t border-zinc-100">
+        <div>
+          <span class="text-xs text-zinc-500">Montant demande</span>
+          <p class="font-mono text-lg font-semibold text-zinc-900">{{ formattedAmount() }}</p>
+        </div>
+        <button (click)="submitProfile()" class="btn-primary" [disabled]="loading()">
+          <app-spinner *ngIf="loading()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="loading()">Envoi en cours...</span>
+          <span *ngIf="!loading()">Suivant</span>
+          <app-svg-icon *ngIf="!loading()" name="arrow-left" [size]="16" class="rotate-180"></app-svg-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2: Document Upload ═══ -->
+  <div *ngIf="currentStep() === 'documents'" class="card animate-slide-up">
+    <div class="card-header">
+      <h3 class="flex items-center gap-2">
+        <app-svg-icon name="upload" [size]="18"></app-svg-icon>
+        Pieces justificatives (CNI, NINA, Attestation, Registre)
+      </h3>
+    </div>
+    <div class="card-body space-y-4">
+      <!-- RGPD Notice -->
+      <div class="px-3 py-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800 flex items-start gap-2">
+        <app-svg-icon name="shield" [size]="14" class="mt-0.5 flex-shrink-0 text-amber-700"></app-svg-icon>
+        <span>Vos documents sont traites en memoire vive uniquement pour l'extraction IA, puis <strong>automatiquement detruits</strong>. Aucun fichier binaire n'est conserve sur nos serveurs.</span>
+      </div>
+
+      <!-- Drop zone -->
+      <div
+        class="relative border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer"
+        [class.border-blue-900]="isDragOver()"
+        [class.bg-blue-50/50]="isDragOver()"
+        [class.border-zinc-300]="!isDragOver()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave()"
+        (drop)="onDrop($event)"
+        (click)="fileInput.click()"
+      >
+        <input #fileInput type="file" class="hidden" multiple accept="image/*,.pdf" (change)="onFileSelect($event)" />
+        <app-svg-icon name="upload" [size]="32" class="text-zinc-400 mx-auto mb-3"></app-svg-icon>
+        <p class="text-sm text-zinc-700 font-medium">Glissez-deposez vos justificatifs ici</p>
+        <p class="text-xs text-zinc-400 mt-1 font-mono">JPG, PNG, WEBP, PDF (max 10 Mo par document)</p>
+      </div>
+
+      <!-- File list -->
+      <div *ngIf="selectedFiles().length > 0" class="space-y-2">
+        <div *ngFor="let file of selectedFiles(); let i = index"
+          class="flex items-center justify-between px-3 py-2 bg-zinc-50 rounded-md border border-zinc-200">
+          <div class="flex items-center gap-2 min-w-0">
+            <app-svg-icon name="file-text" [size]="16" class="text-zinc-500 shrink-0"></app-svg-icon>
+            <span class="text-sm text-zinc-700 truncate">{{ file.name }}</span>
+            <span class="text-xs text-zinc-400 font-mono shrink-0">{{ (file.size / 1024).toFixed(0) }} Ko</span>
+          </div>
+          <button (click)="removeFile(i)" class="text-zinc-400 hover:text-rose-600 transition-colors shrink-0">
+            <app-svg-icon name="x-circle" [size]="16"></app-svg-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-between pt-4 border-t border-zinc-100">
+        <button (click)="prevStep()" class="btn-secondary">
+          <app-svg-icon name="arrow-left" [size]="16"></app-svg-icon>
+          Retour
+        </button>
+        <button (click)="uploadAndExtract()" class="btn-primary" [disabled]="extractionProgress() || selectedFiles().length === 0">
+          <app-svg-icon *ngIf="!extractionProgress()" name="search" [size]="16"></app-svg-icon>
+          <span>Extraire et continuer</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3: Voice Assist ═══ -->
+  <div *ngIf="currentStep() === 'voice'" class="card animate-slide-up">
+    <div class="card-header">
+      <h3 class="flex items-center gap-2">
+        <app-svg-icon name="mic" [size]="18"></app-svg-icon>
+        Assistance vocale interactive
+      </h3>
+    </div>
+    <div class="card-body space-y-4">
+      <p class="text-sm text-zinc-500">Posez vos questions sur le microcredit (taux, documents, echeances). Appuyez sur le micro pour commencer.</p>
+
+      <!-- Mic button -->
+      <div class="flex flex-col items-center justify-center py-4">
+        <button
+          (click)="toggleRecording()"
+          class="w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-sm"
+          [class.bg-rose-600]="isRecording()"
+          [class.animate-pulse-slow]="isRecording()"
+          [class.bg-blue-900]="!isRecording()"
+          [class.hover:bg-blue-800]="!isRecording()"
+        >
+          <app-svg-icon name="mic" [size]="24" class="text-white"></app-svg-icon>
+        </button>
+        <p *ngIf="isRecording()" class="text-xs text-rose-600 font-medium font-mono mt-3 animate-pulse">
+          Ecoute en cours (Francais / Bambara)...
+        </p>
+      </div>
+
+      <!-- Transcript -->
+      <div *ngIf="voiceTranscript()" class="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-md">
+        <span class="text-[10px] text-zinc-400 uppercase tracking-wider font-mono">Transcription</span>
+        <p class="text-sm text-zinc-900 mt-0.5">{{ voiceTranscript() }}</p>
+      </div>
+
+      <!-- Loading response spinner -->
+      <div *ngIf="voiceLoading()" class="py-4">
+        <app-spinner size="sm" label="Recherche de la reponse reglementaire..."></app-spinner>
+      </div>
+
+      <!-- Response -->
+      <div *ngIf="voiceResponse() && !voiceLoading()" class="px-4 py-3 bg-blue-50 border border-blue-200 rounded-md animate-fade-in">
+        <p class="text-sm text-blue-900 leading-relaxed">{{ voiceResponse()!.response_text }}</p>
+        <div *ngIf="voiceResponse()!.suggestions.length > 0" class="mt-3 flex flex-wrap gap-2">
+          <button *ngFor="let s of voiceResponse()!.suggestions"
+            (click)="askSuggestion(s)"
+            class="px-2.5 py-1 text-xs bg-white border border-blue-200 rounded-full text-blue-800 hover:bg-blue-100 transition-colors"
+          >{{ s }}</button>
+        </div>
+      </div>
+
+      <!-- Manual input -->
+      <div class="flex gap-2">
+        <input
+          type="text"
+          [ngModel]="voiceTranscript()"
+          (ngModelChange)="voiceTranscript.set($event)"
+          class="form-input flex-1"
+          placeholder="Ou tapez votre question ici..."
+          (keydown.enter)="submitVoiceQuery(voiceTranscript())"
+        />
+        <button (click)="submitVoiceQuery(voiceTranscript())" class="btn-primary" [disabled]="voiceLoading()">
+          <app-svg-icon name="send" [size]="16"></app-svg-icon>
+        </button>
+      </div>
+
+      <!-- Navigation -->
+      <div class="flex items-center justify-between pt-4 border-t border-zinc-100">
+        <button (click)="prevStep()" class="btn-secondary">
+          <app-svg-icon name="arrow-left" [size]="16"></app-svg-icon>
+          Retour
+        </button>
+        <button (click)="nextStep()" class="btn-primary">
+          <span>Voir mes dossiers</span>
+          <app-svg-icon name="arrow-left" [size]="16" class="rotate-180"></app-svg-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 4: Decision & Applications List ═══ -->
+  <div *ngIf="currentStep() === 'decision'" class="space-y-4 animate-slide-up">
+    <div class="card">
+      <div class="card-header flex items-center justify-between">
+        <h3 class="flex items-center gap-2">
+          <app-svg-icon name="folder" [size]="18"></app-svg-icon>
+          Mes dossiers de microcredit
+        </h3>
+        <button (click)="goToStep('profile')" class="btn-secondary text-xs py-1 px-2.5">
+          <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+          Nouveau dossier
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="initialLoading()" class="py-12">
+        <app-spinner size="md" label="Chargement de vos dossiers..." sublabel="Connexion au registre IMF..."></app-spinner>
+      </div>
+
+      <!-- Table -->
+      <div *ngIf="!initialLoading()" class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Secteur</th>
+              <th>Montant</th>
+              <th>Statut</th>
+              <th>Date</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let app of existingApplications()">
+              <td class="font-mono text-xs font-semibold">{{ app.reference }}</td>
+              <td>{{ app.activity_sector }}</td>
+              <td class="font-mono">{{ formatAmount(app.requested_amount) }}</td>
+              <td>
+                <span [class]="getStatusBadgeClass(app.status)">
+                  {{ getStatusLabel(app.status) }}
+                </span>
+              </td>
+              <td class="text-zinc-500 text-xs font-mono">{{ app.created_at | date:'dd/MM/yyyy' }}</td>
+              <td class="text-right">
+                <button *ngIf="app.status === 'approved' || app.status === 'adjusted' || app.status === 'rejected'"
+                  (click)="viewScoring(app.id)" class="btn-ghost text-xs py-1 px-2">
+                  <app-svg-icon name="eye" [size]="14"></app-svg-icon>
+                  Scoring
+                </button>
+                <button *ngIf="app.status === 'approved' || app.status === 'adjusted'"
+                  (click)="viewReceipt(app.id)" class="btn-ghost text-xs py-1 px-2 ml-1">
+                  <app-svg-icon name="printer" [size]="14"></app-svg-icon>
+                  Recepisse
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="existingApplications().length === 0">
+              <td colspan="6" class="text-center text-zinc-400 py-8">Aucun dossier enregistre</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

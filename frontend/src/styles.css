@@ -1,0 +1,214 @@
+@import "tailwindcss";
+
+/* ── Tailwind v4 Theme ────────────────────────────────────────────── */
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --color-canvas: #F9F9FB;
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-slide-up: slideUp 0.25s ease-out;
+  --animate-pulse-slow: pulse 3s infinite;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Base reset & typography ─────────────────────────────────────── */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  body {
+    @apply bg-zinc-50 text-zinc-900 font-sans text-sm leading-relaxed m-0 p-0;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-semibold tracking-tight text-zinc-900;
+  }
+
+  h1 { @apply text-2xl; }
+  h2 { @apply text-xl; }
+  h3 { @apply text-base font-semibold; }
+  h4 { @apply text-sm font-semibold; }
+}
+
+/* ── Utility classes (Tailwind v4 @utility) ──────────────────────── */
+
+/* Card */
+@utility card {
+  @apply bg-white border border-zinc-200 rounded-lg;
+}
+
+@utility card-header {
+  @apply px-5 py-4 border-b border-zinc-200;
+}
+
+@utility card-body {
+  @apply px-5 py-4;
+}
+
+/* Buttons */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
+         rounded-md transition-all duration-150 cursor-pointer
+         disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+@utility btn-primary {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
+         rounded-md transition-all duration-150 cursor-pointer
+         disabled:opacity-50 disabled:cursor-not-allowed
+         bg-blue-900 text-white hover:bg-blue-800 active:bg-blue-950;
+}
+
+@utility btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
+         rounded-md transition-all duration-150 cursor-pointer
+         disabled:opacity-50 disabled:cursor-not-allowed
+         bg-white text-zinc-700 border border-zinc-300 hover:bg-zinc-50 active:bg-zinc-100;
+}
+
+@utility btn-success {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
+         rounded-md transition-all duration-150 cursor-pointer
+         disabled:opacity-50 disabled:cursor-not-allowed
+         bg-emerald-700 text-white hover:bg-emerald-600;
+}
+
+@utility btn-danger {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
+         rounded-md transition-all duration-150 cursor-pointer
+         disabled:opacity-50 disabled:cursor-not-allowed
+         bg-rose-700 text-white hover:bg-rose-600;
+}
+
+@utility btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
+         rounded-md transition-all duration-150 cursor-pointer
+         disabled:opacity-50 disabled:cursor-not-allowed
+         bg-transparent text-zinc-600 hover:bg-zinc-100;
+}
+
+/* Form inputs */
+@utility form-input {
+  @apply w-full px-3 py-2 text-sm bg-white border border-zinc-300 rounded-md
+         placeholder:text-zinc-400
+         focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900
+         transition-colors duration-150;
+}
+
+@utility form-label {
+  @apply block text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1.5;
+}
+
+@utility form-select {
+  @apply w-full px-3 py-2 text-sm bg-white border border-zinc-300 rounded-md
+         focus:outline-none focus:ring-2 focus:ring-blue-900/20 focus:border-blue-900
+         transition-colors duration-150 appearance-none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='1.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1rem;
+  padding-right: 2rem;
+}
+
+/* Badges */
+@utility badge {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full;
+}
+
+@utility badge-success {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700;
+}
+
+@utility badge-warning {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700;
+}
+
+@utility badge-danger {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-rose-50 text-rose-700;
+}
+
+@utility badge-info {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 text-blue-900;
+}
+
+@utility badge-neutral {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-zinc-100 text-zinc-600;
+}
+
+/* Monospace values */
+@utility mono-value {
+  @apply font-mono text-zinc-900 tabular-nums;
+}
+
+/* Table */
+@utility data-table {
+  @apply w-full text-sm;
+}
+
+/* Sidebar */
+@utility sidebar-link {
+  @apply flex items-center gap-3 px-3 py-2 text-sm text-zinc-600 rounded-md
+         hover:bg-zinc-100 hover:text-zinc-900 transition-colors duration-150;
+}
+
+/* ── Non-utility component styles ────────────────────────────────── */
+.data-table thead th {
+  @apply px-4 py-2.5 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider
+         bg-zinc-50 border-b border-zinc-200;
+}
+
+.data-table tbody td {
+  @apply px-4 py-3 border-b border-zinc-100 align-middle;
+}
+
+.data-table tbody tr:hover {
+  @apply bg-zinc-50/50;
+}
+
+.sidebar-link.active {
+  @apply bg-blue-900/5 text-blue-900 font-medium;
+}
+
+/* ── Print styles ────────────────────────────────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    font-size: 11pt;
+    color: black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+}
+
+.print-only {
+  display: none;
+}

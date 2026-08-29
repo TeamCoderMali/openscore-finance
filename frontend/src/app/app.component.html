@@ -1,0 +1,95 @@
+<!-- Global Toast Notifications -->
+<app-toast></app-toast>
+
+<!-- Unauthenticated: login page / public routes -->
+<ng-container *ngIf="!isAuthenticated()">
+  <router-outlet></router-outlet>
+</ng-container>
+
+<!-- Authenticated: Institutional Sidebar Layout -->
+<ng-container *ngIf="isAuthenticated()">
+  <div class="flex h-screen bg-zinc-50 no-print overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-zinc-200 flex flex-col flex-shrink-0 z-20">
+      <!-- Logo Branding -->
+      <div class="px-5 py-4 border-b border-zinc-200 bg-white">
+        <app-osf-logo size="sm" variant="full" subtitle="UEMOA / WA+ LEDGER"></app-osf-logo>
+      </div>
+
+      <!-- Navigation Section -->
+      <nav class="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+        <!-- Client Nav -->
+        <ng-container *ngIf="userRole() === 'client'">
+          <div class="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+            Espace Microfinance
+          </div>
+          <a routerLink="/client" routerLinkActive="active" class="sidebar-link">
+            <app-svg-icon name="folder" [size]="18"></app-svg-icon>
+            <span>Dossier de credit</span>
+          </a>
+        </ng-container>
+
+        <!-- Agent Nav -->
+        <ng-container *ngIf="userRole() === 'agent'">
+          <div class="px-3 py-1 text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+            Console Agence
+          </div>
+          <a routerLink="/agent" routerLinkActive="active" class="sidebar-link">
+            <app-svg-icon name="dashboard" [size]="18"></app-svg-icon>
+            <span>Dossiers a verifier</span>
+          </a>
+        </ng-container>
+      </nav>
+
+      <!-- System Environment Badge -->
+      <div class="px-4 py-2 border-t border-zinc-100 bg-zinc-50/50 flex items-center justify-between text-[10px] font-mono text-zinc-500">
+        <span class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Noeud Mali-BKO</span>
+        </span>
+        <span class="text-zinc-400">v1.0-MVP</span>
+      </div>
+
+      <!-- User Footer -->
+      <div class="px-3 py-3 border-t border-zinc-200 bg-white">
+        <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-md bg-zinc-50 border border-zinc-100">
+          <div class="w-8 h-8 bg-blue-900 text-white rounded-md flex items-center justify-center font-bold text-xs font-mono shrink-0">
+            {{ userName().charAt(0).toUpperCase() }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-zinc-900 truncate">{{ userName() }}</p>
+            <div class="flex items-center gap-1">
+              <span class="text-[10px] uppercase font-mono tracking-wider px-1 py-0.2 rounded"
+                [class.bg-blue-50]="userRole() === 'agent'"
+                [class.text-blue-900]="userRole() === 'agent'"
+                [class.bg-emerald-50]="userRole() === 'client'"
+                [class.text-emerald-800]="userRole() === 'client'"
+              >
+                {{ userRole() === 'agent' ? 'Agent CIF/IMF' : 'Client Emprunteur' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button
+          (click)="logout()"
+          class="sidebar-link w-full mt-2 text-rose-700 hover:bg-rose-50 hover:text-rose-800 font-medium"
+        >
+          <app-svg-icon name="logout" [size]="16"></app-svg-icon>
+          <span>Deconnexion</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto bg-zinc-50/50">
+      <div class="max-w-6xl mx-auto px-6 py-6 sm:px-8 sm:py-8">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+  </div>
+
+  <!-- Print View Container -->
+  <div class="print-only">
+    <router-outlet></router-outlet>
+  </div>
+</ng-container>

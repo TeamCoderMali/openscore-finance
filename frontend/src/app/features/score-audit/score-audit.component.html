@@ -1,0 +1,243 @@
+<div class="space-y-6 animate-fade-in" *ngIf="!loading(); else loadingTpl">
+  <!-- Back button -->
+  <button (click)="goBack()" class="btn-ghost text-xs">
+    <app-svg-icon name="arrow-left" [size]="16"></app-svg-icon>
+    <span>Retour au tableau de bord</span>
+  </button>
+
+  <!-- Error Alert -->
+  <div *ngIf="error()" class="px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700">
+    {{ error() }}
+  </div>
+
+  <div *ngIf="scoring()">
+    <!-- Score Hero -->
+    <div class="card shadow-sm">
+      <div class="card-body p-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <p class="text-xs text-zinc-500 uppercase tracking-wider font-mono">Score de solvabilite OpenScore</p>
+            <div class="flex items-baseline gap-3 mt-1">
+              <span class="font-mono text-5xl font-bold" [class]="getScoreColor(scoring()!.score)">
+                {{ scoring()!.score }}
+              </span>
+              <span class="font-mono text-lg text-zinc-400 font-semibold">/ 1000</span>
+            </div>
+            <div class="flex items-center gap-3 mt-3">
+              <span [class]="getRiskBadgeClass(scoring()!.risk_level)">
+                Risque {{ getRiskLabel(scoring()!.risk_level) }}
+              </span>
+              <span [class]="getDecisionBadgeClass(scoring()!.decision)">
+                {{ getDecisionLabel(scoring()!.decision) }}
+              </span>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-zinc-500 font-mono uppercase">Reference Dossier</p>
+            <p class="font-mono text-sm font-bold text-zinc-900 mt-0.5">{{ application()?.reference }}</p>
+            <p class="text-xs text-zinc-500 mt-1">{{ application()?.activity_sector }} • Demandeur : <strong>{{ application()?.applicant_name }}</strong></p>
+          </div>
+        </div>
+
+        <!-- Gauge with Thresholds -->
+        <div class="mt-6">
+          <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-1.5">
+            <span>0</span>
+            <span>400 (Rejet)</span>
+            <span>600 (Ajuste)</span>
+            <span>750 (Accorde)</span>
+            <span>1000</span>
+          </div>
+          <div class="h-3 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
+            <div class="h-full rounded-full transition-all duration-700 ease-out"
+              [class]="getGaugeColor(scoring()!.score)"
+              [style.width.%]="getGaugeWidth(scoring()!.score)">
+            </div>
+            <!-- Threshold markers -->
+            <div class="absolute top-0 h-full w-px bg-zinc-400" style="left: 40%"></div>
+            <div class="absolute top-0 h-full w-px bg-zinc-400" style="left: 60%"></div>
+            <div class="absolute top-0 h-full w-px bg-zinc-400" style="left: 75%"></div>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-medium mt-1.5 font-mono">
+            <span class="text-rose-600">Risque Tres Eleve</span>
+            <span class="text-amber-600">Ajustement Requis</span>
+            <span class="text-blue-700">Eligible</span>
+            <span class="text-emerald-600">Solvabilite Excellente</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial Metrics Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+      <div class="card">
+        <div class="card-body">
+          <p class="text-xs text-zinc-500 uppercase tracking-wider font-mono">Montant sollicite</p>
+          <p class="font-mono text-lg font-bold text-zinc-900 mt-1">
+            {{ formatAmount(application()!.requested_amount) }}
+          </p>
+          <p class="text-xs text-zinc-400 mt-0.5 font-mono">sur {{ application()!.requested_duration_months }} mois</p>
+        </div>
+      </div>
+
+      <div class="card" *ngIf="scoring()!.approved_amount">
+        <div class="card-body bg-emerald-50/30">
+          <p class="text-xs text-emerald-800 uppercase tracking-wider font-mono font-semibold">Montant valide</p>
+          <p class="font-mono text-lg font-bold text-emerald-700 mt-1">
+            {{ formatAmount(scoring()!.approved_amount!) }}
+          </p>
+          <p class="text-xs text-emerald-600 mt-0.5">Accord direct sans ajustement</p>
+        </div>
+      </div>
+
+      <div class="card" *ngIf="scoring()!.proposed_amount">
+        <div class="card-body bg-amber-50/30">
+          <p class="text-xs text-amber-800 uppercase tracking-wider font-mono font-semibold">Contre-proposition</p>
+          <p class="font-mono text-lg font-bold text-amber-700 mt-1">
+            {{ formatAmount(scoring()!.proposed_amount!) }}
+          </p>
+          <p class="text-xs text-amber-700 mt-0.5 font-mono">sur {{ scoring()!.proposed_duration_months }} mois</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <p class="text-xs text-zinc-500 uppercase tracking-wider font-mono">Ratio d'endettement</p>
+          <p class="font-mono text-lg font-bold mt-1"
+            [class.text-emerald-700]="(scoring()!.debt_ratio || 0) <= 0.35"
+            [class.text-amber-700]="(scoring()!.debt_ratio || 0) > 0.35 && (scoring()!.debt_ratio || 0) <= 0.45"
+            [class.text-rose-700]="(scoring()!.debt_ratio || 0) > 0.45"
+          >
+            {{ ((scoring()!.debt_ratio || 0) * 100).toFixed(1) }}%
+          </p>
+          <p class="text-xs text-zinc-400 mt-0.5 font-mono">Seuil max UEMOA : 40%</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Explainability Table -->
+    <div class="card mt-4">
+      <div class="card-header flex items-center justify-between">
+        <h3 class="text-sm font-semibold flex items-center gap-2">
+          <app-svg-icon name="bar-chart" [size]="16"></app-svg-icon>
+          Explicabilite Algorithmique du Score (Variables & Ponderations)
+        </h3>
+        <span class="text-xs font-mono text-zinc-400">Total : 1000 pts</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table font-mono text-xs">
+          <thead>
+            <tr>
+              <th class="font-sans">Variable Analysée</th>
+              <th>Valeur Constatee</th>
+              <th>Impact</th>
+              <th>Poids</th>
+              <th>Contribution</th>
+              <th class="font-sans">Justification & Analyse</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of scoring()!.explainability">
+              <td class="font-sans font-semibold text-zinc-800">{{ item.label }}</td>
+              <td class="font-bold">{{ item.value }}</td>
+              <td>
+                <span class="inline-flex items-center gap-1 font-semibold" [class]="getImpactColor(item.impact)">
+                  <app-svg-icon [name]="getImpactIcon(item.impact)" [size]="14"></app-svg-icon>
+                  <span>{{ item.impact === 'positive' ? 'Favorable' : 'Defavorable' }}</span>
+                </span>
+              </td>
+              <td>{{ (item.weight * 100).toFixed(0) }}%</td>
+              <td class="font-bold text-sm" [class]="getImpactColor(item.impact)">
+                {{ item.impact === 'positive' ? '+' : '' }}{{ item.contribution }}
+              </td>
+              <td class="font-sans text-zinc-600 text-xs max-w-xs leading-relaxed">{{ item.detail }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Counter-proposal panel (Agent only) -->
+    <div *ngIf="auth.userRole() === 'agent' && scoring()!.decision === 'adjusted'" class="card mt-4">
+      <div class="card-header bg-amber-50/40 border-b border-amber-200">
+        <h3 class="text-sm font-semibold text-amber-900 flex items-center gap-2">
+          <app-svg-icon name="refresh" [size]="16" class="text-amber-700"></app-svg-icon>
+          Simulateur & Panneau de Contre-Proposition Dynamique
+        </h3>
+        <p class="text-xs text-amber-700 mt-0.5">
+          Ajustez le montant ou la duree pour recalculer instantanement l'impact sur le ratio d'endettement et le score
+        </p>
+      </div>
+
+      <div class="card-body space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="form-label">Montant propose (FCFA)</label>
+            <input type="number"
+              [ngModel]="proposedAmount()"
+              (ngModelChange)="proposedAmount.set($event)"
+              class="form-input font-mono"
+              step="50000" min="50000"
+            />
+          </div>
+          <div>
+            <label class="form-label">Echeancier propose (mois)</label>
+            <select [ngModel]="proposedDuration()" (ngModelChange)="proposedDuration.set($event)" class="form-select font-mono">
+              <option [value]="6">6 mois</option>
+              <option [value]="12">12 mois</option>
+              <option [value]="18">18 mois</option>
+              <option [value]="24">24 mois</option>
+              <option [value]="36">36 mois</option>
+              <option [value]="48">48 mois</option>
+              <option [value]="60">60 mois</option>
+            </select>
+          </div>
+        </div>
+
+        <button (click)="recalculate()" class="btn-primary" [disabled]="recalculating()">
+          <app-spinner *ngIf="recalculating()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <app-svg-icon *ngIf="!recalculating()" name="refresh" [size]="16"></app-svg-icon>
+          <span *ngIf="recalculating()">Recalcul en cours...</span>
+          <span *ngIf="!recalculating()">Recalculer le score avec ces parametres</span>
+        </button>
+
+        <!-- Recalculated result preview -->
+        <div *ngIf="recalcResult()" class="mt-4 p-4 rounded-lg border animate-fade-in"
+          [class]="getScoreBgColor(recalcResult()!.score)"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-xs text-zinc-500 uppercase tracking-wider font-mono">Nouveau score simule :</span>
+              <span class="font-mono text-3xl font-bold ml-3" [class]="getScoreColor(recalcResult()!.score)">
+                {{ recalcResult()!.score }}
+              </span>
+              <span class="font-mono text-xs text-zinc-400 font-semibold"> / 1000</span>
+            </div>
+            <span [class]="getDecisionBadgeClass(recalcResult()!.decision)">
+              {{ getDecisionLabel(recalcResult()!.decision) }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center justify-end gap-3 mt-4">
+      <button *ngIf="scoring()!.decision !== 'rejected'" (click)="goToReceipt()" class="btn-primary shadow-sm">
+        <app-svg-icon name="printer" [size]="16"></app-svg-icon>
+        <span>Generer le recepisse d'archivage</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Template -->
+<ng-template #loadingTpl>
+  <div class="py-24">
+    <app-spinner
+      size="lg"
+      label="Chargement de l'audit decisionnel..."
+      sublabel="Recuperation de l'arbre d'explicabilite et des ratios..."
+    ></app-spinner>
+  </div>
+</ng-template>

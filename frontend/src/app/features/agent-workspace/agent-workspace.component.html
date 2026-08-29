@@ -1,0 +1,272 @@
+<div class="space-y-6 animate-fade-in">
+  <!-- Fullscreen Scoring Computation Overlay -->
+  <app-spinner
+    *ngIf="scoringLoading()"
+    size="fullscreen"
+    label="Calcul du score de solvabilite en cours..."
+    sublabel="Ponderation des 5 ratios • Analyse d'endettement • Evaluation reglementaire WA+"
+  ></app-spinner>
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-semibold text-zinc-900">Console Agent de Credit</h1>
+      <p class="text-sm text-zinc-500 mt-0.5">Verification des donnees et evaluation des dossiers</p>
+    </div>
+    <button (click)="loadApplications()" class="btn-secondary text-xs" [disabled]="loading()">
+      <app-svg-icon *ngIf="!loading()" name="refresh" [size]="14"></app-svg-icon>
+      <app-spinner *ngIf="loading()" size="sm" [inline]="true"></app-spinner>
+      <span>Actualiser</span>
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-3 gap-4">
+    <div class="card">
+      <div class="card-body text-center">
+        <p class="text-2xl font-mono font-semibold text-amber-700">{{ pendingCount() }}</p>
+        <p class="text-xs text-zinc-500 mt-1">A verifier</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body text-center">
+        <p class="text-2xl font-mono font-semibold text-emerald-700">{{ verifiedCount() }}</p>
+        <p class="text-xs text-zinc-500 mt-1">Traites</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body text-center">
+        <p class="text-2xl font-mono font-semibold text-zinc-900">{{ applications().length }}</p>
+        <p class="text-xs text-zinc-500 mt-1">Total dossiers</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error / Success Alerts -->
+  <div *ngIf="error()" class="px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700 flex items-center gap-2">
+    <app-svg-icon name="alert" [size]="16"></app-svg-icon>
+    <span>{{ error() }}</span>
+  </div>
+  <div *ngIf="success()" class="px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700 flex items-center gap-2 animate-fade-in">
+    <app-svg-icon name="check-circle" [size]="16"></app-svg-icon>
+    <span>{{ success() }}</span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Applications list -->
+    <div class="lg:col-span-1">
+      <div class="card">
+        <div class="card-header flex items-center justify-between">
+          <h3 class="text-sm font-semibold">Dossiers en attente</h3>
+          <span class="text-xs font-mono text-zinc-400">{{ applications().length }} total</span>
+        </div>
+
+        <!-- Loading spinner for list -->
+        <div *ngIf="loading()" class="py-12">
+          <app-spinner size="sm" label="Chargement des dossiers..."></app-spinner>
+        </div>
+
+        <!-- List -->
+        <div *ngIf="!loading()" class="divide-y divide-zinc-100 max-h-[600px] overflow-y-auto">
+          <button *ngFor="let app of applications()"
+            (click)="selectApplication(app)"
+            class="w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors cursor-pointer"
+            [class.bg-blue-50]="selectedApp()?.id === app.id"
+            [class.border-l-2]="selectedApp()?.id === app.id"
+            [class.border-l-blue-900]="selectedApp()?.id === app.id"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-xs text-zinc-900 font-semibold">{{ app.reference }}</span>
+              <span [class]="getStatusBadgeClass(app.status)" class="text-xs">
+                {{ getStatusLabel(app.status) }}
+              </span>
+            </div>
+            <p class="text-sm text-zinc-800 font-medium mt-1">{{ app.applicant_name || 'Client demandeur' }}</p>
+            <div class="flex items-center justify-between mt-1">
+              <span class="text-xs text-zinc-400">{{ app.activity_sector }}</span>
+              <span class="font-mono text-xs text-zinc-600 font-semibold">{{ formatAmount(app.requested_amount) }}</span>
+            </div>
+          </button>
+          <div *ngIf="applications().length === 0" class="px-4 py-8 text-center text-zinc-400 text-sm">
+            Aucun dossier trouve
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail panel — side by side comparison -->
+    <div class="lg:col-span-2">
+      <!-- Empty selection state -->
+      <div *ngIf="!selectedApp() && !detailLoading()" class="card">
+        <div class="card-body py-20 text-center text-zinc-400">
+          <app-svg-icon name="folder" [size]="36" class="mx-auto mb-3 opacity-40"></app-svg-icon>
+          <p class="text-sm font-medium text-zinc-600">Selectionnez un dossier dans la liste</p>
+          <p class="text-xs text-zinc-400 mt-1">Comparez les donnees extraites et validez la qualite avant scoring</p>
+        </div>
+      </div>
+
+      <!-- Detail Loading State -->
+      <div *ngIf="detailLoading()" class="card">
+        <div class="card-body py-20">
+          <app-spinner size="md" label="Chargement des donnees du dossier..." sublabel="Recuperation de l'extraction Gemini..."></app-spinner>
+        </div>
+      </div>
+
+      <div *ngIf="selectedApp() && extractedData() && !detailLoading()" class="space-y-4 animate-slide-up">
+        <!-- Application header -->
+        <div class="card">
+          <div class="card-body flex items-center justify-between">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-sm font-bold text-zinc-900">{{ selectedApp()!.reference }}</span>
+                <span [class]="getStatusBadgeClass(selectedApp()!.status)">
+                  {{ getStatusLabel(selectedApp()!.status) }}
+                </span>
+              </div>
+              <p class="text-xs text-zinc-500 mt-1">
+                Demandeur : <strong class="text-zinc-800">{{ selectedApp()!.applicant_name }}</strong> • {{ selectedApp()!.activity_sector }} — <span class="font-mono font-semibold">{{ formatAmount(selectedApp()!.requested_amount) }}</span> sur {{ selectedApp()!.requested_duration_months }} mois
+              </p>
+            </div>
+            <button (click)="closeDetail()" class="btn-ghost text-xs text-zinc-400 hover:text-zinc-700">
+              <app-svg-icon name="x-circle" [size]="16"></app-svg-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Side-by-side: Extracted vs Editable -->
+        <div class="card">
+          <div class="card-header flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-semibold flex items-center gap-2">
+                <app-svg-icon name="edit" [size]="16"></app-svg-icon>
+                Controle & Certification des Donnees
+              </h3>
+              <p class="text-xs text-zinc-400 mt-0.5">
+                Verifiez la coherence des donnees extraites par Gemini avant soumission au moteur de scoring
+              </p>
+            </div>
+            <div class="text-right font-mono text-xs">
+              <span class="text-zinc-400">Confiance IA : </span>
+              <span class="font-bold" [class.text-emerald-700]="(extractedData()!.extraction_confidence || 0) >= 0.8"
+                [class.text-amber-700]="(extractedData()!.extraction_confidence || 0) < 0.8">
+                {{ ((extractedData()!.extraction_confidence || 0) * 100).toFixed(0) }}%
+              </span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="overflow-x-auto">
+              <table class="data-table text-xs">
+                <thead>
+                  <tr>
+                    <th class="w-1/4">Champ de donnees</th>
+                    <th class="w-1/3">Extraction IA (Lecture)</th>
+                    <th class="w-1/3">Donnees Certifiees (Agent)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Identity fields -->
+                  <tr>
+                    <td class="font-medium text-zinc-700">Nom complet</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.full_name || '—' }}</td>
+                    <td><input type="text" [ngModel]="verifiedFields().full_name" (ngModelChange)="updateField('full_name', $event)" class="form-input text-xs py-1" /></td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium text-zinc-700">Date de naissance</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.date_of_birth || '—' }}</td>
+                    <td><input type="text" [ngModel]="verifiedFields().date_of_birth" (ngModelChange)="updateField('date_of_birth', $event)" class="form-input text-xs py-1" /></td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium text-zinc-700">N° Identite (NINA/CNI)</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.id_number || '—' }}</td>
+                    <td><input type="text" [ngModel]="verifiedFields().id_number" (ngModelChange)="updateField('id_number', $event)" class="form-input text-xs py-1" /></td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium text-zinc-700">Type de piece</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.id_type || '—' }}</td>
+                    <td><input type="text" [ngModel]="verifiedFields().id_type" (ngModelChange)="updateField('id_type', $event)" class="form-input text-xs py-1" /></td>
+                  </tr>
+                  <!-- Financial fields -->
+                  <tr class="border-t-2 border-zinc-200">
+                    <td class="font-medium text-zinc-700">Revenu mensuel (FCFA)</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.monthly_revenue ? formatAmount(extractedData()!.monthly_revenue!) : '—' }}</td>
+                    <td><input type="number" [ngModel]="verifiedFields().monthly_revenue" (ngModelChange)="updateField('monthly_revenue', $event)" class="form-input font-mono text-xs py-1" /></td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium text-zinc-700">Charges mensuelles (FCFA)</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.monthly_expenses ? formatAmount(extractedData()!.monthly_expenses!) : '—' }}</td>
+                    <td><input type="number" [ngModel]="verifiedFields().monthly_expenses" (ngModelChange)="updateField('monthly_expenses', $event)" class="form-input font-mono text-xs py-1" /></td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium text-zinc-700">Dettes existantes (FCFA)</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.existing_debt ? formatAmount(extractedData()!.existing_debt!) : '0 FCFA' }}</td>
+                    <td><input type="number" [ngModel]="verifiedFields().existing_debt" (ngModelChange)="updateField('existing_debt', $event)" class="form-input font-mono text-xs py-1" /></td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium text-zinc-700">N° Registre Commerce</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.business_registration_number || '—' }}</td>
+                    <td><input type="text" [ngModel]="verifiedFields().business_registration_number" (ngModelChange)="updateField('business_registration_number', $event)" class="form-input text-xs py-1" /></td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium text-zinc-700">Anciennete d'activite (ans)</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.years_in_business ?? '—' }} ans</td>
+                    <td><input type="number" step="0.1" [ngModel]="verifiedFields().years_in_business" (ngModelChange)="updateField('years_in_business', $event)" class="form-input font-mono text-xs py-1" /></td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium text-zinc-700">Regularite des revenus</td>
+                    <td class="font-mono text-zinc-500 bg-zinc-50/50">{{ extractedData()!.revenue_regularity_months ?? '—' }}/12 mois</td>
+                    <td><input type="number" min="1" max="12" [ngModel]="verifiedFields().revenue_regularity_months" (ngModelChange)="updateField('revenue_regularity_months', $event)" class="form-input font-mono text-xs py-1" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Verification notes -->
+            <div class="mt-4">
+              <label class="form-label">Observations et visa de l'agent</label>
+              <textarea
+                [ngModel]="verificationNotes()"
+                (ngModelChange)="verificationNotes.set($event)"
+                class="form-input text-xs"
+                rows="2"
+                placeholder="Ex : Justificatifs physiques concordants avec l'activite sur place au Grand Marche..."
+              ></textarea>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-zinc-100">
+              <button *ngIf="selectedApp()!.status === 'pending_verification'"
+                (click)="submitVerification()"
+                class="btn-success"
+                [disabled]="verifying()"
+              >
+                <app-spinner *ngIf="verifying()" size="sm" [inline]="true" variant="white"></app-spinner>
+                <app-svg-icon *ngIf="!verifying()" name="check-circle" [size]="16"></app-svg-icon>
+                <span *ngIf="verifying()">Certification...</span>
+                <span *ngIf="!verifying()">Certifier et valider les donnees</span>
+              </button>
+
+              <button *ngIf="selectedApp()!.status === 'data_verified'"
+                (click)="evaluateApplication()"
+                class="btn-primary"
+                [disabled]="scoringLoading()"
+              >
+                <app-spinner *ngIf="scoringLoading()" size="sm" [inline]="true" variant="white"></app-spinner>
+                <app-svg-icon *ngIf="!scoringLoading()" name="bar-chart" [size]="16"></app-svg-icon>
+                <span>Calculer le score OpenScore</span>
+              </button>
+
+              <button *ngIf="selectedApp()!.status === 'approved' || selectedApp()!.status === 'adjusted' || selectedApp()!.status === 'rejected'"
+                (click)="viewScoring(selectedApp()!.id)"
+                class="btn-primary"
+              >
+                <app-svg-icon name="eye" [size]="16"></app-svg-icon>
+                <span>Consulter l'audit du score</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
