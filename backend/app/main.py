@@ -4,7 +4,14 @@ Initializes DB, seeds demo data, mounts API routers, configures CORS.
 """
 
 import logging
+import sys
+from pathlib import Path
 from contextlib import asynccontextmanager
+
+# Ensure backend directory is in sys.path even when executed directly via python app/main.py
+backend_dir = str(Path(__file__).resolve().parent.parent)
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -217,3 +224,8 @@ app.include_router(scoring_router, prefix="/api/v1")
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "app": settings.APP_NAME, "version": settings.APP_VERSION}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
