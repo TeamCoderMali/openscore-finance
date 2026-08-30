@@ -1,0 +1,90 @@
+<div class="inline-flex items-center gap-2.5 select-none" [ngClass]="{'gap-3': size === 'lg', 'gap-2': size === 'sm'}">
+  <!-- OSF Vector Emblem Icon -->
+  <div
+    class="relative rounded-md flex items-center justify-center shrink-0 border border-blue-800/40 shadow-sm transition-transform duration-200 hover:scale-[1.02]"
+    [ngClass]="{
+      'w-7 h-7': size === 'sm',
+      'w-9 h-9': size === 'md',
+      'w-12 h-12': size === 'lg',
+      'bg-blue-900 text-white': true
+    }"
+  >
+    <svg
+      viewBox="0 0 36 36"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      class="w-full h-full p-1.5"
+    >
+      <!-- Base Shield & Ledger Lines -->
+      <rect x="4" y="4" width="28" height="28" rx="4" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3" fill="none"/>
+      
+      <!-- 'O' Outer Loop Segment -->
+      <path
+        d="M10 12C10 8.68629 12.6863 6 16 6H20C23.3137 6 26 8.68629 26 12V24C26 27.3137 23.3137 30 20 30H16C12.6863 30 10 27.3137 10 24V12Z"
+        stroke="currentColor"
+        stroke-width="1.75"
+        stroke-linecap="round"
+      />
+      
+      <!-- 'S' Dynamic Decision Wave through center -->
+      <path
+        d="M23 13C23 10.7909 20.7614 9.5 18 9.5C14.6863 9.5 13 11.5 13 14C13 18.5 23 17.5 23 22C23 24.5 21 26.5 18 26.5C14.5 26.5 13 24.5 13 23"
+        stroke="#10b981"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      
+      <!-- 'F' Horizontal Bar & Score Tick -->
+      <path
+        d="M16 18H22"
+        stroke="white"
+        stroke-width="1.75"
+        stroke-linecap="round"
+      />
+
+      <!-- Ledger Metric Dot (Active AI Sentinel) -->
+      <circle cx="28" cy="8" r="2.5" fill="#f59e0b" stroke="#1e3a8a" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <!-- Text Branding -->
+  <div *ngIf="variant !== 'icon'" class="flex flex-col">
+    <div class="flex items-center gap-1.5 leading-none">
+      <span
+        class="font-bold tracking-tight text-zinc-900"
+        [ngClass]="{
+          'text-sm': size === 'sm',
+          'text-base': size === 'md',
+          'text-xl': size === 'lg'
+        }"
+      >
+        OpenScore
+      </span>
+      <span
+        class="font-semibold text-blue-900"
+        [ngClass]="{
+          'text-sm': size === 'sm',
+          'text-base': size === 'md',
+          'text-xl': size === 'lg'
+        }"
+      >
+        Finance
+      </span>
+      <!-- Monospace OSF Tag -->
+      <span
+        class="font-mono text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 tracking-wider ml-0.5"
+      >
+        OSF
+      </span>
+    </div>
+
+    <!-- Editorial Subtitle -->
+    <span
+      *ngIf="variant === 'full'"
+      class="text-[10px] uppercase font-mono tracking-widest text-zinc-400 mt-1 font-medium leading-none"
+    >
+      {{ subtitle }}
+    </span>
+  </div>
+</div>

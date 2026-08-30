@@ -1,0 +1,126 @@
+<div class="min-h-screen bg-zinc-50 flex items-center justify-center px-4 py-8">
+  <div class="w-full max-w-md">
+    <!-- Branding Header -->
+    <div class="text-center mb-8">
+      <div class="flex justify-center mb-4">
+        <app-osf-logo size="lg" variant="full" subtitle="UEMOA MICROFINANCE DECISION ENGINE"></app-osf-logo>
+      </div>
+      <p class="text-xs text-zinc-500 max-w-xs mx-auto mt-2">
+        Plateforme d'aide a la decision et scoring de credit pour IMF et CIF au Mali
+      </p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="card shadow-sm border-zinc-200">
+      <div class="card-header bg-zinc-50/50 flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-semibold text-zinc-900">Espace Securise</h2>
+          <p class="text-[11px] text-zinc-500">Authentification unique pour clients et agents</p>
+        </div>
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          Actif
+        </span>
+      </div>
+
+      <div class="card-body p-6">
+        <!-- Error Alert -->
+        <div *ngIf="error()" class="mb-4 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-md text-xs text-rose-800 flex items-center gap-2 animate-fade-in">
+          <app-svg-icon name="alert" [size]="16" class="shrink-0 text-rose-600"></app-svg-icon>
+          <span>{{ error() }}</span>
+        </div>
+
+        <form (ngSubmit)="onSubmit()" class="space-y-4">
+          <!-- Email Input -->
+          <div>
+            <label for="email" class="form-label">Identifiant / Email</label>
+            <input
+              id="email"
+              type="email"
+              [(ngModel)]="email"
+              name="email"
+              class="form-input text-sm"
+              placeholder="votre.nom@domaine.ml"
+              autocomplete="email"
+              [disabled]="loading()"
+            />
+          </div>
+
+          <!-- Password Input -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="password" class="form-label !mb-0">Mot de passe</label>
+            </div>
+            <input
+              id="password"
+              type="password"
+              [(ngModel)]="password"
+              name="password"
+              class="form-input text-sm"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              [disabled]="loading()"
+            />
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            class="btn-primary w-full py-2.5 font-medium shadow-sm"
+            [disabled]="loading()"
+          >
+            <app-spinner *ngIf="loading()" size="sm" [inline]="true" variant="white"></app-spinner>
+            <app-svg-icon *ngIf="!loading()" name="user" [size]="16"></app-svg-icon>
+            <span *ngIf="loading()">Verification en cours...</span>
+            <span *ngIf="!loading()">Acceder a la plateforme</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Quick Test Profiles (Hackathon Friendly) -->
+      <div class="px-6 py-4 bg-zinc-50 border-t border-zinc-200 rounded-b-lg">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
+            Profils de demonstration
+          </span>
+          <span class="text-[10px] text-zinc-400">Cliquez pour remplir</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <!-- Client Demo Button -->
+          <button
+            type="button"
+            (click)="fillDemo('amadou.diallo@mail.ml', 'password123')"
+            class="p-2 text-left rounded border border-zinc-200 bg-white hover:border-blue-900 hover:bg-blue-50/30 transition-all text-xs cursor-pointer"
+          >
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span class="font-semibold text-zinc-900">Client</span>
+            </div>
+            <p class="text-[11px] text-zinc-500 font-mono mt-0.5 truncate">Amadou Diallo</p>
+            <span class="text-[10px] text-zinc-400 font-mono">Commerce</span>
+          </button>
+
+          <!-- Agent Demo Button -->
+          <button
+            type="button"
+            (click)="fillDemo('agent@openscore.ml', 'agent123')"
+            class="p-2 text-left rounded border border-zinc-200 bg-white hover:border-blue-900 hover:bg-blue-50/30 transition-all text-xs cursor-pointer"
+          >
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+              <span class="font-semibold text-zinc-900">Agent CIF</span>
+            </div>
+            <p class="text-[11px] text-zinc-500 font-mono mt-0.5 truncate">I. Coulibaly</p>
+            <span class="text-[10px] text-zinc-400 font-mono">Verificateur</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hackathon Footer -->
+    <div class="text-center mt-6 text-xs text-zinc-400 font-mono">
+      <span>Hackathon DigiCoop-WA+ • Bamako, Mali • OpenScore Finance</span>
+    </div>
+  </div>
+</div>
