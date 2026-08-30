@@ -20,13 +20,14 @@ export class ScoreAuditComponent implements OnInit {
   appId = 0;
   application = signal<CreditApplication | null>(null);
   scoring = signal<ScoringResult | null>(null);
-  loading = signal(true);
-  error = signal('');
+  loading = signal<boolean>(true);
+  error = signal<string>('');
 
   // Counter-proposal controls
-  proposedAmount = signal(0);
-  proposedDuration = signal(12);
-  recalculating = signal(false);
+  proposedAmount = signal<number>(0);
+  proposedDuration = signal<number>(12);
+  recalculating = signal<boolean>(false);
+  applyingProposal = signal<boolean>(false);
   recalcResult = signal<ScoringResult | null>(null);
 
   constructor(
@@ -56,7 +57,7 @@ export class ScoreAuditComponent implements OnInit {
       this.proposedDuration.set(scoring.proposed_duration_months || app.requested_duration_months);
     } catch (e: any) {
       this.error.set(e.message);
-      this.toast.error('Erreur audit', 'Impossible de charger les resultats de scoring.');
+      this.toast.error('Erreur audit', 'Impossible de charger les résultats de scoring.');
     } finally {
       this.loading.set(false);
     }
@@ -71,14 +72,35 @@ export class ScoreAuditComponent implements OnInit {
       });
       this.recalcResult.set(result);
       this.toast.success(
-        'Contre-proposition recalculee',
-        `Nouveau score : ${result.score}/1000 — Decision : ${result.decision.toUpperCase()}`
+        'Simulation mise à jour',
+        `Nouveau score : ${result.score}/1000 — Décision : ${result.decision.toUpperCase()}`
       );
     } catch (e: any) {
       this.error.set(e.message);
       this.toast.error('Erreur calcul', e.message);
     } finally {
       this.recalculating.set(false);
+    }
+  }
+
+  async applyCounterProposal(): Promise<void> {
+    this.applyingProposal.set(true);
+    try {
+      const saved = await this.api.applyCounterProposal(this.appId, {
+        proposed_amount: this.proposedAmount(),
+        proposed_duration_months: this.proposedDuration(),
+        notes: "Contre-proposition validée par l'agent de crédit CIF/IMF",
+      });
+      this.scoring.set(saved);
+      this.recalcResult.set(null);
+      this.toast.success(
+        'Contre-proposition entérinée',
+        `Le dossier a été mis à jour au statut AJUSTÉ (Montant : ${this.formatAmount(saved.proposed_amount || 0)}).`
+      );
+    } catch (e: any) {
+      this.toast.error('Erreur validation', e.message || 'Impossible d\'appliquer la contre-proposition');
+    } finally {
+      this.applyingProposal.set(false);
     }
   }
 
@@ -111,8 +133,8 @@ export class ScoreAuditComponent implements OnInit {
     const labels: Record<string, string> = {
       low: 'Faible',
       medium: 'Moyen',
-      high: 'Eleve',
-      very_high: 'Tres eleve',
+      high: 'Élevé',
+      very_high: 'Très élevé',
     };
     return labels[risk] || risk;
   }
@@ -129,9 +151,9 @@ export class ScoreAuditComponent implements OnInit {
 
   getDecisionLabel(decision: string): string {
     switch (decision) {
-      case 'approved': return 'Accorde';
-      case 'adjusted': return 'Montant ajuste';
-      case 'rejected': return 'Non eligible';
+      case 'approved': return 'Accordé';
+      case 'adjusted': return 'Montant ajusté';
+      case 'rejected': return 'Non éligible';
       default: return decision;
     }
   }

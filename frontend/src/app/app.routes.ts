@@ -22,6 +22,13 @@ export const routes: Routes = [
     data: { role: 'agent' },
   },
   {
+    path: 'admin',
+    loadComponent: () =>
+      import('./features/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+    canActivate: [authGuard],
+    data: { role: 'admin' },
+  },
+  {
     path: 'audit/:id',
     loadComponent: () =>
       import('./features/score-audit/score-audit.component').then(m => m.ScoreAuditComponent),

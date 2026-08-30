@@ -158,4 +158,47 @@
     <polyline points="23 4 23 10 17 10"/>
     <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
   </ng-container>
+
+  <!-- Trash -->
+  <ng-container *ngIf="name === 'trash'">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+    <line x1="10" y1="11" x2="10" y2="17"/>
+    <line x1="14" y1="11" x2="14" y2="17"/>
+  </ng-container>
+
+  <!-- Chevron Left -->
+  <ng-container *ngIf="name === 'chevron-left'">
+    <polyline points="15 18 9 12 15 6"/>
+  </ng-container>
+
+  <!-- Chevron Right -->
+  <ng-container *ngIf="name === 'chevron-right'">
+    <polyline points="9 18 15 12 9 6"/>
+  </ng-container>
+
+  <!-- Menu -->
+  <ng-container *ngIf="name === 'menu'">
+    <line x1="3" y1="12" x2="21" y2="12"/>
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <line x1="3" y1="18" x2="21" y2="18"/>
+  </ng-container>
+
+  <!-- Sun -->
+  <ng-container *ngIf="name === 'sun'">
+    <circle cx="12" cy="12" r="5"/>
+    <line x1="12" y1="1" x2="12" y2="3"/>
+    <line x1="12" y1="21" x2="12" y2="23"/>
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+    <line x1="1" y1="12" x2="3" y2="12"/>
+    <line x1="21" y1="12" x2="23" y2="12"/>
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+  </ng-container>
+
+  <!-- Moon -->
+  <ng-container *ngIf="name === 'moon'">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </ng-container>
 </svg>

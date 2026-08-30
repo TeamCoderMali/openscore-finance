@@ -1,350 +1,826 @@
 <div class="space-y-6 animate-fade-in">
-  <!-- Fullscreen AI Processing Spinner Overlay -->
-  <app-spinner
-    *ngIf="extractionProgress()"
-    size="fullscreen"
-    label="Extraction documentaire Gemini 1.5 Flash"
-    sublabel="Traitement securise en memoire vive • Purge immediate des binaires apres extraction"
-  ></app-spinner>
-
-  <!-- Header -->
-  <div class="flex items-center justify-between">
+  <!-- Top Header Banner -->
+  <div class="flex items-center justify-between border-b border-slate-200/90 pb-4">
     <div>
-      <h1 class="text-xl font-semibold text-zinc-900">Espace Client</h1>
-      <p class="text-sm text-zinc-500 mt-0.5">Demande de microcredit — soumission et suivi</p>
-    </div>
-    <div *ngIf="application()" class="text-right">
-      <span class="text-xs text-zinc-500">Dossier</span>
-      <p class="font-mono text-sm text-zinc-900">{{ application()!.reference }}</p>
+      <div class="flex items-center gap-2">
+        <h1 class="text-xl font-bold text-slate-900">
+          {{ currentView() === 'applications' ? 'Dossiers de Crédit & Demandes' :
+             (currentView() === 'dashboard' ? 'Tableau de Bord & Échéancier' :
+             (currentView() === 'documents' ? 'Récépissés & Documents Officiels' :
+             (currentView() === 'simulator' ? 'Simulateur de Capacité de Remboursement' :
+             (currentView() === 'voice' ? 'Assistant Vocal Bilingue (Français & Bambara)' : 'Cautions Solidaires & Groupements Tontines')))) }}
+        </h1>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-900 border border-blue-200">
+          UEMOA / WA+
+        </span>
+      </div>
+      <p class="text-xs text-slate-500 mt-0.5 font-mono">
+        Espace Emprunteur • Microfinance Mali • Gestion et suivi de crédit
+      </p>
     </div>
   </div>
 
-  <!-- Step indicator -->
-  <div class="card">
-    <div class="card-body">
-      <div class="flex items-center gap-1">
-        <ng-container *ngFor="let step of steps; let i = index; let last = last">
-          <button
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- VIEW 1 : MES DOSSIERS & NOUVELLE DEMANDE (WIZARD)                 -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentView() === 'applications'" class="space-y-6 animate-slide-up">
+    <!-- Step progress indicator -->
+    <div class="card p-4">
+      <div class="flex items-center justify-between">
+        <ng-container *ngFor="let step of steps; let i = index; let isLast = last">
+          <div
             (click)="goToStep(step)"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
-            [class.bg-blue-900]="currentStep() === step"
-            [class.text-white]="currentStep() === step"
-            [class.text-zinc-500]="currentStep() !== step"
-            [class.hover:bg-zinc-100]="currentStep() !== step"
+            class="flex items-center gap-2 cursor-pointer transition-colors"
+            [class.opacity-50]="!canProceedTo(step) && i > currentStepIndex()"
           >
-            <span class="w-5 h-5 rounded-full border flex items-center justify-center text-xs font-mono"
-              [class.bg-white]="currentStep() === step"
+            <div
+              class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono font-bold transition-all"
+              [class.bg-blue-700]="currentStep() === step"
+              [class.text-white]="currentStep() === step"
+              [class.bg-emerald-100]="i < currentStepIndex()"
+              [class.text-emerald-800]="i < currentStepIndex()"
+              [class.bg-slate-100]="i > currentStepIndex()"
+              [class.text-slate-500]="i > currentStepIndex()"
+            >
+              <span *ngIf="i >= currentStepIndex()">{{ i + 1 }}</span>
+              <app-svg-icon *ngIf="i < currentStepIndex()" name="check" [size]="14"></app-svg-icon>
+            </div>
+            <span
+              class="text-xs font-medium hidden sm:inline"
               [class.text-blue-900]="currentStep() === step"
-              [class.border-zinc-300]="currentStep() !== step"
-              [class.border-transparent]="currentStep() === step"
-            >{{ i + 1 }}</span>
-            <span>{{ stepLabels[step] }}</span>
-          </button>
-          <div *ngIf="!last" class="flex-1 h-px bg-zinc-200"></div>
+              [class.font-bold]="currentStep() === step"
+              [class.text-slate-500]="currentStep() !== step"
+            >
+              {{ stepLabels[step] }}
+            </span>
+          </div>
+
+          <div *ngIf="!isLast" class="flex-1 h-px bg-slate-200 mx-2 sm:mx-4"></div>
         </ng-container>
       </div>
     </div>
-  </div>
 
-  <!-- Error -->
-  <div *ngIf="error()" class="px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-sm text-rose-700 flex items-center gap-2 animate-fade-in">
-    <app-svg-icon name="alert" [size]="16"></app-svg-icon>
-    <span>{{ error() }}</span>
-  </div>
+    <!-- Step 1: Profile & Amount -->
+    <div *ngIf="currentStep() === 'profile'" class="card p-6 space-y-6">
+      <div class="border-b border-slate-200 pb-3">
+        <h2 class="text-base font-bold text-slate-900">Étape 1 : Paramètres du Microcrédit</h2>
+        <p class="text-xs text-slate-500 font-mono">Définissez votre activité économique et le besoin de financement</p>
+      </div>
 
-  <!-- ═══ STEP 1: Profile & Amount ═══ -->
-  <div *ngIf="currentStep() === 'profile'" class="card animate-slide-up">
-    <div class="card-header">
-      <h3 class="flex items-center gap-2">
-        <app-svg-icon name="user" [size]="18"></app-svg-icon>
-        Profil d'activite et montant sollicite
-      </h3>
-    </div>
-    <div class="card-body space-y-5">
-      <!-- Activity Sector -->
-      <div>
-        <label class="form-label">Secteur d'activite</label>
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <button *ngFor="let sector of sectors"
-            (click)="activitySector.set(sector)"
-            class="px-4 py-3 border rounded-md text-sm font-medium transition-all"
-            [class.border-blue-900]="activitySector() === sector"
-            [class.bg-blue-900]="activitySector() === sector"
-            [class.text-white]="activitySector() === sector"
-            [class.border-zinc-200]="activitySector() !== sector"
-            [class.text-zinc-700]="activitySector() !== sector"
-            [class.hover:border-zinc-300]="activitySector() !== sector"
-          >
-            {{ sector }}
-          </button>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="form-label">Secteur d'Activité</label>
+          <div class="grid grid-cols-2 gap-2 mt-1">
+            <button
+              *ngFor="let s of sectors"
+              type="button"
+              (click)="activitySector.set(s)"
+              class="p-3 border rounded-md text-left transition-all cursor-pointer"
+              [class.border-blue-700]="activitySector() === s"
+              [class.bg-blue-50/70]="activitySector() === s"
+              [class.border-slate-200]="activitySector() !== s"
+            >
+              <p class="text-xs font-bold text-slate-900">{{ s }}</p>
+              <p class="text-[10px] text-slate-500 font-mono mt-0.5">
+                {{ s === 'Commerce' ? 'Grand Marché / Détaillant' : (s === 'Agriculture' ? 'Maraîchage Baguinéda' : (s === 'Artisanat' ? 'Couture & Forge' : 'PME Locale')) }}
+              </p>
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="form-label mb-0">Montant Sollicité (FCFA)</label>
+              <span class="text-xs font-mono text-slate-500">Saisie libre ou curseur</span>
+            </div>
+            <!-- Direct numeric input with FCFA currency suffix -->
+            <div class="relative">
+              <input
+                type="number"
+                min="50000"
+                max="5000000"
+                step="10000"
+                [ngModel]="requestedAmount()"
+                (ngModelChange)="requestedAmount.set($event)"
+                class="form-input font-mono text-sm font-bold text-blue-900 pr-16 bg-white"
+                placeholder="ex: 500000"
+              />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400 pointer-events-none">
+                FCFA
+              </span>
+            </div>
+
+            <!-- Synchronized slider -->
+            <div class="mt-2.5">
+              <input
+                type="range"
+                min="100000"
+                max="3000000"
+                step="50000"
+                [ngModel]="requestedAmount()"
+                (ngModelChange)="requestedAmount.set($event)"
+                class="w-full accent-blue-700 cursor-pointer"
+              />
+              <div class="flex justify-between text-[10px] font-mono text-slate-400 mt-0.5">
+                <span>100 000</span>
+                <span>1 500 000</span>
+                <span>3 000 000 FCFA</span>
+              </div>
+            </div>
+
+            <!-- Quick Amount Chips -->
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              <button
+                *ngFor="let amt of [250000, 500000, 1000000, 1500000, 2000000]"
+                type="button"
+                (click)="requestedAmount.set(amt)"
+                class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold border transition-all cursor-pointer"
+                [class.bg-blue-700]="requestedAmount() === amt"
+                [class.text-white]="requestedAmount() === amt"
+                [class.border-blue-700]="requestedAmount() === amt"
+                [class.bg-slate-50]="requestedAmount() !== amt"
+                [class.text-slate-600]="requestedAmount() !== amt"
+                [class.border-slate-200]="requestedAmount() !== amt"
+              >
+                {{ amt >= 1000000 ? (amt / 1000000) + 'M' : (amt / 1000) + 'k' }} FCFA
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label">Durée de Remboursement</label>
+            <select
+              [ngModel]="durationMonths()"
+              (ngModelChange)="durationMonths.set($event)"
+              class="form-select font-mono text-xs"
+            >
+              <option [value]="6">6 mois (Court terme - fonds de roulement)</option>
+              <option [value]="12">12 mois (Standard - cycle annuel)</option>
+              <option [value]="18">18 mois (Équipement / stock important)</option>
+              <option [value]="24">24 mois (Investissement matériel)</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <!-- Amount -->
       <div>
-        <label for="amount" class="form-label">Montant demande (FCFA)</label>
-        <input
-          id="amount"
-          type="number"
-          [ngModel]="requestedAmount()"
-          (ngModelChange)="requestedAmount.set($event)"
-          class="form-input font-mono text-lg"
-          min="50000"
-          max="10000000"
-          step="50000"
-          placeholder="500 000"
-        />
-        <p class="mt-1 text-xs text-zinc-400 font-mono">Min : 50 000 FCFA — Max : 10 000 000 FCFA</p>
-      </div>
-
-      <!-- Duration -->
-      <div>
-        <label for="duration" class="form-label">Duree souhaitee (mois)</label>
-        <select
-          id="duration"
-          [ngModel]="durationMonths()"
-          (ngModelChange)="durationMonths.set($event)"
-          class="form-select"
-        >
-          <option [value]="6">6 mois</option>
-          <option [value]="12">12 mois</option>
-          <option [value]="18">18 mois</option>
-          <option [value]="24">24 mois</option>
-          <option [value]="36">36 mois</option>
-        </select>
-      </div>
-
-      <!-- Business description -->
-      <div>
-        <label for="description" class="form-label">Description de l'activite (optionnel)</label>
+        <label class="form-label">Description de l'Activité & Emplacement</label>
         <textarea
-          id="description"
+          rows="2"
           [ngModel]="businessDescription()"
           (ngModelChange)="businessDescription.set($event)"
-          class="form-input"
-          rows="3"
-          placeholder="Decrivez brievement votre activite..."
+          class="form-input text-xs"
+          placeholder="Ex: Vente de tissus Bazin et mercerie au Grand Marché de Bamako, Stand n°142..."
         ></textarea>
       </div>
 
-      <!-- Summary & Submit -->
-      <div class="flex items-center justify-between pt-4 border-t border-zinc-100">
-        <div>
-          <span class="text-xs text-zinc-500">Montant demande</span>
-          <p class="font-mono text-lg font-semibold text-zinc-900">{{ formattedAmount() }}</p>
-        </div>
-        <button (click)="submitProfile()" class="btn-primary" [disabled]="loading()">
+      <div class="flex justify-end pt-4 border-t border-slate-200">
+        <button (click)="submitProfile()" class="btn-primary text-xs" [disabled]="loading()">
           <app-spinner *ngIf="loading()" size="sm" [inline]="true" variant="white"></app-spinner>
-          <span *ngIf="loading()">Envoi en cours...</span>
-          <span *ngIf="!loading()">Suivant</span>
-          <app-svg-icon *ngIf="!loading()" name="arrow-left" [size]="16" class="rotate-180"></app-svg-icon>
+          <span *ngIf="!loading()">Enregistrer & Passer aux Pièces Justificatives</span>
+          <app-svg-icon *ngIf="!loading()" name="check-circle" [size]="14"></app-svg-icon>
         </button>
       </div>
     </div>
-  </div>
 
-  <!-- ═══ STEP 2: Document Upload ═══ -->
-  <div *ngIf="currentStep() === 'documents'" class="card animate-slide-up">
-    <div class="card-header">
-      <h3 class="flex items-center gap-2">
-        <app-svg-icon name="upload" [size]="18"></app-svg-icon>
-        Pieces justificatives (CNI, NINA, Attestation, Registre)
-      </h3>
-    </div>
-    <div class="card-body space-y-4">
-      <!-- RGPD Notice -->
-      <div class="px-3 py-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800 flex items-start gap-2">
-        <app-svg-icon name="shield" [size]="14" class="mt-0.5 flex-shrink-0 text-amber-700"></app-svg-icon>
-        <span>Vos documents sont traites en memoire vive uniquement pour l'extraction IA, puis <strong>automatiquement detruits</strong>. Aucun fichier binaire n'est conserve sur nos serveurs.</span>
+    <!-- Step 2: Documents IA Extraction -->
+    <div *ngIf="currentStep() === 'documents'" class="card p-6 space-y-6">
+      <div class="border-b border-slate-200 pb-3">
+        <h2 class="text-base font-bold text-slate-900">Étape 2 : Justificatifs & Analyse IA Gemini</h2>
+        <p class="text-xs text-slate-500 font-mono">Chargez une pièce d'identité (NINA/CNI) ou un carnet de reçus pour l'extraction automatique</p>
       </div>
 
-      <!-- Drop zone -->
       <div
-        class="relative border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer"
-        [class.border-blue-900]="isDragOver()"
-        [class.bg-blue-50/50]="isDragOver()"
-        [class.border-zinc-300]="!isDragOver()"
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave()"
         (drop)="onDrop($event)"
-        (click)="fileInput.click()"
+        class="border-2 border-dashed rounded-lg p-8 text-center transition-all"
+        [class.border-blue-700]="isDragOver()"
+        [class.bg-blue-50/50]="isDragOver()"
+        [class.border-slate-300]="!isDragOver()"
       >
-        <input #fileInput type="file" class="hidden" multiple accept="image/*,.pdf" (change)="onFileSelect($event)" />
-        <app-svg-icon name="upload" [size]="32" class="text-zinc-400 mx-auto mb-3"></app-svg-icon>
-        <p class="text-sm text-zinc-700 font-medium">Glissez-deposez vos justificatifs ici</p>
-        <p class="text-xs text-zinc-400 mt-1 font-mono">JPG, PNG, WEBP, PDF (max 10 Mo par document)</p>
+        <app-svg-icon name="upload" [size]="32" class="mx-auto text-slate-400 mb-2"></app-svg-icon>
+        <p class="text-xs font-bold text-slate-800">Glissez-déposez vos justificatifs ici</p>
+        <p class="text-[11px] text-slate-500 font-mono mt-1">Fichiers acceptés : Photos JPG/PNG ou PDF (NINA, CNI, Carnet de reçus)</p>
+
+        <label class="btn-secondary text-xs mt-4 inline-flex cursor-pointer">
+          <span>Parcourir mes fichiers</span>
+          <input type="file" (change)="onFileSelected($event)" accept="image/*,application/pdf" class="hidden" />
+        </label>
       </div>
 
-      <!-- File list -->
+      <!-- Selected files list -->
       <div *ngIf="selectedFiles().length > 0" class="space-y-2">
-        <div *ngFor="let file of selectedFiles(); let i = index"
-          class="flex items-center justify-between px-3 py-2 bg-zinc-50 rounded-md border border-zinc-200">
-          <div class="flex items-center gap-2 min-w-0">
-            <app-svg-icon name="file-text" [size]="16" class="text-zinc-500 shrink-0"></app-svg-icon>
-            <span class="text-sm text-zinc-700 truncate">{{ file.name }}</span>
-            <span class="text-xs text-zinc-400 font-mono shrink-0">{{ (file.size / 1024).toFixed(0) }} Ko</span>
+        <p class="text-xs font-bold text-slate-700 font-mono uppercase">Fichiers Prêts pour l'Extraction :</p>
+        <div *ngFor="let f of selectedFiles(); let idx = index" class="p-2.5 bg-slate-50 border border-slate-200 rounded flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <app-svg-icon name="file-text" [size]="16" class="text-blue-900"></app-svg-icon>
+            <span class="font-bold text-slate-800">{{ f.name }}</span>
+            <span class="text-[10px] text-slate-400 font-mono">({{ (f.size / 1024).toFixed(0) }} KB)</span>
           </div>
-          <button (click)="removeFile(i)" class="text-zinc-400 hover:text-rose-600 transition-colors shrink-0">
-            <app-svg-icon name="x-circle" [size]="16"></app-svg-icon>
-          </button>
+          <button (click)="removeFile(idx)" class="text-rose-600 hover:text-rose-800 text-xs font-mono cursor-pointer">Supprimer</button>
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="flex items-center justify-between pt-4 border-t border-zinc-100">
-        <button (click)="prevStep()" class="btn-secondary">
-          <app-svg-icon name="arrow-left" [size]="16"></app-svg-icon>
-          Retour
-        </button>
-        <button (click)="uploadAndExtract()" class="btn-primary" [disabled]="extractionProgress() || selectedFiles().length === 0">
-          <app-svg-icon *ngIf="!extractionProgress()" name="search" [size]="16"></app-svg-icon>
-          <span>Extraire et continuer</span>
+      <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+        <button (click)="prevStep()" class="btn-secondary text-xs">Retour</button>
+        <button (click)="extractDocuments()" class="btn-primary text-xs" [disabled]="selectedFiles().length === 0 || extractionProgress()">
+          <app-spinner *ngIf="extractionProgress()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="extractionProgress()">Extraction OCR en cours...</span>
+          <span *ngIf="!extractionProgress()">Lancer l'Extraction IA & Continuer</span>
         </button>
       </div>
     </div>
-  </div>
 
-  <!-- ═══ STEP 3: Voice Assist ═══ -->
-  <div *ngIf="currentStep() === 'voice'" class="card animate-slide-up">
-    <div class="card-header">
-      <h3 class="flex items-center gap-2">
-        <app-svg-icon name="mic" [size]="18"></app-svg-icon>
-        Assistance vocale interactive
-      </h3>
-    </div>
-    <div class="card-body space-y-4">
-      <p class="text-sm text-zinc-500">Posez vos questions sur le microcredit (taux, documents, echeances). Appuyez sur le micro pour commencer.</p>
+    <!-- Step 3: Voice Assistant Query -->
+    <div *ngIf="currentStep() === 'voice'" class="card p-6 space-y-6">
+      <div class="border-b border-slate-200 pb-3">
+        <h2 class="text-base font-bold text-slate-900">Étape 3 : Assistant Vocal Bilingue (Français & Bambara)</h2>
+        <p class="text-xs text-slate-500 font-mono">Posez vos questions sur l'éligibilité, les taux ou demandez un conseil financier</p>
+      </div>
 
-      <!-- Mic button -->
-      <div class="flex flex-col items-center justify-center py-4">
-        <button
-          (click)="toggleRecording()"
-          class="w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-sm"
-          [class.bg-rose-600]="isRecording()"
-          [class.animate-pulse-slow]="isRecording()"
-          [class.bg-blue-900]="!isRecording()"
-          [class.hover:bg-blue-800]="!isRecording()"
-        >
-          <app-svg-icon name="mic" [size]="24" class="text-white"></app-svg-icon>
+      <app-voice-assistant (responseEvent)="onVoiceResult($event)"></app-voice-assistant>
+
+      <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+        <button (click)="prevStep()" class="btn-secondary text-xs">Retour</button>
+        <button (click)="nextStep()" class="btn-primary text-xs">
+          <span>Passer au Suivi du Dossier</span>
+          <app-svg-icon name="check-circle" [size]="14"></app-svg-icon>
         </button>
-        <p *ngIf="isRecording()" class="text-xs text-rose-600 font-medium font-mono mt-3 animate-pulse">
-          Ecoute en cours (Francais / Bambara)...
-        </p>
+      </div>
+    </div>
+
+    <!-- Step 4: Decision & Timeline -->
+    <div *ngIf="currentStep() === 'decision'" class="card p-6 space-y-6">
+      <div class="border-b border-slate-200 pb-3 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Étape 4 : Suivi en Temps Réel & Décision</h2>
+          <p class="text-xs text-slate-500 font-mono">Dossier de crédit Réf : {{ application()?.reference || 'OSF-EN-COURS' }}</p>
+        </div>
+        <span class="px-2.5 py-1 rounded text-xs font-mono font-bold" [class]="getStatusBadgeClass(application()?.status)">
+          {{ getStatusLabel(application()?.status) }}
+        </span>
       </div>
 
-      <!-- Transcript -->
-      <div *ngIf="voiceTranscript()" class="px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-md">
-        <span class="text-[10px] text-zinc-400 uppercase tracking-wider font-mono">Transcription</span>
-        <p class="text-sm text-zinc-900 mt-0.5">{{ voiceTranscript() }}</p>
-      </div>
-
-      <!-- Loading response spinner -->
-      <div *ngIf="voiceLoading()" class="py-4">
-        <app-spinner size="sm" label="Recherche de la reponse reglementaire..."></app-spinner>
-      </div>
-
-      <!-- Response -->
-      <div *ngIf="voiceResponse() && !voiceLoading()" class="px-4 py-3 bg-blue-50 border border-blue-200 rounded-md animate-fade-in">
-        <p class="text-sm text-blue-900 leading-relaxed">{{ voiceResponse()!.response_text }}</p>
-        <div *ngIf="voiceResponse()!.suggestions.length > 0" class="mt-3 flex flex-wrap gap-2">
-          <button *ngFor="let s of voiceResponse()!.suggestions"
-            (click)="askSuggestion(s)"
-            class="px-2.5 py-1 text-xs bg-white border border-blue-200 rounded-full text-blue-800 hover:bg-blue-100 transition-colors"
-          >{{ s }}</button>
+      <div class="p-4 bg-slate-50 border border-slate-200 rounded-md text-xs font-mono space-y-2">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Montant Demandé :</span>
+          <span class="font-bold text-slate-900">{{ formatAmount(application()?.requested_amount || requestedAmount()) }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Secteur :</span>
+          <span class="font-bold text-slate-900">{{ application()?.activity_sector || activitySector() }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Durée :</span>
+          <span class="font-bold text-slate-900">{{ application()?.requested_duration_months || durationMonths() }} mois</span>
         </div>
       </div>
 
-      <!-- Manual input -->
-      <div class="flex gap-2">
-        <input
-          type="text"
-          [ngModel]="voiceTranscript()"
-          (ngModelChange)="voiceTranscript.set($event)"
-          class="form-input flex-1"
-          placeholder="Ou tapez votre question ici..."
-          (keydown.enter)="submitVoiceQuery(voiceTranscript())"
-        />
-        <button (click)="submitVoiceQuery(voiceTranscript())" class="btn-primary" [disabled]="voiceLoading()">
-          <app-svg-icon name="send" [size]="16"></app-svg-icon>
-        </button>
-      </div>
-
-      <!-- Navigation -->
-      <div class="flex items-center justify-between pt-4 border-t border-zinc-100">
-        <button (click)="prevStep()" class="btn-secondary">
-          <app-svg-icon name="arrow-left" [size]="16"></app-svg-icon>
-          Retour
-        </button>
-        <button (click)="nextStep()" class="btn-primary">
-          <span>Voir mes dossiers</span>
-          <app-svg-icon name="arrow-left" [size]="16" class="rotate-180"></app-svg-icon>
+      <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+        <button (click)="currentStep.set('profile')" class="btn-secondary text-xs">Nouvelle Demande</button>
+        <button *ngIf="application()?.id" (click)="viewReceipt(application()!.id)" class="btn-primary text-xs">
+          <app-svg-icon name="printer" [size]="14"></app-svg-icon>
+          <span>Générer Récépissé Officiel A4</span>
         </button>
       </div>
     </div>
-  </div>
 
-  <!-- ═══ STEP 4: Decision & Applications List ═══ -->
-  <div *ngIf="currentStep() === 'decision'" class="space-y-4 animate-slide-up">
-    <div class="card">
-      <div class="card-header flex items-center justify-between">
-        <h3 class="flex items-center gap-2">
-          <app-svg-icon name="folder" [size]="18"></app-svg-icon>
-          Mes dossiers de microcredit
-        </h3>
-        <button (click)="goToStep('profile')" class="btn-secondary text-xs py-1 px-2.5">
-          <app-svg-icon name="plus" [size]="14"></app-svg-icon>
-          Nouveau dossier
+    <!-- Applications list table -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-3 border-b border-slate-200 pb-3">
+        <h3 class="text-sm font-bold text-slate-900 font-mono">Historique de Mes Demandes de Crédit</h3>
+        <button (click)="loadExistingApplications()" class="btn-ghost text-xs py-1 px-2 text-blue-900 cursor-pointer">
+          <app-svg-icon name="refresh" [size]="12"></app-svg-icon>
+          <span>Actualiser</span>
         </button>
       </div>
 
-      <!-- Loading State -->
-      <div *ngIf="initialLoading()" class="py-12">
-        <app-spinner size="md" label="Chargement de vos dossiers..." sublabel="Connexion au registre IMF..."></app-spinner>
-      </div>
-
-      <!-- Table -->
-      <div *ngIf="!initialLoading()" class="overflow-x-auto">
-        <table class="data-table">
+      <div class="overflow-x-auto border border-slate-200 rounded-md">
+        <table class="data-table text-xs">
           <thead>
             <tr>
-              <th>Reference</th>
+              <th>Référence</th>
               <th>Secteur</th>
-              <th>Montant</th>
-              <th>Statut</th>
-              <th>Date</th>
+              <th>Montant Sollicité</th>
+              <th>Statut Actuel</th>
+              <th>Date de Dépôt</th>
               <th class="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let app of existingApplications()">
-              <td class="font-mono text-xs font-semibold">{{ app.reference }}</td>
-              <td>{{ app.activity_sector }}</td>
-              <td class="font-mono">{{ formatAmount(app.requested_amount) }}</td>
+            <tr *ngFor="let a of pagedApplications()">
+              <td class="font-mono font-bold text-slate-900">{{ a.reference }}</td>
+              <td>{{ a.activity_sector }}</td>
+              <td class="font-mono font-bold text-blue-900">{{ formatAmount(a.requested_amount) }}</td>
               <td>
-                <span [class]="getStatusBadgeClass(app.status)">
-                  {{ getStatusLabel(app.status) }}
+                <span class="px-2.5 py-0.5 rounded text-[11px] font-mono font-semibold inline-block" [class]="getStatusBadgeClass(a.status)">
+                  {{ getStatusLabel(a.status) }}
                 </span>
               </td>
-              <td class="text-zinc-500 text-xs font-mono">{{ app.created_at | date:'dd/MM/yyyy' }}</td>
-              <td class="text-right">
-                <button *ngIf="app.status === 'approved' || app.status === 'adjusted' || app.status === 'rejected'"
-                  (click)="viewScoring(app.id)" class="btn-ghost text-xs py-1 px-2">
-                  <app-svg-icon name="eye" [size]="14"></app-svg-icon>
-                  Scoring
+              <td class="font-mono text-slate-500">{{ a.created_at | date:'dd/MM/yyyy' }}</td>
+              <td class="text-right space-x-1">
+                <button (click)="openAudit(a.id, a.reference)" class="btn-ghost text-[10px] py-0.5 px-1.5">
+                  <app-svg-icon name="clock" [size]="12"></app-svg-icon>
+                  <span>Audit</span>
                 </button>
-                <button *ngIf="app.status === 'approved' || app.status === 'adjusted'"
-                  (click)="viewReceipt(app.id)" class="btn-ghost text-xs py-1 px-2 ml-1">
-                  <app-svg-icon name="printer" [size]="14"></app-svg-icon>
-                  Recepisse
+                <button (click)="viewReceipt(a.id)" class="btn-ghost text-[10px] py-0.5 px-1.5 text-blue-900">
+                  <app-svg-icon name="printer" [size]="12"></app-svg-icon>
+                  <span>Récépissé</span>
                 </button>
               </td>
             </tr>
             <tr *ngIf="existingApplications().length === 0">
-              <td colspan="6" class="text-center text-zinc-400 py-8">Aucun dossier enregistre</td>
+              <td colspan="6" class="text-center py-6 text-slate-400">
+                Aucune demande de crédit enregistrée pour le moment.
+              </td>
             </tr>
           </tbody>
         </table>
+
+        <!-- Applications Pagination Toolbar -->
+        <div *ngIf="existingApplications().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-600">
+          <div class="flex items-center gap-2">
+            <span>Afficher</span>
+            <select
+              [ngModel]="appsPageSize()"
+              (ngModelChange)="appsPageSize.set(+$event); appsPage.set(1)"
+              class="form-select py-0.5 px-2 text-xs font-mono bg-white border border-slate-300 rounded"
+            >
+              <option [ngValue]="5">5</option>
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="20">20</option>
+            </select>
+            <span>sur <strong>{{ existingApplications().length }}</strong> dossiers</span>
+          </div>
+
+          <div class="flex items-center gap-1 font-mono">
+            <button
+              (click)="appsPage.set(appsPage() - 1)"
+              [disabled]="appsPage() <= 1"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Précédent
+            </button>
+            <span class="px-2 font-bold text-slate-900">Page {{ appsPage() }} / {{ totalAppsPages() }}</span>
+            <button
+              (click)="appsPage.set(appsPage() + 1)"
+              [disabled]="appsPage() >= totalAppsPages()"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Suivant
+            </button>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- VIEW 2 : TABLEAU DE BORD EMPRUNTEUR & ÉCHÉANCES                  -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentView() === 'dashboard'" class="space-y-6 animate-slide-up">
+    <!-- Macro KPIs -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card p-4">
+        <div class="flex justify-between items-center text-xs font-mono text-slate-500">
+          <span>ENCOURS TOTAL ACTIF</span>
+          <app-svg-icon name="check-circle" [size]="16" class="text-blue-700"></app-svg-icon>
+        </div>
+        <p class="text-2xl font-mono font-bold text-slate-900 mt-1">1 500 000 FCFA</p>
+        <p class="text-[10px] text-emerald-700 font-semibold mt-1">Dossier en règle • Échéances à jour</p>
+      </div>
+
+      <div class="card p-4">
+        <div class="flex justify-between items-center text-xs font-mono text-slate-500">
+          <span>PROCHAINE ÉCHÉANCE</span>
+          <app-svg-icon name="clock" [size]="16" class="text-amber-600"></app-svg-icon>
+        </div>
+        <p class="text-2xl font-mono font-bold text-blue-900 mt-1">137 500 FCFA</p>
+        <p class="text-[10px] text-slate-400 mt-1">Échéance le 15 du mois prochain</p>
+      </div>
+
+      <div class="card p-4">
+        <div class="flex justify-between items-center text-xs font-mono text-slate-500">
+          <span>COTE DE PONCTUALITÉ</span>
+          <app-svg-icon name="shield" [size]="16" class="text-emerald-700"></app-svg-icon>
+        </div>
+        <p class="text-2xl font-mono font-bold text-emerald-700 mt-1">98.5%</p>
+        <p class="text-[10px] text-emerald-800 font-semibold mt-1">Profil Excellent (Bonus Taux -0.5%)</p>
+      </div>
+
+      <div class="card p-4">
+        <div class="flex justify-between items-center text-xs font-mono text-slate-500">
+          <span>TONTINE / GROUPEMENT</span>
+          <app-svg-icon name="user" [size]="16" class="text-purple-800"></app-svg-icon>
+        </div>
+        <p class="text-lg font-bold text-purple-950 mt-1 truncate">Benkadi Grand Marché</p>
+        <p class="text-[10px] text-slate-400 mt-1">Caution solidaire active (1 garant)</p>
+      </div>
+    </div>
+
+    <!-- Active Loan Repayment Schedule Card -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">Échéancier Actif & Suivi des Quittances</h3>
+          <p class="text-xs text-slate-500 font-mono">Dossier OSF-20260829-A1B2 • 12 Mensualités dégressives</p>
+        </div>
+        <span class="px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-100 text-emerald-800">
+          ACTIF / EN COURS
+        </span>
+      </div>
+
+      <div class="space-y-3 font-mono text-xs">
+        <div class="p-3 bg-emerald-50/50 border border-emerald-200 rounded-md flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">1</div>
+            <div>
+              <p class="font-bold text-slate-900">Échéance Mois 1 — 137 500 FCFA</p>
+              <p class="text-[10px] text-slate-500">Payé le 15/08/2026 via Orange Money Mali</p>
+            </div>
+          </div>
+          <span class="badge-success">Réglé • Quittance #Q-0194</span>
+        </div>
+
+        <div class="p-3 bg-blue-50/50 border border-blue-200 rounded-md flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-[10px]">2</div>
+            <div>
+              <p class="font-bold text-slate-900">Échéance Mois 2 — 137 500 FCFA</p>
+              <p class="text-[10px] text-slate-500">Exigible le 15/09/2026</p>
+            </div>
+          </div>
+          <span class="badge-info">Prochaine Échéance</span>
+        </div>
+
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between opacity-70">
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full bg-slate-300 text-slate-700 flex items-center justify-center font-bold text-[10px]">3</div>
+            <div>
+              <p class="font-bold text-slate-900">Échéance Mois 3 — 137 500 FCFA</p>
+              <p class="text-[10px] text-slate-500">Exigible le 15/10/2026</p>
+            </div>
+          </div>
+          <span class="badge-neutral">À venir</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- VIEW 3 : RÉCÉPISSÉS & DOCUMENTS OFFICIELS A4                      -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentView() === 'documents'" class="space-y-6 animate-slide-up">
+    <div class="card p-5">
+      <div class="border-b border-slate-200 pb-3 mb-4">
+        <h3 class="text-sm font-bold text-slate-900">Mes Récépissés & Documents Officiels BCEAO</h3>
+        <p class="text-xs text-slate-500 font-mono">Consultez et imprimez les récépissés officiels de vos demandes de microcrédit</p>
+      </div>
+
+      <div class="space-y-3">
+        <div *ngFor="let a of pagedDocuments()" class="p-4 bg-slate-50 border border-slate-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-900 flex items-center justify-center font-bold shrink-0">
+              <app-svg-icon name="file-text" [size]="20"></app-svg-icon>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <p class="font-bold text-slate-900 text-sm font-mono">{{ a.reference }}</p>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold" [class]="getStatusBadgeClass(a.status)">
+                  {{ getStatusLabel(a.status) }}
+                </span>
+              </div>
+              <p class="text-xs text-slate-500 font-mono mt-0.5">{{ a.activity_sector }} • {{ formatAmount(a.requested_amount) }}</p>
+              <p class="text-[10px] text-slate-400 font-mono">Dépôt le {{ a.created_at | date:'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button (click)="viewReceipt(a.id)" class="btn-primary text-xs py-1.5 px-3">
+              <app-svg-icon name="printer" [size]="14"></app-svg-icon>
+              <span>Imprimer Récépissé A4</span>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="completedApplications().length === 0" class="py-8 text-center text-slate-400 text-xs">
+          Aucun document officiel disponible pour le moment.
+        </div>
+
+        <!-- Documents Pagination Toolbar -->
+        <div *ngIf="completedApplications().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-600">
+          <div class="flex items-center gap-2">
+            <span>Afficher</span>
+            <select
+              [ngModel]="docsPageSize()"
+              (ngModelChange)="docsPageSize.set(+$event); docsPage.set(1)"
+              class="form-select py-0.5 px-2 text-xs font-mono bg-white border border-slate-300 rounded"
+            >
+              <option [ngValue]="5">5</option>
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="20">20</option>
+            </select>
+            <span>sur <strong>{{ completedApplications().length }}</strong> documents</span>
+          </div>
+
+          <div class="flex items-center gap-1 font-mono">
+            <button
+              (click)="docsPage.set(docsPage() - 1)"
+              [disabled]="docsPage() <= 1"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Précédent
+            </button>
+            <span class="px-2 font-bold text-slate-900">Page {{ docsPage() }} / {{ totalDocsPages() }}</span>
+            <button
+              (click)="docsPage.set(docsPage() + 1)"
+              [disabled]="docsPage() >= totalDocsPages()"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Suivant
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- VIEW 4 : SIMULATEUR DE CAPACITÉ & MENSUALITÉS                     -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentView() === 'simulator'" class="space-y-6 animate-slide-up">
+    <div class="card p-6 space-y-6">
+      <div class="border-b border-slate-200 pb-3">
+        <h3 class="text-sm font-bold text-slate-900">Simulateur de Capacité de Remboursement & Mensualité</h3>
+        <p class="text-xs text-slate-500 font-mono">Calculez instantanément votre mensualité estimée et le taux d'effort sur vos recettes</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="form-label mb-0">Montant d'Emprunt Envisagé (FCFA)</label>
+              <span class="text-xs font-mono text-slate-500">Saisie libre ou curseur</span>
+            </div>
+            <!-- Direct numeric input -->
+            <div class="relative">
+              <input
+                type="number"
+                min="50000"
+                max="5000000"
+                step="10000"
+                [ngModel]="simAmount()"
+                (ngModelChange)="simAmount.set($event)"
+                class="form-input font-mono text-sm font-bold text-blue-900 pr-16 bg-white"
+                placeholder="ex: 750000"
+              />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-400 pointer-events-none">
+                FCFA
+              </span>
+            </div>
+
+            <!-- Synchronized range slider -->
+            <div class="mt-2">
+              <input
+                type="range"
+                min="100000" max="3000000" step="50000"
+                [ngModel]="simAmount()"
+                (ngModelChange)="simAmount.set($event)"
+                class="w-full accent-blue-700 cursor-pointer"
+              />
+            </div>
+
+            <!-- Quick Chips -->
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              <button
+                *ngFor="let amt of [500000, 750000, 1000000, 1500000, 2000000]"
+                type="button"
+                (click)="simAmount.set(amt)"
+                class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold border transition-all cursor-pointer"
+                [class.bg-blue-700]="simAmount() === amt"
+                [class.text-white]="simAmount() === amt"
+                [class.border-blue-700]="simAmount() === amt"
+                [class.bg-slate-50]="simAmount() !== amt"
+                [class.text-slate-600]="simAmount() !== amt"
+                [class.border-slate-200]="simAmount() !== amt"
+              >
+                {{ amt >= 1000000 ? (amt / 1000000) + 'M' : (amt / 1000) + 'k' }} FCFA
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="form-label mb-0">Durée du Prêt (Mois)</label>
+              <span class="font-mono font-bold text-slate-900 text-sm">{{ simDuration() }} mois</span>
+            </div>
+            <input
+              type="range"
+              min="3" max="24" step="1"
+              [ngModel]="simDuration()"
+              (ngModelChange)="simDuration.set($event)"
+              class="w-full accent-blue-700"
+            />
+          </div>
+
+          <div>
+            <label class="form-label">Vos Recettes Mensuelles Estimées (FCFA)</label>
+            <input
+              type="number"
+              step="10000"
+              [ngModel]="simMonthlyRevenue()"
+              (ngModelChange)="simMonthlyRevenue.set($event)"
+              class="form-input font-mono text-xs"
+            />
+          </div>
+        </div>
+
+        <!-- Simulator Result Cards -->
+        <div class="p-5 bg-slate-50 border border-slate-200 rounded-lg space-y-4 font-mono">
+          <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+            <span class="text-slate-500">Mensualité Estimée :</span>
+            <span class="text-lg font-bold text-blue-900">{{ formatAmount(simMonthlyPayment()) }} / mois</span>
+          </div>
+
+          <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+            <span class="text-slate-500">Total des Intérêts (1.5%/m) :</span>
+            <span class="font-bold text-slate-900">{{ formatAmount(simTotalInterest()) }}</span>
+          </div>
+
+          <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+            <span class="text-slate-500">Taux d'Effort sur Recettes :</span>
+            <span class="font-bold"
+              [class.text-emerald-700]="simDebtEffortRate() <= 35"
+              [class.text-amber-700]="simDebtEffortRate() > 35 && simDebtEffortRate() <= 45"
+              [class.text-rose-700]="simDebtEffortRate() > 45"
+            >
+              {{ simDebtEffortRate() }}% ({{ simDebtEffortRate() <= 35 ? 'Confortable' : 'Plafond BCEAO' }})
+            </span>
+          </div>
+
+          <button (click)="applySimulatorToApplication()" class="btn-primary w-full text-xs py-2 mt-2">
+            <app-svg-icon name="send" [size]="14"></app-svg-icon>
+            <span>Transférer ces valeurs vers ma demande</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- VIEW 5 : ASSISTANT VOCAL BILINGUE & CONSEILS                      -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentView() === 'voice'" class="space-y-6 animate-slide-up">
+    <div class="card p-6">
+      <div class="border-b border-slate-200 pb-3 mb-4">
+        <h3 class="text-sm font-bold text-slate-900">Assistant Vocal Bilingue (Français & Bamanankan)</h3>
+        <p class="text-xs text-slate-500 font-mono">Posez vos questions oralement ou écoutez les explications financières en langue locale</p>
+      </div>
+
+      <app-voice-assistant (responseEvent)="onVoiceResult($event)"></app-voice-assistant>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- VIEW 6 : CAUTION SOLIDAIRE & TONTINES DE PROXIMITÉ               -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentView() === 'guarantors'" class="space-y-6 animate-slide-up">
+    <div class="card p-5">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">Cautions Solidaires & Groupements Tontines</h3>
+          <p class="text-xs text-slate-500 font-mono">Associez un garant moral ou votre groupement tontinier pour renforcer votre score d'octroi</p>
+        </div>
+        <button (click)="openAddGuarantor()" class="btn-primary text-xs py-1.5 px-3">
+          <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+          <span>+ Ajouter un Garant</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div *ngFor="let g of guarantors(); let i = index" class="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-slate-900 text-sm">{{ g.fullName }}</span>
+            <button (click)="removeGuarantor(i)" class="text-rose-600 hover:text-rose-800 text-[10px] font-mono cursor-pointer">Retirer</button>
+          </div>
+          <p class="text-slate-600 font-mono">📞 {{ g.phone }} • {{ g.relationship }}</p>
+          <p class="text-slate-500">📍 {{ g.marketLocation }} ({{ g.activitySector }})</p>
+          <p *ngIf="g.tontineGroup" class="text-purple-900 font-bold bg-purple-50 p-1.5 rounded border border-purple-200">
+            🤝 {{ g.tontineGroup }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL AUDIT LOGS                                                  -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showAuditModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in font-mono text-xs">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 overflow-hidden border border-slate-200 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 font-sans">Piste d'Audit du Dossier</h3>
+        <p class="text-[11px] text-slate-500">Référence : {{ currentAuditRef() }}</p>
+      </div>
+      <button (click)="closeAudit()" class="text-slate-400 hover:text-slate-700 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <div class="p-5 max-h-96 overflow-y-auto space-y-2.5">
+      <div *ngIf="auditLoading()" class="py-8 text-center">
+        <app-spinner size="sm" label="Chargement de l'audit..."></app-spinner>
+      </div>
+
+      <div *ngIf="!auditLoading() && selectedAuditLogs().length === 0" class="text-center py-6 text-slate-400">
+        Aucune action enregistrée pour le moment
+      </div>
+
+      <div *ngFor="let log of selectedAuditLogs()" class="p-3 bg-slate-50 border border-slate-200 rounded-md">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="font-bold text-blue-900 font-sans uppercase">{{ log.action.replace('_', ' ') }}</span>
+          <span>{{ log.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+        </div>
+        <p class="text-slate-700 font-sans mt-0.5">Par : <strong>{{ log.user_name || 'Système' }}</strong></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL AJOUT GARANT                                                -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showAddGuarantorModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs animate-fade-in text-xs">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-blue-50">
+      <div>
+        <h3 class="text-sm font-bold text-blue-950 font-sans">Ajouter une Caution Solidaire</h3>
+        <p class="text-[11px] text-blue-700 font-mono">Garant physique ou responsable de tontine</p>
+      </div>
+      <button (click)="closeAddGuarantor()" class="text-slate-400 hover:text-slate-700 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="addGuarantor()" class="p-5 space-y-3.5">
+      <div>
+        <label class="form-label text-xs">Nom & Prénom du Garant</label>
+        <input
+          type="text"
+          [ngModel]="newGuarantor().fullName"
+          (ngModelChange)="newGuarantor().fullName = $event"
+          name="fullName"
+          required
+          class="form-input text-xs"
+          placeholder="ex: Bakary Diakité"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Numéro de Téléphone</label>
+        <input
+          type="text"
+          [ngModel]="newGuarantor().phone"
+          (ngModelChange)="newGuarantor().phone = $event"
+          name="phone"
+          required
+          class="form-input text-xs font-mono"
+          placeholder="+223 70 00 00 00"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Lieu d'Activité / Marché</label>
+        <input
+          type="text"
+          [ngModel]="newGuarantor().marketLocation"
+          (ngModelChange)="newGuarantor().marketLocation = $event"
+          name="marketLocation"
+          class="form-input text-xs"
+          placeholder="Grand Marché de Bamako (Hall 2)"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Nom de la Tontine / Coopérative (Optionnel)</label>
+        <input
+          type="text"
+          [ngModel]="newGuarantor().tontineGroup"
+          (ngModelChange)="newGuarantor().tontineGroup = $event"
+          name="tontineGroup"
+          class="form-input text-xs"
+          placeholder="ex: Association Sabati Médina Coura"
+        />
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3">
+        <button type="button" (click)="closeAddGuarantor()" class="btn-secondary text-xs">Annuler</button>
+        <button type="submit" class="btn-primary text-xs">Enregistrer le Garant</button>
+      </div>
+    </form>
   </div>
 </div>

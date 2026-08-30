@@ -1,58 +1,54 @@
 <div class="inline-flex items-center gap-2.5 select-none" [ngClass]="{'gap-3': size === 'lg', 'gap-2': size === 'sm'}">
-  <!-- OSF Vector Emblem Icon -->
-  <div
-    class="relative rounded-md flex items-center justify-center shrink-0 border border-blue-800/40 shadow-sm transition-transform duration-200 hover:scale-[1.02]"
+  <!-- OSF Flat 2D Vector Emblem Icon (Responsive to Light / Dark Themes) -->
+  <svg
+    viewBox="0 0 36 36"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    class="shrink-0 transition-transform duration-200 hover:scale-[1.05]"
     [ngClass]="{
       'w-7 h-7': size === 'sm',
       'w-9 h-9': size === 'md',
-      'w-12 h-12': size === 'lg',
-      'bg-blue-900 text-white': true
+      'w-12 h-12': size === 'lg'
     }"
   >
-    <svg
-      viewBox="0 0 36 36"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      class="w-full h-full p-1.5"
-    >
-      <!-- Base Shield & Ledger Lines -->
-      <rect x="4" y="4" width="28" height="28" rx="4" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.3" fill="none"/>
-      
-      <!-- 'O' Outer Loop Segment -->
-      <path
-        d="M10 12C10 8.68629 12.6863 6 16 6H20C23.3137 6 26 8.68629 26 12V24C26 27.3137 23.3137 30 20 30H16C12.6863 30 10 27.3137 10 24V12Z"
-        stroke="currentColor"
-        stroke-width="1.75"
-        stroke-linecap="round"
-      />
-      
-      <!-- 'S' Dynamic Decision Wave through center -->
-      <path
-        d="M23 13C23 10.7909 20.7614 9.5 18 9.5C14.6863 9.5 13 11.5 13 14C13 18.5 23 17.5 23 22C23 24.5 21 26.5 18 26.5C14.5 26.5 13 24.5 13 23"
-        stroke="#10b981"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-      
-      <!-- 'F' Horizontal Bar & Score Tick -->
-      <path
-        d="M16 18H22"
-        stroke="white"
-        stroke-width="1.75"
-        stroke-linecap="round"
-      />
-
-      <!-- Ledger Metric Dot (Active AI Sentinel) -->
-      <circle cx="28" cy="8" r="2.5" fill="#f59e0b" stroke="#1e3a8a" stroke-width="1"/>
-    </svg>
-  </div>
+    <!-- Outer Focus / Scoring Target Ring -->
+    <circle
+      cx="18"
+      cy="18"
+      r="16.5"
+      class="stroke-slate-300 dark:stroke-blue-500/40"
+      stroke-width="1.2"
+    />
+    <!-- Inner Badge Disc -->
+    <circle
+      cx="18"
+      cy="18"
+      r="13.5"
+      class="fill-blue-50/80 dark:fill-blue-950/90 stroke-blue-600 dark:stroke-blue-400"
+      stroke-width="1.8"
+    />
+    <!-- Scoring Approval Checkmark & Upward Trend Arrow -->
+    <path
+      d="M11 19.5L15.5 24L25 12"
+      class="stroke-blue-700 dark:stroke-blue-400"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M20 12H25V17"
+      class="stroke-blue-700 dark:stroke-blue-400"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
 
   <!-- Text Branding -->
   <div *ngIf="variant !== 'icon'" class="flex flex-col">
     <div class="flex items-center gap-1.5 leading-none">
       <span
-        class="font-bold tracking-tight text-zinc-900"
+        class="font-bold tracking-tight text-slate-900 dark:text-white"
         [ngClass]="{
           'text-sm': size === 'sm',
           'text-base': size === 'md',
@@ -62,7 +58,7 @@
         OpenScore
       </span>
       <span
-        class="font-semibold text-blue-900"
+        class="font-bold tracking-tight text-blue-700 dark:text-blue-400"
         [ngClass]="{
           'text-sm': size === 'sm',
           'text-base': size === 'md',
@@ -73,18 +69,18 @@
       </span>
       <!-- Monospace OSF Tag -->
       <span
-        class="font-mono text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 border border-zinc-200 tracking-wider ml-0.5"
+        class="font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 tracking-wider ml-0.5"
       >
         OSF
       </span>
     </div>
 
     <!-- Editorial Subtitle -->
-    <span
+    <div
       *ngIf="variant === 'full'"
-      class="text-[10px] uppercase font-mono tracking-widest text-zinc-400 mt-1 font-medium leading-none"
+      class="flex items-center gap-1 text-[9px] uppercase font-mono tracking-widest text-slate-400 mt-1 font-semibold leading-none"
     >
-      {{ subtitle }}
-    </span>
+      <span>{{ subtitle }}</span>
+    </div>
   </div>
 </div>

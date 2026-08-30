@@ -1,126 +1,234 @@
-<div class="min-h-screen bg-zinc-50 flex items-center justify-center px-4 py-8">
-  <div class="w-full max-w-md">
-    <!-- Branding Header -->
-    <div class="text-center mb-8">
-      <div class="flex justify-center mb-4">
-        <app-osf-logo size="lg" variant="full" subtitle="UEMOA MICROFINANCE DECISION ENGINE"></app-osf-logo>
-      </div>
-      <p class="text-xs text-zinc-500 max-w-xs mx-auto mt-2">
-        Plateforme d'aide a la decision et scoring de credit pour IMF et CIF au Mali
-      </p>
+<div class="min-h-screen bg-slate-50 dark:bg-[#0b0f19] flex flex-col justify-center py-12 sm:px-6 lg:px-8 animate-fade-in relative transition-colors duration-200">
+  <!-- Floating Dark Mode Switcher in top right -->
+  <div class="absolute top-4 right-4 z-20">
+    <button
+      type="button"
+      (click)="toggleDarkMode()"
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer transition-all"
+      [title]="isDarkMode() ? 'Passer en Mode Clair' : 'Passer en Mode Sombre'"
+    >
+      <app-svg-icon [name]="isDarkMode() ? 'sun' : 'moon'" [size]="14" class="text-amber-500 dark:text-amber-400"></app-svg-icon>
+      <span>{{ isDarkMode() ? 'Mode Clair' : 'Mode Sombre' }}</span>
+    </button>
+  </div>
+
+  <div class="sm:mx-auto sm:w-full transition-all text-center" [class.sm:max-w-md]="!isRegisterMode()"
+    [class.sm:max-w-xl]="isRegisterMode()">
+    <!-- OSF Brand Logo -->
+    <div class="flex justify-center mb-3">
+      <app-osf-logo size="lg" variant="full" subtitle="UEMOA / WA+ CREDIT LEDGER"></app-osf-logo>
     </div>
+    <h2 class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 mt-2">
+      {{ isRegisterMode() ? 'Créer un Compte & Profil Emprunteur' : 'Accès Sécurisé à la Plateforme' }}
+    </h2>
+  </div>
 
-    <!-- Login Card -->
-    <div class="card shadow-sm border-zinc-200">
-      <div class="card-header bg-zinc-50/50 flex items-center justify-between">
-        <div>
-          <h2 class="text-sm font-semibold text-zinc-900">Espace Securise</h2>
-          <p class="text-[11px] text-zinc-500">Authentification unique pour clients et agents</p>
+  <div class="mt-6 sm:mx-auto sm:w-full transition-all" [class.sm:max-w-md]="!isRegisterMode()"
+    [class.sm:max-w-xl]="isRegisterMode()">
+    <div class="card shadow-sm">
+      <div class="card-body p-6 sm:p-8 space-y-6">
+        <!-- Mode switcher tab -->
+        <div class="flex rounded-md bg-slate-100 dark:bg-slate-800 p-1 text-xs font-medium border border-slate-200/50 dark:border-slate-700">
+          <button type="button" (click)="isRegisterMode.set(false); error.set('')"
+            class="flex-1 py-1.5 rounded transition-all cursor-pointer" [class.bg-white]="!isRegisterMode()"
+            [class.dark:bg-slate-900]="!isRegisterMode()"
+            [class.text-blue-900]="!isRegisterMode()" [class.dark:text-blue-400]="!isRegisterMode()"
+            [class.font-bold]="!isRegisterMode()"
+            [class.shadow-2xs]="!isRegisterMode()" [class.text-slate-600]="isRegisterMode()" [class.dark:text-slate-400]="isRegisterMode()">
+            Se Connecter
+          </button>
+          <button type="button" (click)="isRegisterMode.set(true); error.set('')"
+            class="flex-1 py-1.5 rounded transition-all cursor-pointer" [class.bg-white]="isRegisterMode()"
+            [class.dark:bg-slate-900]="isRegisterMode()"
+            [class.text-blue-900]="isRegisterMode()" [class.dark:text-blue-400]="isRegisterMode()"
+            [class.font-bold]="isRegisterMode()"
+            [class.shadow-2xs]="isRegisterMode()" [class.text-slate-600]="!isRegisterMode()" [class.dark:text-slate-400]="!isRegisterMode()">
+            Créer un Compte
+          </button>
         </div>
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          Actif
-        </span>
-      </div>
 
-      <div class="card-body p-6">
-        <!-- Error Alert -->
-        <div *ngIf="error()" class="mb-4 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-md text-xs text-rose-800 flex items-center gap-2 animate-fade-in">
-          <app-svg-icon name="alert" [size]="16" class="shrink-0 text-rose-600"></app-svg-icon>
+        <!-- Error notification -->
+        <div *ngIf="error()"
+          class="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-md text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2 animate-fade-in">
+          <app-svg-icon name="alert" [size]="16"></app-svg-icon>
           <span>{{ error() }}</span>
         </div>
 
-        <form (ngSubmit)="onSubmit()" class="space-y-4">
-          <!-- Email Input -->
+        <!-- LOGIN FORM -->
+        <form *ngIf="!isRegisterMode()" (ngSubmit)="onSubmit()" class="space-y-4">
           <div>
-            <label for="email" class="form-label">Identifiant / Email</label>
-            <input
-              id="email"
-              type="email"
-              [(ngModel)]="email"
-              name="email"
-              class="form-input text-sm"
-              placeholder="votre.nom@domaine.ml"
-              autocomplete="email"
-              [disabled]="loading()"
-            />
+            <label for="email" class="form-label">Identifiant Email</label>
+            <input id="email" type="email" [(ngModel)]="email" name="email" required class="form-input"
+              placeholder="ex: amadou.diallo@mail.ml" />
           </div>
 
-          <!-- Password Input -->
           <div>
-            <div class="flex items-center justify-between mb-1">
-              <label for="password" class="form-label !mb-0">Mot de passe</label>
-            </div>
-            <input
-              id="password"
-              type="password"
-              [(ngModel)]="password"
-              name="password"
-              class="form-input text-sm"
-              placeholder="••••••••"
-              autocomplete="current-password"
-              [disabled]="loading()"
-            />
+            <label for="password" class="form-label">Mot de passe</label>
+            <input id="password" type="password" [(ngModel)]="password" name="password" required class="form-input"
+              placeholder="••••••••" />
           </div>
 
-          <!-- Submit Button -->
-          <button
-            type="submit"
-            class="btn-primary w-full py-2.5 font-medium shadow-sm"
-            [disabled]="loading()"
-          >
+          <button type="submit" class="btn-primary w-full py-2.5 shadow-sm text-sm" [disabled]="loading()">
             <app-spinner *ngIf="loading()" size="sm" [inline]="true" variant="white"></app-spinner>
-            <app-svg-icon *ngIf="!loading()" name="user" [size]="16"></app-svg-icon>
-            <span *ngIf="loading()">Verification en cours...</span>
-            <span *ngIf="!loading()">Acceder a la plateforme</span>
+            <span *ngIf="loading()">Authentification en cours...</span>
+            <span *ngIf="!loading()">Ouvrir ma session</span>
           </button>
         </form>
-      </div>
 
-      <!-- Quick Test Profiles (Hackathon Friendly) -->
-      <div class="px-6 py-4 bg-zinc-50 border-t border-zinc-200 rounded-b-lg">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-[11px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
-            Profils de demonstration
-          </span>
-          <span class="text-[10px] text-zinc-400">Cliquez pour remplir</span>
-        </div>
+        <!-- REGISTER FORM -->
+        <form *ngIf="isRegisterMode()" (ngSubmit)="onSubmit()" class="space-y-3 animate-slide-up">
+          <!-- Scrollable Fields Container (Fixed height viewport) -->
+          <div class="max-h-[360px] overflow-y-auto pr-1.5 space-y-4">
+            <!-- Section 1: Identité -->
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3
+                class="text-xs font-bold text-slate-900 dark:text-slate-100 font-mono uppercase tracking-wider mb-2.5 flex items-center gap-1.5 sticky top-0 bg-white dark:bg-[#111827] py-1 z-10">
+                <app-svg-icon name="user" [size]="14" class="text-blue-900 dark:text-blue-400"></app-svg-icon>
+                <span>1. Identité & Contact</span>
+              </h3>
 
-        <div class="grid grid-cols-2 gap-2">
-          <!-- Client Demo Button -->
-          <button
-            type="button"
-            (click)="fillDemo('amadou.diallo@mail.ml', 'password123')"
-            class="p-2 text-left rounded border border-zinc-200 bg-white hover:border-blue-900 hover:bg-blue-50/30 transition-all text-xs cursor-pointer"
-          >
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span class="font-semibold text-zinc-900">Client</span>
+              <div class="space-y-3">
+                <div>
+                  <label for="regFullName" class="form-label text-xs">Nom complet du demandeur *</label>
+                  <input id="regFullName" type="text" [(ngModel)]="fullName" name="fullName" required
+                    class="form-input text-xs" placeholder="ex: Bakary Coulibaly" />
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label for="regIdNumber" class="form-label text-xs">N° Pièce (NINA / CNI) *</label>
+                    <input id="regIdNumber" type="text" [(ngModel)]="regIdNumber" name="regIdNumber"
+                      class="form-input text-xs font-mono" placeholder="ex: NINA-7890-BKO" />
+                  </div>
+
+                  <div>
+                    <label for="regCity" class="form-label text-xs">Ville / Localité</label>
+                    <input id="regCity" type="text" [(ngModel)]="regCity" name="regCity" class="form-input text-xs"
+                      placeholder="ex: Bamako (Commune III)" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label for="regPhone" class="form-label text-xs">Téléphone (Orange / Wave) *</label>
+                    <input id="regPhone" type="text" [(ngModel)]="regPhone" name="regPhone"
+                      class="form-input text-xs font-mono" placeholder="+223 76 00 00 00" />
+                  </div>
+
+                  <div>
+                    <label for="regEmail" class="form-label text-xs">Email de connexion *</label>
+                    <input id="regEmail" type="email" [(ngModel)]="regEmail" name="regEmail" required
+                      class="form-input text-xs" placeholder="bakary.coulibaly@mail.ml" />
+                  </div>
+                </div>
+
+                <div>
+                  <label for="regPassword" class="form-label text-xs">Mot de passe *</label>
+                  <input id="regPassword" type="password" [(ngModel)]="regPassword" name="regPassword" required
+                    minlength="4" class="form-input text-xs" placeholder="••••••••" />
+                </div>
+              </div>
             </div>
-            <p class="text-[11px] text-zinc-500 font-mono mt-0.5 truncate">Amadou Diallo</p>
-            <span class="text-[10px] text-zinc-400 font-mono">Commerce</span>
-          </button>
 
-          <!-- Agent Demo Button -->
-          <button
-            type="button"
-            (click)="fillDemo('agent@openscore.ml', 'agent123')"
-            class="p-2 text-left rounded border border-zinc-200 bg-white hover:border-blue-900 hover:bg-blue-50/30 transition-all text-xs cursor-pointer"
-          >
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-blue-600"></span>
-              <span class="font-semibold text-zinc-900">Agent CIF</span>
+            <!-- Section 2: Profil Financier & Salaire -->
+            <div class="space-y-3">
+              <h3
+                class="text-xs font-bold text-slate-900 dark:text-slate-100 font-mono uppercase tracking-wider mb-1 flex items-center gap-1.5 sticky top-0 bg-white dark:bg-[#111827] py-1 z-10">
+                <app-svg-icon name="dollar-sign" [size]="14" class="text-emerald-700 dark:text-emerald-400"></app-svg-icon>
+                <span>2. Profil Financier, Salaire & Activité</span>
+              </h3>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="regActivitySector" class="form-label text-xs">Secteur d'activité</label>
+                  <select id="regActivitySector" [(ngModel)]="regActivitySector" name="regActivitySector"
+                    class="form-select text-xs font-medium">
+                    <option value="Commerce">Commerce (Marché / Boutique)</option>
+                    <option value="Agriculture">Agriculture / Élevage</option>
+                    <option value="Artisanat">Artisanat / Métiers</option>
+                    <option value="TPE">TPE / Services / Salarié</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label for="regYearsInBusiness" class="form-label text-xs">Ancienneté d'activité (ans)</label>
+                  <input id="regYearsInBusiness" type="number" step="0.5" min="0.5" max="40"
+                    [(ngModel)]="regYearsInBusiness" name="regYearsInBusiness" class="form-input text-xs font-mono"
+                    placeholder="ex: 3" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="regMonthlyRevenue" class="form-label text-xs">Revenu Mensuel Net / Salaire (FCFA) *</label>
+                  <input id="regMonthlyRevenue" type="number" min="50000" step="10000" [(ngModel)]="regMonthlyRevenue"
+                    name="regMonthlyRevenue" required class="form-input text-xs font-mono font-bold text-emerald-800 dark:text-emerald-400"
+                    placeholder="ex: 450000" />
+                </div>
+
+                <div>
+                  <label for="regMonthlyExpenses" class="form-label text-xs">Charges Mensuelles Estimées (FCFA) *</label>
+                  <input id="regMonthlyExpenses" type="number" min="10000" step="5000" [(ngModel)]="regMonthlyExpenses"
+                    name="regMonthlyExpenses" required class="form-input text-xs font-mono" placeholder="ex: 150000" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="regExistingDebt" class="form-label text-xs">Dettes / Crédits en cours (FCFA)</label>
+                  <input id="regExistingDebt" type="number" min="0" step="10000" [(ngModel)]="regExistingDebt"
+                    name="regExistingDebt" class="form-input text-xs font-mono" placeholder="0 si aucune dette" />
+                </div>
+
+                <div>
+                  <label for="regRequestedAmount" class="form-label text-xs">Montant de crédit souhaité (FCFA)</label>
+                  <input id="regRequestedAmount" type="number" min="50000" max="10000000" step="50000"
+                    [(ngModel)]="regRequestedAmount" name="regRequestedAmount"
+                    class="form-input text-xs font-mono font-bold text-blue-900 dark:text-blue-400" placeholder="ex: 750000" />
+                </div>
+              </div>
             </div>
-            <p class="text-[11px] text-zinc-500 font-mono mt-0.5 truncate">I. Coulibaly</p>
-            <span class="text-[10px] text-zinc-400 font-mono">Verificateur</span>
-          </button>
+          </div>
+
+          <!-- Action Button -->
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button type="submit" class="btn-primary w-full py-2.5 shadow-sm text-sm" [disabled]="loading()">
+              <app-spinner *ngIf="loading()" size="sm" [inline]="true" variant="white"></app-spinner>
+              <span *ngIf="loading()">Création du compte et calcul du profil...</span>
+              <span *ngIf="!loading()">Créer mon Compte & Accéder à l'Espace</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- 1-Click Demo Profiles Section -->
+        <div class="pt-5 border-t border-slate-200 dark:border-slate-800">
+          <div class="flex items-center justify-between mb-2.5">
+            <span class="text-[10px] uppercase font-mono tracking-wider text-slate-400 dark:text-slate-500 font-semibold">
+              Profils Démo (1-Clic Hackathon)
+            </span>
+            <span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-mono font-medium">Auto-login</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button *ngFor="let u of demoUsers" type="button" (click)="fillDemo(u.email, u.pass)"
+              class="p-2 border rounded-md text-left transition-all hover:bg-slate-50 dark:hover:bg-slate-800/80 flex items-start gap-2 cursor-pointer"
+              [class.border-blue-900]="email === u.email" [class.dark:border-blue-500]="email === u.email"
+              [class.bg-blue-50/50]="email === u.email" [class.dark:bg-blue-950/40]="email === u.email"
+              [class.border-slate-200]="email !== u.email" [class.dark:border-slate-700]="email !== u.email">
+              <div
+                class="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold font-mono shrink-0 mt-0.5 text-white"
+                [class.bg-purple-900]="u.role === 'admin'" [class.bg-blue-900]="u.role === 'agent'"
+                [class.bg-emerald-700]="u.role === 'client'">
+                {{ u.role === 'admin' ? 'D' : (u.role === 'agent' ? 'A' : 'C') }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">{{ u.label }}</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate">{{ u.subtitle }}</p>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-
-    <!-- Hackathon Footer -->
-    <div class="text-center mt-6 text-xs text-zinc-400 font-mono">
-      <span>Hackathon DigiCoop-WA+ • Bamako, Mali • OpenScore Finance</span>
     </div>
   </div>
 </div>
