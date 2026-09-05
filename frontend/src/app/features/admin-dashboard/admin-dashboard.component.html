@@ -1,0 +1,612 @@
+<div class="space-y-6 animate-fade-in">
+  <!-- Super Admin Title Header -->
+  <div class="flex items-center justify-between border-b border-slate-200/90 pb-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="text-xl font-bold text-slate-900">
+          {{ currentTab() === 'overview' ? 'Cockpit Direction & Liquidité IMF' :
+             (currentTab() === 'users' ? 'Gestion des Utilisateurs & Agents' :
+             (currentTab() === 'settings' ? 'Politique Prudentielle & Seuils BCEAO' : 'Piste d\'Audit Globale Consolidée')) }}
+        </h1>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 text-purple-900 border border-purple-200">
+          SUPER ADMIN
+        </span>
+      </div>
+      <p class="text-xs text-slate-500 mt-0.5 font-mono">
+        Supervision globale, gouvernance des crédits, conformité réglementaire & sécurité
+      </p>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 1 : COCKPIT DIRECTION & LIQUIDITÉ                             -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentTab() === 'overview'" class="space-y-6 animate-slide-up">
+    <!-- Macro KPIs Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card p-4 bg-white border border-zinc-200">
+        <div class="flex items-center justify-between text-zinc-500 text-xs font-mono">
+          <span>VOLUME TOTAL VALIDÉ</span>
+          <app-svg-icon name="check-circle" [size]="16" class="text-emerald-700"></app-svg-icon>
+        </div>
+        <p class="text-2xl font-mono font-bold text-emerald-700 mt-1">
+          {{ formatAmount(stats()?.total_volume_approved || 0) }}
+        </p>
+        <p class="text-[10px] text-zinc-400 mt-1">Sur {{ formatAmount(stats()?.total_volume_requested || 0) }} sollicités</p>
+      </div>
+
+      <div class="card p-4 bg-white border border-zinc-200">
+        <div class="flex items-center justify-between text-zinc-500 text-xs font-mono">
+          <span>PORTFOLIO AT RISK (PAR 30)</span>
+          <app-svg-icon name="shield" [size]="16" class="text-blue-900"></app-svg-icon>
+        </div>
+        <p class="text-2xl font-mono font-bold text-blue-900 mt-1">
+          {{ stats()?.portfolio_at_risk_index || 2.4 }}%
+        </p>
+        <p class="text-[10px] text-emerald-700 font-semibold mt-1">Excellent (Norme BCEAO &lt; 5.0%)</p>
+      </div>
+
+      <div class="card p-4 bg-white border border-zinc-200">
+        <div class="flex items-center justify-between text-zinc-500 text-xs font-mono">
+          <span>TAUX D'OCTROI RÉSEAU</span>
+          <app-svg-icon name="bar-chart" [size]="16" class="text-zinc-700"></app-svg-icon>
+        </div>
+        <p class="text-2xl font-mono font-bold text-zinc-900 mt-1">
+          {{ stats()?.approval_rate || 88 }}%
+        </p>
+        <p class="text-[10px] text-zinc-400 mt-1">Score moyen réseau : {{ stats()?.system_average_score || 675 }}/1000</p>
+      </div>
+
+      <div class="card p-4 bg-white border border-zinc-200">
+        <div class="flex items-center justify-between text-zinc-500 text-xs font-mono">
+          <span>COMPTES & AGENCES</span>
+          <app-svg-icon name="user" [size]="16" class="text-purple-800"></app-svg-icon>
+        </div>
+        <p class="text-2xl font-mono font-bold text-purple-900 mt-1">
+          {{ stats()?.total_users || 6 }} comptes
+        </p>
+        <p class="text-[10px] text-zinc-400 mt-1">{{ stats()?.agents_count || 2 }} agents • 3 antennes régionales</p>
+      </div>
+    </div>
+
+    <!-- Charts and Status Summary -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Sector Exposure -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-bold text-zinc-900 flex items-center gap-2">
+            <app-svg-icon name="bar-chart" [size]="16" class="text-blue-900"></app-svg-icon>
+            <span>Exposition Sectorielle Globale (FCFA)</span>
+          </h3>
+          <button (click)="exportBceaoReport()" class="btn-ghost text-[11px] py-1 px-2 text-blue-900 cursor-pointer">
+            <app-svg-icon name="printer" [size]="12"></app-svg-icon>
+            <span>Rapport BCEAO</span>
+          </button>
+        </div>
+
+        <div class="space-y-4 font-mono text-xs">
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="font-sans font-medium text-zinc-700">Commerce de détail & Bazin (Grand Marché)</span>
+              <span class="font-bold text-zinc-900">{{ formatAmount(stats()?.sector_exposure?.['Commerce'] || 1500000) }}</span>
+            </div>
+            <div class="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div class="h-full bg-blue-900 rounded-full" style="width: 58%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="font-sans font-medium text-zinc-700">Agriculture & Maraîchage (Baguinéda)</span>
+              <span class="font-bold text-zinc-900">{{ formatAmount(stats()?.sector_exposure?.['Agriculture'] || 750000) }}</span>
+            </div>
+            <div class="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div class="h-full bg-emerald-600 rounded-full" style="width: 27%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="font-sans font-medium text-zinc-700">Artisanat & Broderie (Médina Coura)</span>
+              <span class="font-bold text-zinc-900">{{ formatAmount(stats()?.sector_exposure?.['Artisanat'] || 500000) }}</span>
+            </div>
+            <div class="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+              <div class="h-full bg-amber-500 rounded-full" style="width: 15%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Regional Branches Activity -->
+      <div class="card p-5">
+        <h3 class="text-sm font-bold text-zinc-900 mb-4 flex items-center gap-2">
+          <app-svg-icon name="dashboard" [size]="16" class="text-purple-800"></app-svg-icon>
+          <span>Activité des Antennes Régionales (Mali)</span>
+        </h3>
+
+        <div class="space-y-3 font-mono text-xs">
+          <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-md flex items-center justify-between">
+            <div>
+              <p class="font-sans font-bold text-zinc-900">Antenne Centrale Bamako-District</p>
+              <p class="text-[10px] text-zinc-500 font-mono">Agent Référent : Ibrahima Coulibaly</p>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Opérationnelle</span>
+          </div>
+
+          <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-md flex items-center justify-between">
+            <div>
+              <p class="font-sans font-bold text-zinc-900">Antenne Régionale Ségou</p>
+              <p class="text-[10px] text-zinc-500 font-mono">Agent Référent : Awa Sangaré</p>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Opérationnelle</span>
+          </div>
+
+          <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-md flex items-center justify-between">
+            <div>
+              <p class="font-sans font-bold text-zinc-900">Antenne Régionale Sikasso (Zone Maraîchère)</p>
+              <p class="text-[10px] text-zinc-500 font-mono">Guichet mobile rural WA+</p>
+            </div>
+            <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">En Ligne</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 2 : GESTION DES UTILISATEURS & AGENTS                         -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentTab() === 'users'" class="space-y-4 animate-slide-up">
+    <div class="card p-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <!-- Search & Role Filter -->
+        <div class="flex items-center gap-2 flex-1">
+          <input
+            type="text"
+            [ngModel]="userSearchQuery()"
+            (ngModelChange)="userSearchQuery.set($event)"
+            placeholder="Rechercher un compte par nom, email..."
+            class="form-input text-xs py-1.5"
+          />
+          <select
+            [ngModel]="userRoleFilter()"
+            (ngModelChange)="userRoleFilter.set($event); loadUsers()"
+            class="form-select text-xs py-1.5 font-mono"
+          >
+            <option value="all">Tous les rôles</option>
+            <option value="client">Clients Emprunteurs</option>
+            <option value="agent">Agents de Crédit</option>
+            <option value="admin">Administrateurs</option>
+          </select>
+        </div>
+
+        <!-- Add User Button -->
+        <button (click)="openCreateUserModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0">
+          <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+          <span>+ Créer un Agent ou Admin</span>
+        </button>
+      </div>
+
+      <!-- Users Table -->
+      <div class="mt-4 overflow-x-auto border border-zinc-200 rounded-md">
+        <table class="data-table text-xs">
+          <thead>
+            <tr>
+              <th>Nom & Prénom</th>
+              <th>Email de Connexion</th>
+              <th>Téléphone</th>
+              <th>Rôle Attribué</th>
+              <th>Statut Compte</th>
+              <th class="text-right">Actions Administrateur</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of pagedUsers()">
+              <td class="font-bold text-zinc-900">{{ u.full_name }}</td>
+              <td class="font-mono text-zinc-600">{{ u.email }}</td>
+              <td class="font-mono text-zinc-500">{{ u.phone || '—' }}</td>
+              <td>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold"
+                  [class.bg-purple-100]="u.role === 'admin'"
+                  [class.text-purple-900]="u.role === 'admin'"
+                  [class.bg-blue-100]="u.role === 'agent'"
+                  [class.text-blue-900]="u.role === 'agent'"
+                  [class.bg-emerald-100]="u.role === 'client'"
+                  [class.text-emerald-900]="u.role === 'client'"
+                >
+                  {{ u.role.toUpperCase() }}
+                </span>
+              </td>
+              <td>
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium"
+                  [class.text-emerald-700]="u.is_active !== false"
+                  [class.text-rose-700]="u.is_active === false"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full" [class.bg-emerald-500]="u.is_active !== false" [class.bg-rose-500]="u.is_active === false"></span>
+                  {{ u.is_active !== false ? 'Actif' : 'Suspendu' }}
+                </span>
+              </td>
+              <td class="text-right space-x-1">
+                <button
+                  *ngIf="u.role !== 'admin'"
+                  (click)="changeRole(u, u.role === 'agent' ? 'client' : 'agent')"
+                  class="btn-ghost text-[10px] py-0.5 px-1.5"
+                  title="Changer de rôle"
+                >
+                  Passer en {{ u.role === 'agent' ? 'Client' : 'Agent' }}
+                </button>
+                <button
+                  (click)="toggleActive(u)"
+                  class="btn-ghost text-[10px] py-0.5 px-1.5"
+                  [class.text-rose-700]="u.is_active !== false"
+                  [class.text-emerald-700]="u.is_active === false"
+                >
+                  {{ u.is_active !== false ? 'Suspendre' : 'Activer' }}
+                </button>
+                <button
+                  *ngIf="u.role !== 'admin'"
+                  (click)="deleteUser(u)"
+                  class="btn-ghost text-[10px] py-0.5 px-1.5 text-rose-700 hover:bg-rose-50"
+                  title="Supprimer définitivement le compte"
+                >
+                  <app-svg-icon name="trash" [size]="12"></app-svg-icon>
+                  <span>Supprimer</span>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="filteredUsers().length === 0">
+              <td colspan="6" class="text-center py-6 text-zinc-400">
+                Aucun utilisateur trouvé.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Users Pagination Toolbar -->
+        <div *ngIf="filteredUsers().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-zinc-50 border-t border-zinc-200 text-xs text-zinc-600 font-mono">
+          <div class="flex items-center gap-2">
+            <span>Afficher</span>
+            <select
+              [ngModel]="usersPageSize()"
+              (ngModelChange)="usersPageSize.set(+$event); usersPage.set(1)"
+              class="form-select py-0.5 px-2 text-xs bg-white border border-zinc-300 rounded"
+            >
+              <option [ngValue]="5">5</option>
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="20">20</option>
+            </select>
+            <span>sur <strong>{{ filteredUsers().length }}</strong> comptes</span>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <button
+              (click)="usersPage.set(usersPage() - 1)"
+              [disabled]="usersPage() <= 1"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+            >
+              Précédent
+            </button>
+            <span class="px-2 font-bold text-zinc-900">Page {{ usersPage() }} / {{ totalUsersPages() }}</span>
+            <button
+              (click)="usersPage.set(usersPage() + 1)"
+              [disabled]="usersPage() >= totalUsersPages()"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+            >
+              Suivant
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 3 : PARAMÉTRAGE PRUDENTIEL BCEAO & MOTEUR ML                  -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentTab() === 'settings'" class="space-y-6 animate-slide-up">
+    <div class="card p-5">
+      <div class="border-b border-zinc-200 pb-3 mb-5">
+        <h3 class="text-sm font-bold text-zinc-900">Régulation Prudentielle BCEAO & Calibrage du Scoring ML</h3>
+        <p class="text-xs text-zinc-500 font-mono">Ajustez les seuils directeurs d'octroi et la pondération des variables pour tout le réseau</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+        <!-- Ratios & Seuils -->
+        <div class="space-y-4">
+          <h4 class="font-bold text-zinc-800 uppercase tracking-wider text-[11px] font-mono">1. Ratios Prudentiels & Seuils de Décision</h4>
+
+          <div>
+            <label class="form-label text-xs">Plafond du Ratio d'Endettement (BCEAO)</label>
+            <div class="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.01"
+                [ngModel]="settings().debt_ratio_ceiling"
+                (ngModelChange)="settings().debt_ratio_ceiling = $event"
+                class="form-input text-xs font-mono w-32"
+              />
+              <span class="text-xs text-zinc-500">Ex: 0.40 pour 40% maximum</span>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label text-xs">Reste à Vivre Minimum Vital (FCFA / mois)</label>
+            <input
+              type="number"
+              step="5000"
+              [ngModel]="settings().min_disposable_income"
+              (ngModelChange)="settings().min_disposable_income = $event"
+              class="form-input text-xs font-mono"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="form-label text-xs">Seuil Accord Direct (Score)</label>
+              <input
+                type="number"
+                [ngModel]="settings().approval_score_threshold"
+                (ngModelChange)="settings().approval_score_threshold = $event"
+                class="form-input text-xs font-mono"
+              />
+            </div>
+            <div>
+              <label class="form-label text-xs">Seuil Ajustement (Score)</label>
+              <input
+                type="number"
+                [ngModel]="settings().counter_proposal_threshold"
+                (ngModelChange)="settings().counter_proposal_threshold = $event"
+                class="form-input text-xs font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label text-xs">Taux d'Usure Mensuel Plafond BCEAO (%)</label>
+            <input
+              type="number"
+              step="0.1"
+              [ngModel]="settings().bceao_max_monthly_interest"
+              (ngModelChange)="settings().bceao_max_monthly_interest = $event"
+              class="form-input text-xs font-mono w-32"
+            />
+          </div>
+        </div>
+
+        <!-- SHAP ML Weights -->
+        <div class="space-y-4">
+          <h4 class="font-bold text-zinc-800 uppercase tracking-wider text-[11px] font-mono">2. Pondération des Variables SHAP (Modèle ML)</h4>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span>Ratio d'Endettement</span>
+              <span class="font-mono font-bold">{{ (settings().shap_debt_weight * 100).toFixed(0) }}%</span>
+            </div>
+            <input
+              type="range"
+              min="0.1" max="0.5" step="0.05"
+              [ngModel]="settings().shap_debt_weight"
+              (ngModelChange)="settings().shap_debt_weight = $event"
+              class="w-full accent-blue-900"
+            />
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span>Reste à Vivre / Trésorerie</span>
+              <span class="font-mono font-bold">{{ (settings().shap_income_weight * 100).toFixed(0) }}%</span>
+            </div>
+            <input
+              type="range"
+              min="0.1" max="0.4" step="0.05"
+              [ngModel]="settings().shap_income_weight"
+              (ngModelChange)="settings().shap_income_weight = $event"
+              class="w-full accent-blue-900"
+            />
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span>Régularité des Flux (sur 12 mois)</span>
+              <span class="font-mono font-bold">{{ (settings().shap_regularity_weight * 100).toFixed(0) }}%</span>
+            </div>
+            <input
+              type="range"
+              min="0.1" max="0.4" step="0.05"
+              [ngModel]="settings().shap_regularity_weight"
+              (ngModelChange)="settings().shap_regularity_weight = $event"
+              class="w-full accent-blue-900"
+            />
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span>Ancienneté d'Activité sur Place</span>
+              <span class="font-mono font-bold">{{ (settings().shap_seniority_weight * 100).toFixed(0) }}%</span>
+            </div>
+            <input
+              type="range"
+              min="0.05" max="0.3" step="0.05"
+              [ngModel]="settings().shap_seniority_weight"
+              (ngModelChange)="settings().shap_seniority_weight = $event"
+              class="w-full accent-blue-900"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-5 border-t border-zinc-200 mt-6">
+        <button (click)="savePrudentialSettings()" class="btn-primary text-xs shadow-xs" [disabled]="savingSettings()">
+          <app-spinner *ngIf="savingSettings()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <app-svg-icon *ngIf="!savingSettings()" name="check-circle" [size]="14"></app-svg-icon>
+          <span>Enregistrer les Paramètres Réglementaires</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 4 : PISTE D'AUDIT GLOBALE                                     -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentTab() === 'audit'" class="space-y-4 animate-slide-up font-mono text-xs">
+    <div class="card p-4">
+      <div class="flex items-center justify-between border-b border-zinc-200 pb-3 mb-4">
+        <div>
+          <h3 class="text-sm font-bold text-zinc-900 font-sans">Piste d'Audit Globale de l'Institution</h3>
+          <p class="text-xs text-zinc-500 font-sans">Traçabilité intégrale de toutes les transactions, certifications et décisions</p>
+        </div>
+        <button (click)="loadAuditLogs()" class="btn-secondary text-xs py-1 px-2.5">
+          <app-svg-icon name="refresh" [size]="12"></app-svg-icon>
+          <span>Actualiser</span>
+        </button>
+      </div>
+
+      <div *ngIf="auditLoading()" class="py-12 text-center">
+        <app-spinner size="sm" label="Chargement de l'audit..."></app-spinner>
+      </div>
+
+      <div *ngIf="!auditLoading()" class="space-y-2">
+        <div *ngFor="let log of pagedAuditLogs()" class="p-3 bg-zinc-50 border border-zinc-200 rounded-md">
+          <div class="flex items-center justify-between text-zinc-500">
+            <span class="font-bold text-blue-900 uppercase font-sans">{{ log.action.replace('_', ' ') }}</span>
+            <span>{{ log.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+          </div>
+          <p class="text-zinc-700 font-sans mt-0.5">Intervenant : <strong>{{ log.user_name || 'Système' }}</strong> • Dossier ID : {{ log.application_id }}</p>
+          <pre *ngIf="log.details" class="text-[10px] text-zinc-600 bg-white p-2 rounded border border-zinc-100 mt-1 overflow-x-auto">{{ log.details | json }}</pre>
+        </div>
+
+        <div *ngIf="auditLogs().length === 0" class="py-8 text-center text-zinc-400 text-xs">
+          Aucun événement d'audit enregistré.
+        </div>
+
+        <!-- Audit Pagination Toolbar -->
+        <div *ngIf="auditLogs().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-md text-xs text-zinc-600 font-mono mt-3">
+          <div class="flex items-center gap-2">
+            <span>Afficher</span>
+            <select
+              [ngModel]="auditPageSize()"
+              (ngModelChange)="auditPageSize.set(+$event); auditPage.set(1)"
+              class="form-select py-0.5 px-2 text-xs bg-white border border-zinc-300 rounded"
+            >
+              <option [ngValue]="5">5</option>
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="20">20</option>
+            </select>
+            <span>sur <strong>{{ auditLogs().length }}</strong> événements d'audit</span>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <button
+              (click)="auditPage.set(auditPage() - 1)"
+              [disabled]="auditPage() <= 1"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+            >
+              Précédent
+            </button>
+            <span class="px-2 font-bold text-zinc-900">Page {{ auditPage() }} / {{ totalAuditPages() }}</span>
+            <button
+              (click)="auditPage.set(auditPage() + 1)"
+              [disabled]="auditPage() >= totalAuditPages()"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+            >
+              Suivant
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL CRÉATION UTILISATEUR PAR SUPER ADMIN                        -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showCreateUserModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-purple-50 dark:bg-purple-950/40">
+      <div>
+        <h3 class="text-sm font-bold text-purple-950 dark:text-purple-200">Créer un Nouveau Compte</h3>
+        <p class="text-[11px] text-purple-700 dark:text-purple-300 font-mono">Provisionnement Agent / Administrateur</p>
+      </div>
+      <button (click)="closeCreateUserModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="createUser()" class="p-5 space-y-3.5 text-xs">
+      <div>
+        <label class="form-label text-xs">Nom & Prénom</label>
+        <input
+          type="text"
+          [ngModel]="newUser().full_name"
+          (ngModelChange)="newUser().full_name = $event"
+          name="full_name"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="ex: Seydou Traoré"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Email Professionnel</label>
+        <input
+          type="email"
+          [ngModel]="newUser().email"
+          (ngModelChange)="newUser().email = $event"
+          name="email"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="seydou.traore@openscore.ml"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Numéro de Téléphone</label>
+        <input
+          type="text"
+          [ngModel]="newUser().phone"
+          (ngModelChange)="newUser().phone = $event"
+          name="phone"
+          class="form-input text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="+223 70 00 00 00"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Rôle dans l'Institution</label>
+        <select
+          [ngModel]="newUser().role"
+          (ngModelChange)="newUser().role = $event"
+          name="role"
+          class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+        >
+          <option value="agent">Agent de Crédit (Analyste)</option>
+          <option value="admin">Administrateur / Direction</option>
+          <option value="client">Client Emprunteur</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Mot de Passe Initial</label>
+        <input
+          type="password"
+          [ngModel]="newUser().password"
+          (ngModelChange)="newUser().password = $event"
+          name="password"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="••••••••"
+        />
+      </div>
+
+      <div class="px-0 pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeCreateUserModal()" class="btn-secondary text-xs">Annuler</button>
+        <button type="submit" class="btn-primary text-xs" [disabled]="creatingUser()">
+          <app-spinner *ngIf="creatingUser()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="creatingUser()">Création...</span>
+          <span *ngIf="!creatingUser()">Créer le Compte</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

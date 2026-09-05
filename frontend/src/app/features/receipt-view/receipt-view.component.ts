@@ -49,10 +49,7 @@ export class ReceiptViewComponent implements OnInit {
   }
 
   print(): void {
-    this.toast.info('Impression lancee', 'Preparation du bordereau officiel A4...');
-    setTimeout(() => {
-      window.print();
-    }, 250);
+    window.print();
   }
 
   goBack(): void {
