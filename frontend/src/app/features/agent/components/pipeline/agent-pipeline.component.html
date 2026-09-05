@@ -28,24 +28,24 @@
 
   <!-- Applications Table List (Full Width) -->
   <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-    <!-- Search, Client Selector and Filter Controls (Strictly Single Row) -->
-    <div class="flex items-center justify-between gap-3 w-full overflow-x-auto pb-1">
-      <div class="flex items-center gap-2.5 flex-1 min-w-0">
-        <!-- Champ de recherche client -->
-        <div class="relative min-w-[200px] sm:min-w-[240px] max-w-xs flex-1">
-          <input
-            type="text"
-            [ngModel]="searchQuery()"
-            (ngModelChange)="searchQuery.set($event)"
-            placeholder="Rechercher client (nom, réf, tél)..."
-            class="form-input text-xs py-1.5 w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-          />
-        </div>
+    <!-- Search, Client Selector and Filter Controls (Strictly Single Row, NON-SCROLLABLE) -->
+    <div class="flex items-center gap-2.5 w-full">
+      <!-- Champ de recherche client -->
+      <div class="relative flex-1 min-w-[140px]">
+        <input
+          type="text"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="Rechercher (nom, réf, tél)..."
+          class="form-input text-xs py-1.5 w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
+      </div>
 
-        <!-- Sélecteur direct de client (Menu déroulant rapide) -->
+      <!-- Sélecteur direct de client (Menu déroulant rapide) -->
+      <div class="w-44 sm:w-52 shrink-0">
         <select
           (change)="onQuickClientSelect($any($event.target).value); $any($event.target).value = ''"
-          class="form-select text-xs py-1.5 font-sans shrink-0 bg-blue-50/70 dark:bg-blue-950/40 text-blue-950 dark:text-blue-200 border-blue-300 dark:border-blue-800 font-medium"
+          class="form-select text-xs py-1.5 font-sans w-full truncate bg-blue-50/70 dark:bg-blue-950/40 text-blue-950 dark:text-blue-200 border-blue-300 dark:border-blue-800 font-medium"
           title="Sélectionner directement un client pour ouvrir sa fiche"
         >
           <option value="">👤 Sélectionner un client...</option>
@@ -53,27 +53,31 @@
             {{ a.applicant_name }} ({{ a.reference }})
           </option>
         </select>
+      </div>
 
-        <!-- Filtre par Statut -->
+      <!-- Filtre par Statut -->
+      <div class="w-32 sm:w-36 shrink-0">
         <select
           [ngModel]="selectedStatusFilter()"
           (ngModelChange)="selectedStatusFilter.set($event)"
-          class="form-select text-xs py-1.5 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          class="form-select text-xs py-1.5 font-mono w-full truncate dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         >
           <option value="all">Tous les statuts</option>
           <option value="pending">À certifier</option>
           <option value="verified">Certifié conforme</option>
-          <option value="scored">Évalué (Arbitrage Requis)</option>
+          <option value="scored">Évalué</option>
           <option value="approved">Accordé & Validé</option>
           <option value="adjusted">Contre-proposition</option>
           <option value="rejected">Refusé</option>
         </select>
+      </div>
 
-        <!-- Filtre par Secteur -->
+      <!-- Filtre par Secteur -->
+      <div class="w-28 sm:w-32 shrink-0">
         <select
           [ngModel]="selectedSectorFilter()"
           (ngModelChange)="selectedSectorFilter.set($event)"
-          class="form-select text-xs py-1.5 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          class="form-select text-xs py-1.5 font-mono w-full truncate dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         >
           <option value="all">Tous les secteurs</option>
           <option value="Commerce">Commerce</option>
@@ -84,8 +88,8 @@
       </div>
 
       <!-- Compteur de dossiers -->
-      <div class="text-xs text-slate-500 font-mono whitespace-nowrap shrink-0">
-        <strong>{{ filteredApplications().length }}</strong> dossier(s) trouvé(s)
+      <div class="text-xs text-slate-500 font-mono whitespace-nowrap shrink-0 pl-1">
+        <strong>{{ filteredApplications().length }}</strong> dossier(s)
       </div>
     </div>
 
