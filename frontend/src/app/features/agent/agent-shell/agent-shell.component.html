@@ -1,0 +1,53 @@
+<div class="space-y-6 animate-fade-in">
+  <!-- Agent Title Header with Navigation Tabs -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white">
+          {{ currentTitle() }}
+        </h1>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 text-blue-900 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
+          AGENT DE CRÉDIT
+        </span>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+        Instruction, certification terrain, scoring assisté par IA et arbitrage des microcrédits
+      </p>
+    </div>
+
+    <!-- Quick Action Tabs in Header -->
+    <div class="flex items-center gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-800/80 p-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium">
+      <a
+        routerLink="/agent/pipeline"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-blue-950 dark:text-blue-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Pipeline Dossiers
+      </a>
+      <a
+        routerLink="/agent/portfolio"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-blue-950 dark:text-blue-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Cockpit Portefeuille
+      </a>
+      <a
+        routerLink="/agent/simulator"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-blue-950 dark:text-blue-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Simulateur Échéancier
+      </a>
+      <a
+        routerLink="/agent/field"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-blue-950 dark:text-blue-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Enquête Terrain
+      </a>
+    </div>
+  </div>
+
+  <!-- Router Outlet for Child Agent Components -->
+  <router-outlet></router-outlet>
+</div>

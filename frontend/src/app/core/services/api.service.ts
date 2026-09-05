@@ -9,7 +9,7 @@ import {
   CounterProposalRequest, ApplyCounterProposalRequest,
   ReceiptData, VoiceQueryResponse, AuditLogListResponse,
   UserRegisterRequest, TokenResponse, PortfolioStats,
-  RejectApplicationRequest, FieldSurveyRequest,
+  RejectApplicationRequest, FieldSurveyRequest, ContactClientRequest, ApproveDecisionRequest,
   AdminStats, AdminPrudentialSettings, AdminUserCreate, User,
   AdminClientSummary, AdminClientDetail, AdminClientUpdate,
   AdminAgentSummary, AdminAgentReassignPayload, AdminResetPasswordPayload,
@@ -356,9 +356,17 @@ export class ApiService {
     });
   }
 
-  async approveCreditDecision(appId: number): Promise<ScoringResult> {
+  async approveCreditDecision(appId: number, data?: ApproveDecisionRequest): Promise<ScoringResult> {
     return this.request<ScoringResult>(`/applications/${appId}/approve-decision`, {
       method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async contactClient(appId: number, data: ContactClientRequest): Promise<{ status: string; message: string; channel: string; timestamp: string }> {
+    return this.request<{ status: string; message: string; channel: string; timestamp: string }>(`/applications/${appId}/contact-client`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 

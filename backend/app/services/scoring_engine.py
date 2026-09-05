@@ -357,23 +357,21 @@ class CreditScoringEngine:
 
         final_score = int(max(0, min(1000, raw_score)))
 
-        # Risk Classification & Decision Logic
+        # Risk Classification & Decision Logic (Algorithmic recommendation only - Human validation required)
+        approved_amount = None  # Human agent must explicitly validate and grant the loan
         if final_score >= 750:
             risk_level = RiskLevel.LOW
             decision = "approved"
-            approved_amount = requested_amount
             proposed_amount = None
             proposed_duration = None
         elif final_score >= self.approval_threshold:
             risk_level = RiskLevel.MEDIUM
             decision = "approved"
-            approved_amount = requested_amount
             proposed_amount = None
             proposed_duration = None
         elif final_score >= self.adjustment_threshold:
             risk_level = RiskLevel.HIGH
             decision = "adjusted"
-            approved_amount = None
             # Compute intelligent Counter-Proposal
             proposed_amount, proposed_duration = self._optimize_counter_proposal(
                 extracted=extracted,
@@ -384,7 +382,6 @@ class CreditScoringEngine:
         else:
             risk_level = RiskLevel.VERY_HIGH
             decision = "rejected"
-            approved_amount = None
             proposed_amount = None
             proposed_duration = None
 
@@ -520,7 +517,9 @@ async def run_scoring(db: AsyncSession, application_id: int) -> Optional[Scoring
             existing.score = scoring["score"]
             existing.risk_level = scoring["risk_level"]
             existing.decision = scoring["decision"]
-            existing.approved_amount = scoring["approved_amount"]
+            # Keep approved_amount ONLY if application is already formally approved by human agent
+            if application.status != ApplicationStatus.APPROVED:
+                existing.approved_amount = None
             existing.proposed_amount = scoring["proposed_amount"]
             existing.proposed_duration_months = scoring["proposed_duration_months"]
             existing.explainability = scoring["explainability"]
@@ -534,7 +533,7 @@ async def run_scoring(db: AsyncSession, application_id: int) -> Optional[Scoring
                 score=scoring["score"],
                 risk_level=scoring["risk_level"],
                 decision=scoring["decision"],
-                approved_amount=scoring["approved_amount"],
+                approved_amount=None,
                 proposed_amount=scoring["proposed_amount"],
                 proposed_duration_months=scoring["proposed_duration_months"],
                 explainability=scoring["explainability"],

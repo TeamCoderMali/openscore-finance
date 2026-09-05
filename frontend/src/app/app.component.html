@@ -124,9 +124,8 @@
             Console Agence CIF/IMF
           </div>
           <a
-            [routerLink]="['/agent']"
-            [queryParams]="{view: 'pipeline'}"
-            [class.active]="isActive('/agent', 'pipeline') || isActive('/agent')"
+            [routerLink]="['/agent/pipeline']"
+            [class.active]="isActive('/agent', 'pipeline')"
             class="sidebar-link"
             [title]="'Pipeline des Dossiers'"
             [class.justify-center]="isSidebarCollapsed()"
@@ -135,8 +134,7 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Pipeline des Dossiers</span>
           </a>
           <a
-            [routerLink]="['/agent']"
-            [queryParams]="{view: 'portfolio'}"
+            [routerLink]="['/agent/portfolio']"
             [class.active]="isActive('/agent', 'portfolio')"
             class="sidebar-link"
             [title]="'Cockpit Portefeuille'"
@@ -146,8 +144,7 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Cockpit Portefeuille</span>
           </a>
           <a
-            [routerLink]="['/agent']"
-            [queryParams]="{view: 'simulator'}"
+            [routerLink]="['/agent/simulator']"
             [class.active]="isActive('/agent', 'simulator')"
             class="sidebar-link"
             [title]="'Simulateur d\'Échéancier'"
@@ -157,8 +154,7 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Simulateur d'Échéancier</span>
           </a>
           <a
-            [routerLink]="['/agent']"
-            [queryParams]="{view: 'field'}"
+            [routerLink]="['/agent/field']"
             [class.active]="isActive('/agent', 'field')"
             class="sidebar-link"
             [title]="'Enquête Terrain & Géoloc'"

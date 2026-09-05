@@ -21,7 +21,7 @@ from app.models.database import (
 from app.models.schemas import (
     ScoringResultOut, ExplainabilityItem,
     CounterProposalRequest, ApplyCounterProposalRequest,
-    VoiceQueryRequest, VoiceQueryResponse
+    VoiceQueryRequest, VoiceQueryResponse, ApproveDecisionRequest
 )
 from app.api.v1.auth import get_current_user, require_role
 from app.services.scoring_engine import run_scoring, recalculate_counter_proposal, scoring_engine
@@ -287,10 +287,11 @@ async def apply_counter_proposal(
 @router.post("/applications/{app_id}/approve-decision", response_model=ScoringResultOut)
 async def approve_credit_decision(
     app_id: int,
+    payload: Optional[ApproveDecisionRequest] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("agent")),
 ):
-    """Officially approve and validate a credit application."""
+    """Officially approve and validate a credit application by the agent."""
     stmt = select(CreditApplication).where(CreditApplication.id == app_id)
     result = await db.execute(stmt)
     app = result.scalar_one_or_none()
@@ -305,9 +306,15 @@ async def approve_credit_decision(
     if not scoring:
         scoring = await run_scoring(db, app_id)
 
+    final_approved_amount = (
+        float(payload.approved_amount)
+        if payload and payload.approved_amount is not None
+        else float(app.requested_amount)
+    )
+
     if scoring:
         scoring.decision = "approved"
-        scoring.approved_amount = app.requested_amount
+        scoring.approved_amount = final_approved_amount
 
     app.status = ApplicationStatus.APPROVED
     app.updated_at = datetime.now(timezone.utc)
@@ -316,7 +323,12 @@ async def approve_credit_decision(
         application_id=app_id,
         user_id=current_user.id,
         action="credit_approved_by_agent",
-        details={"approved_amount": app.requested_amount, "score": scoring.score if scoring else None},
+        details={
+            "approved_amount": final_approved_amount,
+            "score": scoring.score if scoring else None,
+            "agent_name": current_user.full_name,
+            "agent_notes": payload.notes if payload else None,
+        },
     )
     db.add(audit)
     await db.commit()
@@ -331,7 +343,7 @@ async def approve_credit_decision(
         score=int(scoring.score) if scoring else 750,
         risk_level=scoring.risk_level.value if scoring and hasattr(scoring.risk_level, 'value') else "low",
         decision="approved",
-        approved_amount=app.requested_amount,
+        approved_amount=final_approved_amount,
         proposed_amount=None,
         proposed_duration_months=None,
         explainability=explainability_items,

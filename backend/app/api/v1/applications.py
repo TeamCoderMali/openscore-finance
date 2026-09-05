@@ -20,7 +20,7 @@ from app.models.schemas import (
     ApplicationCreate, ApplicationOut, ApplicationListOut,
     ExtractedDataOut, VerifyDataRequest, ReceiptData,
     AuditLogOut, AuditLogListOut, PortfolioStatsOut,
-    RejectApplicationRequest, FieldSurveyRequest
+    RejectApplicationRequest, FieldSurveyRequest, ContactClientRequest
 )
 from app.api.v1.auth import get_current_user, require_role
 from app.services.extraction_service import process_document_extraction
@@ -35,14 +35,24 @@ def _generate_reference() -> str:
     return f"OSF-{now.strftime('%Y%m%d')}-{short_id}"
 
 
-def _application_to_out(app: CreditApplication, applicant_name: Optional[str] = None) -> ApplicationOut:
+def _application_to_out(
+    app: CreditApplication,
+    applicant_name: Optional[str] = None,
+    applicant_phone: Optional[str] = None,
+    applicant_email: Optional[str] = None,
+) -> ApplicationOut:
     sector_val = app.activity_sector.value if hasattr(app.activity_sector, 'value') else str(app.activity_sector)
     status_val = app.status.value if hasattr(app.status, 'value') else str(app.status)
+    name = applicant_name or (app.applicant.full_name if app.applicant else None)
+    phone = applicant_phone or (app.applicant.phone if app.applicant else None)
+    email = applicant_email or (app.applicant.email if app.applicant else None)
     return ApplicationOut(
         id=int(app.id),
         reference=str(app.reference),
         applicant_id=int(app.applicant_id),
-        applicant_name=applicant_name,
+        applicant_name=name,
+        applicant_phone=phone,
+        applicant_email=email,
         activity_sector=sector_val,
         requested_amount=float(app.requested_amount),
         requested_duration_months=int(app.requested_duration_months),
@@ -531,3 +541,54 @@ async def get_receipt(
         created_at=app.created_at,
         receipt_id=receipt_id,
     )
+
+
+# ── CONTACT CLIENT (Agent Direct Communication) ──────────────────────
+@router.post("/{app_id}/contact-client")
+async def contact_client(
+    app_id: int,
+    data: ContactClientRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("agent")),
+):
+    """
+    Log an agent's communication attempt or direct interaction with the client
+    (WhatsApp, direct call, SMS or email) into the official audit trail.
+    """
+    stmt = (
+        select(CreditApplication)
+        .options(selectinload(CreditApplication.applicant))
+        .where(CreditApplication.id == app_id)
+    )
+    res = await db.execute(stmt)
+    app = res.scalar_one_or_none()
+
+    if not app:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+
+    client_name = app.applicant.full_name if app.applicant else "Client"
+    client_phone = app.applicant.phone if app.applicant else "Non renseigné"
+
+    audit = AuditLog(
+        application_id=app_id,
+        user_id=current_user.id,
+        action="client_contacted",
+        details={
+            "channel": data.channel,
+            "subject": data.subject,
+            "message": data.message,
+            "client_name": client_name,
+            "client_phone": client_phone,
+            "agent_name": current_user.full_name,
+        },
+    )
+    db.add(audit)
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Communication via {data.channel} enregistrée avec succès pour {client_name}.",
+        "channel": data.channel,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+

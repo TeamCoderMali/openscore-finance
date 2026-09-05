@@ -72,6 +72,8 @@ class ApplicationOut(BaseModel):
     reference: str
     applicant_id: int
     applicant_name: Optional[str] = None
+    applicant_phone: Optional[str] = None
+    applicant_email: Optional[str] = None
     activity_sector: str
     requested_amount: float
     requested_duration_months: int
@@ -87,6 +89,17 @@ class ApplicationOut(BaseModel):
 class ApplicationListOut(BaseModel):
     applications: List[ApplicationOut]
     total: int
+
+
+class ContactClientRequest(BaseModel):
+    channel: str = Field(..., description="phone | whatsapp | email | in_app")
+    subject: str = Field(..., min_length=2)
+    message: str = Field(..., min_length=5)
+
+
+class ApproveDecisionRequest(BaseModel):
+    approved_amount: Optional[float] = None
+    notes: Optional[str] = None
 
 
 class RejectApplicationRequest(BaseModel):

@@ -16,8 +16,8 @@ export const routes: Routes = [
   },
   {
     path: 'agent',
-    loadComponent: () =>
-      import('./features/agent-workspace/agent-workspace.component').then(m => m.AgentWorkspaceComponent),
+    loadChildren: () =>
+      import('./features/agent/agent.routes').then(m => m.AGENT_ROUTES),
     canActivate: [authGuard],
     data: { role: 'agent' },
   },

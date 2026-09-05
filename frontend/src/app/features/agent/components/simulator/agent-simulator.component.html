@@ -1,0 +1,142 @@
+<div class="space-y-6 animate-slide-up">
+  <div class="card p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Simulateur & Calculateur d'Échéancier Bancaire UEMOA</h3>
+        <p class="text-xs text-slate-500 font-mono">Calculez instantanément les mensualités avec intérêts dégressifs et différé d'amortissement</p>
+      </div>
+    </div>
+
+    <!-- Simulator Inputs -->
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+      <div>
+        <label class="form-label text-xs">Montant du Crédit (FCFA)</label>
+        <input
+          type="number"
+          [ngModel]="simAmount()"
+          (ngModelChange)="simAmount.set(+$event)"
+          class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          step="50000"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Durée (Mois)</label>
+        <select
+          [ngModel]="simDuration()"
+          (ngModelChange)="simDuration.set(+$event)"
+          class="form-select text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        >
+          <option [value]="6">6 mois</option>
+          <option [value]="12">12 mois</option>
+          <option [value]="18">18 mois</option>
+          <option [value]="24">24 mois</option>
+          <option [value]="36">36 mois</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Taux d'Intérêt Mensuel (%)</label>
+        <input
+          type="number"
+          step="0.1"
+          [ngModel]="simMonthlyRate()"
+          (ngModelChange)="simMonthlyRate.set(+$event)"
+          class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
+        <span class="text-[10px] text-slate-400 font-mono">Norme BCEAO : 1.5% - 2.0%</span>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Différé d'Amortissement (Mois)</label>
+        <select
+          [ngModel]="simGraceMonths()"
+          (ngModelChange)="simGraceMonths.set(+$event)"
+          class="form-select text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        >
+          <option [value]="0">Sans différé (Standard)</option>
+          <option [value]="1">1 mois (Commerce)</option>
+          <option [value]="2">2 mois (Maraîchage)</option>
+          <option [value]="3">3 mois (Agriculture)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Financial Totals Banner -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono">
+      <div>
+        <span class="text-slate-500 dark:text-slate-400">Total Remboursements :</span>
+        <p class="text-lg font-bold text-slate-900 dark:text-white mt-0.5">{{ formatAmount(totalSimCost().totalPayments) }}</p>
+      </div>
+      <div>
+        <span class="text-slate-500 dark:text-slate-400">Total Intérêts Bancaires :</span>
+        <p class="text-lg font-bold text-blue-900 dark:text-blue-400 mt-0.5">{{ formatAmount(totalSimCost().totalInterest) }}</p>
+      </div>
+      <div>
+        <span class="text-slate-500 dark:text-slate-400">Total Prime Assurance :</span>
+        <p class="text-lg font-bold text-slate-700 dark:text-slate-300 mt-0.5">{{ formatAmount(totalSimCost().totalInsurance) }}</p>
+      </div>
+    </div>
+
+    <!-- Amortization Table -->
+    <div class="mt-5 overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-md">
+      <table class="data-table text-xs font-mono">
+        <thead>
+          <tr>
+            <th>Mois</th>
+            <th>Mensualité Totale</th>
+            <th>Capital Amorti</th>
+            <th>Intérêts</th>
+            <th>Assurance</th>
+            <th>Capital Restant Dû</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of pagedAmortizationSchedule()">
+            <td class="font-bold">{{ row.month }}</td>
+            <td class="font-bold text-blue-900 dark:text-blue-400">{{ formatAmount(row.payment) }}</td>
+            <td>{{ formatAmount(row.principal) }}</td>
+            <td class="text-slate-600 dark:text-slate-300">{{ formatAmount(row.interest) }}</td>
+            <td class="text-slate-500 dark:text-slate-400">{{ formatAmount(row.insurance) }}</td>
+            <td class="font-semibold">{{ formatAmount(row.remainingBalance) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Schedule Pagination Toolbar -->
+      <div *ngIf="amortizationSchedule().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-950/40 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 font-mono">
+        <div class="flex items-center gap-2">
+          <span>Afficher</span>
+          <select
+            [ngModel]="schedulePageSize()"
+            (ngModelChange)="schedulePageSize.set(+$event); schedulePage.set(1)"
+            class="form-select py-0.5 px-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-slate-800 dark:text-white"
+          >
+            <option [ngValue]="6">6 mois</option>
+            <option [ngValue]="12">12 mois</option>
+            <option [ngValue]="24">24 mois</option>
+          </select>
+          <span>sur <strong>{{ amortizationSchedule().length }}</strong> échéances</span>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <button
+            (click)="schedulePage.set(schedulePage() - 1)"
+            [disabled]="schedulePage() <= 1"
+            class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+          >
+            Précédent
+          </button>
+          <span class="px-2 font-bold text-slate-900 dark:text-white">Page {{ schedulePage() }} / {{ totalSchedulePages() }}</span>
+          <button
+            (click)="schedulePage.set(schedulePage() + 1)"
+            [disabled]="schedulePage() >= totalSchedulePages()"
+            class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+          >
+            Suivant
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

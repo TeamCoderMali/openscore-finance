@@ -226,6 +226,8 @@ export interface CreditApplication {
   reference: string;
   applicant_id: number;
   applicant_name?: string;
+  applicant_phone?: string;
+  applicant_email?: string;
   activity_sector: ActivitySector;
   requested_amount: number;
   requested_duration_months: number;
@@ -258,6 +260,17 @@ export interface DraftApplication {
   created_at: string;
   status: 'offline_pending';
   sync_attempts?: number;
+}
+
+export interface ContactClientRequest {
+  channel: 'phone' | 'whatsapp' | 'email' | 'in_app';
+  subject: string;
+  message: string;
+}
+
+export interface ApproveDecisionRequest {
+  approved_amount?: number;
+  notes?: string;
 }
 
 export interface RejectApplicationRequest {
