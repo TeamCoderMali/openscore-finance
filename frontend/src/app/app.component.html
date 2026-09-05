@@ -179,18 +179,51 @@
             [queryParams]="{view: 'overview'}"
             [class.active]="isActive('/admin', 'overview') || isActive('/admin')"
             class="sidebar-link"
-            [title]="'Vue Globale & KPI'"
+            [title]="'Cockpit & Macro KPIs'"
             [class.justify-center]="isSidebarCollapsed()"
           >
             <app-svg-icon name="dashboard" [size]="18" class="shrink-0"></app-svg-icon>
-            <span *ngIf="!isSidebarCollapsed()" class="truncate">Vue Globale & KPI</span>
+            <span *ngIf="!isSidebarCollapsed()" class="truncate">Cockpit & KPIs</span>
+          </a>
+          <a
+            [routerLink]="['/admin']"
+            [queryParams]="{view: 'clients'}"
+            [class.active]="isActive('/admin', 'clients')"
+            class="sidebar-link"
+            [title]="'Portefeuille des Clients Emprunteurs'"
+            [class.justify-center]="isSidebarCollapsed()"
+          >
+            <app-svg-icon name="users" [size]="18" class="shrink-0"></app-svg-icon>
+            <span *ngIf="!isSidebarCollapsed()" class="truncate">Gestion Clients</span>
+          </a>
+          <a
+            [routerLink]="['/admin']"
+            [queryParams]="{view: 'agents'}"
+            [class.active]="isActive('/admin', 'agents')"
+            class="sidebar-link"
+            [title]="'Pilotage & Performance des Agents'"
+            [class.justify-center]="isSidebarCollapsed()"
+          >
+            <app-svg-icon name="user" [size]="18" class="shrink-0"></app-svg-icon>
+            <span *ngIf="!isSidebarCollapsed()" class="truncate">Gestion Agents</span>
+          </a>
+          <a
+            [routerLink]="['/admin']"
+            [queryParams]="{view: 'branches'}"
+            [class.active]="isActive('/admin', 'branches')"
+            class="sidebar-link"
+            [title]="'Antennes Régionales & Guichets'"
+            [class.justify-center]="isSidebarCollapsed()"
+          >
+            <app-svg-icon name="building" [size]="18" class="shrink-0"></app-svg-icon>
+            <span *ngIf="!isSidebarCollapsed()" class="truncate">Antennes & Agences</span>
           </a>
           <a
             [routerLink]="['/admin']"
             [queryParams]="{view: 'risk'}"
             [class.active]="isActive('/admin', 'risk')"
             class="sidebar-link"
-            [title]="'Matrice PAR & Risques'"
+            [title]="'Matrice PAR & Stress-Testing'"
             [class.justify-center]="isSidebarCollapsed()"
           >
             <app-svg-icon name="shield" [size]="18" class="shrink-0"></app-svg-icon>
@@ -198,14 +231,14 @@
           </a>
           <a
             [routerLink]="['/admin']"
-            [queryParams]="{view: 'users'}"
-            [class.active]="isActive('/admin', 'users')"
+            [queryParams]="{view: 'settings'}"
+            [class.active]="isActive('/admin', 'settings')"
             class="sidebar-link"
-            [title]="'Gestion des Utilisateurs'"
+            [title]="'Politique Prudentielle BCEAO'"
             [class.justify-center]="isSidebarCollapsed()"
           >
-            <app-svg-icon name="users" [size]="18" class="shrink-0"></app-svg-icon>
-            <span *ngIf="!isSidebarCollapsed()" class="truncate">Gestion Utilisateurs</span>
+            <app-svg-icon name="settings" [size]="18" class="shrink-0"></app-svg-icon>
+            <span *ngIf="!isSidebarCollapsed()" class="truncate">Politique BCEAO</span>
           </a>
           <a
             [routerLink]="['/admin']"

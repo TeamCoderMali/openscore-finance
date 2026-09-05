@@ -1,20 +1,111 @@
 <div class="space-y-6 animate-fade-in">
-  <!-- Super Admin Title Header -->
-  <div class="flex items-center justify-between border-b border-slate-200/90 pb-4">
+  <!-- Super Admin Title Header with Navigation Tabs -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
     <div>
       <div class="flex items-center gap-2">
-        <h1 class="text-xl font-bold text-slate-900">
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white">
           {{ currentTab() === 'overview' ? 'Cockpit Direction & Liquidité IMF' :
-             (currentTab() === 'users' ? 'Gestion des Utilisateurs & Agents' :
-             (currentTab() === 'settings' ? 'Politique Prudentielle & Seuils BCEAO' : 'Piste d\'Audit Globale Consolidée')) }}
+             (currentTab() === 'clients' ? 'Gestion Complète des Clients Emprunteurs' :
+             (currentTab() === 'agents' ? 'Pilotage & Performance des Agents de Crédit' :
+             (currentTab() === 'branches' ? 'Réseau des Antennes Régionales & Guichets' :
+             (currentTab() === 'risk' ? 'Matrice PAR & Stress-Testing Prudentiel BCEAO' :
+             (currentTab() === 'settings' ? 'Politique Prudentielle & Seuils BCEAO' : 'Piste d\'Audit Globale Consolidée'))))) }}
         </h1>
-        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 text-purple-900 border border-purple-200">
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 text-purple-900 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800">
           SUPER ADMIN
         </span>
       </div>
-      <p class="text-xs text-slate-500 mt-0.5 font-mono">
-        Supervision globale, gouvernance des crédits, conformité réglementaire & sécurité
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+        Gouvernance institutionnelle, gestion des clients & agents, surveillance du risque BCEAO
       </p>
+    </div>
+
+    <!-- Quick Action Tabs in Header -->
+    <div class="flex items-center gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-800/80 p-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium">
+      <button
+        (click)="setTab('overview')"
+        [class.bg-white]="currentTab() === 'overview'"
+        [class.dark:bg-slate-900]="currentTab() === 'overview'"
+        [class.shadow-xs]="currentTab() === 'overview'"
+        [class.text-purple-950]="currentTab() === 'overview'"
+        [class.dark:text-purple-300]="currentTab() === 'overview'"
+        [class.font-bold]="currentTab() === 'overview'"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Cockpit
+      </button>
+      <button
+        (click)="setTab('clients')"
+        [class.bg-white]="currentTab() === 'clients'"
+        [class.dark:bg-slate-900]="currentTab() === 'clients'"
+        [class.shadow-xs]="currentTab() === 'clients'"
+        [class.text-purple-950]="currentTab() === 'clients'"
+        [class.dark:text-purple-300]="currentTab() === 'clients'"
+        [class.font-bold]="currentTab() === 'clients'"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Clients
+      </button>
+      <button
+        (click)="setTab('agents')"
+        [class.bg-white]="currentTab() === 'agents'"
+        [class.dark:bg-slate-900]="currentTab() === 'agents'"
+        [class.shadow-xs]="currentTab() === 'agents'"
+        [class.text-purple-950]="currentTab() === 'agents'"
+        [class.dark:text-purple-300]="currentTab() === 'agents'"
+        [class.font-bold]="currentTab() === 'agents'"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Agents
+      </button>
+      <button
+        (click)="setTab('branches')"
+        [class.bg-white]="currentTab() === 'branches'"
+        [class.dark:bg-slate-900]="currentTab() === 'branches'"
+        [class.shadow-xs]="currentTab() === 'branches'"
+        [class.text-purple-950]="currentTab() === 'branches'"
+        [class.dark:text-purple-300]="currentTab() === 'branches'"
+        [class.font-bold]="currentTab() === 'branches'"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Antennes
+      </button>
+      <button
+        (click)="setTab('risk')"
+        [class.bg-white]="currentTab() === 'risk'"
+        [class.dark:bg-slate-900]="currentTab() === 'risk'"
+        [class.shadow-xs]="currentTab() === 'risk'"
+        [class.text-purple-950]="currentTab() === 'risk'"
+        [class.dark:text-purple-300]="currentTab() === 'risk'"
+        [class.font-bold]="currentTab() === 'risk'"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Risques PAR
+      </button>
+      <button
+        (click)="setTab('settings')"
+        [class.bg-white]="currentTab() === 'settings'"
+        [class.dark:bg-slate-900]="currentTab() === 'settings'"
+        [class.shadow-xs]="currentTab() === 'settings'"
+        [class.text-purple-950]="currentTab() === 'settings'"
+        [class.dark:text-purple-300]="currentTab() === 'settings'"
+        [class.font-bold]="currentTab() === 'settings'"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Politique BCEAO
+      </button>
+      <button
+        (click)="setTab('audit')"
+        [class.bg-white]="currentTab() === 'audit'"
+        [class.dark:bg-slate-900]="currentTab() === 'audit'"
+        [class.shadow-xs]="currentTab() === 'audit'"
+        [class.text-purple-950]="currentTab() === 'audit'"
+        [class.dark:text-purple-300]="currentTab() === 'audit'"
+        [class.font-bold]="currentTab() === 'audit'"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Audit
+      </button>
     </div>
   </div>
 
@@ -24,61 +115,61 @@
   <div *ngIf="currentTab() === 'overview'" class="space-y-6 animate-slide-up">
     <!-- Macro KPIs Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4 bg-white border border-zinc-200">
-        <div class="flex items-center justify-between text-zinc-500 text-xs font-mono">
+      <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-mono">
           <span>VOLUME TOTAL VALIDÉ</span>
-          <app-svg-icon name="check-circle" [size]="16" class="text-emerald-700"></app-svg-icon>
+          <app-svg-icon name="check-circle" [size]="16" class="text-emerald-700 dark:text-emerald-400"></app-svg-icon>
         </div>
-        <p class="text-2xl font-mono font-bold text-emerald-700 mt-1">
+        <p class="text-2xl font-mono font-bold text-emerald-700 dark:text-emerald-400 mt-1">
           {{ formatAmount(stats()?.total_volume_approved || 0) }}
         </p>
-        <p class="text-[10px] text-zinc-400 mt-1">Sur {{ formatAmount(stats()?.total_volume_requested || 0) }} sollicités</p>
+        <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Sur {{ formatAmount(stats()?.total_volume_requested || 0) }} sollicités</p>
       </div>
 
-      <div class="card p-4 bg-white border border-zinc-200">
-        <div class="flex items-center justify-between text-zinc-500 text-xs font-mono">
+      <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-mono">
           <span>PORTFOLIO AT RISK (PAR 30)</span>
-          <app-svg-icon name="shield" [size]="16" class="text-blue-900"></app-svg-icon>
+          <app-svg-icon name="shield" [size]="16" class="text-blue-900 dark:text-blue-400"></app-svg-icon>
         </div>
-        <p class="text-2xl font-mono font-bold text-blue-900 mt-1">
+        <p class="text-2xl font-mono font-bold text-blue-900 dark:text-blue-400 mt-1">
           {{ stats()?.portfolio_at_risk_index || 2.4 }}%
         </p>
-        <p class="text-[10px] text-emerald-700 font-semibold mt-1">Excellent (Norme BCEAO &lt; 5.0%)</p>
+        <p class="text-[10px] text-emerald-700 dark:text-emerald-400 font-semibold mt-1">Excellent (Norme BCEAO &lt; 5.0%)</p>
       </div>
 
-      <div class="card p-4 bg-white border border-zinc-200">
-        <div class="flex items-center justify-between text-zinc-500 text-xs font-mono">
+      <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-mono">
           <span>TAUX D'OCTROI RÉSEAU</span>
-          <app-svg-icon name="bar-chart" [size]="16" class="text-zinc-700"></app-svg-icon>
+          <app-svg-icon name="bar-chart" [size]="16" class="text-slate-700 dark:text-slate-300"></app-svg-icon>
         </div>
-        <p class="text-2xl font-mono font-bold text-zinc-900 mt-1">
+        <p class="text-2xl font-mono font-bold text-slate-900 dark:text-white mt-1">
           {{ stats()?.approval_rate || 88 }}%
         </p>
-        <p class="text-[10px] text-zinc-400 mt-1">Score moyen réseau : {{ stats()?.system_average_score || 675 }}/1000</p>
+        <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Score moyen réseau : {{ stats()?.system_average_score || 675 }}/1000</p>
       </div>
 
-      <div class="card p-4 bg-white border border-zinc-200">
-        <div class="flex items-center justify-between text-zinc-500 text-xs font-mono">
-          <span>COMPTES & AGENCES</span>
-          <app-svg-icon name="user" [size]="16" class="text-purple-800"></app-svg-icon>
+      <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-mono">
+          <span>CLIENTS & AGENTS</span>
+          <app-svg-icon name="users" [size]="16" class="text-purple-800 dark:text-purple-400"></app-svg-icon>
         </div>
-        <p class="text-2xl font-mono font-bold text-purple-900 mt-1">
-          {{ stats()?.total_users || 6 }} comptes
+        <p class="text-2xl font-mono font-bold text-purple-900 dark:text-purple-300 mt-1">
+          {{ stats()?.clients_count || 0 }} clients
         </p>
-        <p class="text-[10px] text-zinc-400 mt-1">{{ stats()?.agents_count || 2 }} agents • 3 antennes régionales</p>
+        <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">{{ stats()?.agents_count || 0 }} agents • {{ branches().length }} antennes</p>
       </div>
     </div>
 
     <!-- Charts and Status Summary -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Sector Exposure -->
-      <div class="card p-5">
+      <div class="card p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-bold text-zinc-900 flex items-center gap-2">
-            <app-svg-icon name="bar-chart" [size]="16" class="text-blue-900"></app-svg-icon>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <app-svg-icon name="bar-chart" [size]="16" class="text-blue-900 dark:text-blue-400"></app-svg-icon>
             <span>Exposition Sectorielle Globale (FCFA)</span>
           </h3>
-          <button (click)="exportBceaoReport()" class="btn-ghost text-[11px] py-1 px-2 text-blue-900 cursor-pointer">
+          <button (click)="exportBceaoReport()" class="btn-ghost text-[11px] py-1 px-2 text-blue-900 dark:text-blue-400 cursor-pointer">
             <app-svg-icon name="printer" [size]="12"></app-svg-icon>
             <span>Rapport BCEAO</span>
           </button>
@@ -87,30 +178,30 @@
         <div class="space-y-4 font-mono text-xs">
           <div>
             <div class="flex justify-between mb-1">
-              <span class="font-sans font-medium text-zinc-700">Commerce de détail & Bazin (Grand Marché)</span>
-              <span class="font-bold text-zinc-900">{{ formatAmount(stats()?.sector_exposure?.['Commerce'] || 1500000) }}</span>
+              <span class="font-sans font-medium text-slate-700 dark:text-slate-300">Commerce de détail & Bazin (Marchés)</span>
+              <span class="font-bold text-slate-900 dark:text-white">{{ formatAmount(stats()?.sector_exposure?.['Commerce'] || 1500000) }}</span>
             </div>
-            <div class="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
-              <div class="h-full bg-blue-900 rounded-full" style="width: 58%"></div>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex justify-between mb-1">
-              <span class="font-sans font-medium text-zinc-700">Agriculture & Maraîchage (Baguinéda)</span>
-              <span class="font-bold text-zinc-900">{{ formatAmount(stats()?.sector_exposure?.['Agriculture'] || 750000) }}</span>
-            </div>
-            <div class="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
-              <div class="h-full bg-emerald-600 rounded-full" style="width: 27%"></div>
+            <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-full bg-blue-700 dark:bg-blue-500 rounded-full" style="width: 58%"></div>
             </div>
           </div>
 
           <div>
             <div class="flex justify-between mb-1">
-              <span class="font-sans font-medium text-zinc-700">Artisanat & Broderie (Médina Coura)</span>
-              <span class="font-bold text-zinc-900">{{ formatAmount(stats()?.sector_exposure?.['Artisanat'] || 500000) }}</span>
+              <span class="font-sans font-medium text-slate-700 dark:text-slate-300">Agriculture & Maraîchage</span>
+              <span class="font-bold text-slate-900 dark:text-white">{{ formatAmount(stats()?.sector_exposure?.['Agriculture'] || 750000) }}</span>
             </div>
-            <div class="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+            <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-full bg-emerald-600 dark:bg-emerald-500 rounded-full" style="width: 27%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between mb-1">
+              <span class="font-sans font-medium text-slate-700 dark:text-slate-300">Artisanat & Broderie</span>
+              <span class="font-bold text-slate-900 dark:text-white">{{ formatAmount(stats()?.sector_exposure?.['Artisanat'] || 500000) }}</span>
+            </div>
+            <div class="h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div class="h-full bg-amber-500 rounded-full" style="width: 15%"></div>
             </div>
           </div>
@@ -118,35 +209,29 @@
       </div>
 
       <!-- Regional Branches Activity -->
-      <div class="card p-5">
-        <h3 class="text-sm font-bold text-zinc-900 mb-4 flex items-center gap-2">
-          <app-svg-icon name="dashboard" [size]="16" class="text-purple-800"></app-svg-icon>
-          <span>Activité des Antennes Régionales (Mali)</span>
-        </h3>
+      <div class="card p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <app-svg-icon name="building" [size]="16" class="text-purple-800 dark:text-purple-400"></app-svg-icon>
+            <span>Antennes Régionales Opérationnelles (Mali)</span>
+          </h3>
+          <button (click)="setTab('branches')" class="text-xs text-purple-700 dark:text-purple-400 underline font-mono cursor-pointer">
+            Gérer ({{ branches().length }})
+          </button>
+        </div>
 
         <div class="space-y-3 font-mono text-xs">
-          <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-md flex items-center justify-between">
+          <div *ngFor="let b of branches()" class="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-md flex items-center justify-between">
             <div>
-              <p class="font-sans font-bold text-zinc-900">Antenne Centrale Bamako-District</p>
-              <p class="text-[10px] text-zinc-500 font-mono">Agent Référent : Ibrahima Coulibaly</p>
+              <p class="font-sans font-bold text-slate-900 dark:text-white">{{ b.name }}</p>
+              <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Agent Référent : {{ b.lead_agent }} • {{ b.agents_count }} agents</p>
             </div>
-            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Opérationnelle</span>
-          </div>
-
-          <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-md flex items-center justify-between">
-            <div>
-              <p class="font-sans font-bold text-zinc-900">Antenne Régionale Ségou</p>
-              <p class="text-[10px] text-zinc-500 font-mono">Agent Référent : Awa Sangaré</p>
+            <div class="text-right">
+              <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold text-[10px]">
+                {{ b.status }}
+              </span>
+              <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-bold">PAR: {{ b.par_30 }}%</p>
             </div>
-            <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">Opérationnelle</span>
-          </div>
-
-          <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-md flex items-center justify-between">
-            <div>
-              <p class="font-sans font-bold text-zinc-900">Antenne Régionale Sikasso (Zone Maraîchère)</p>
-              <p class="text-[10px] text-zinc-500 font-mono">Guichet mobile rural WA+</p>
-            </div>
-            <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">En Ligne</span>
           </div>
         </div>
       </div>
@@ -154,142 +239,188 @@
   </div>
 
   <!-- ═════════════════════════════════════════════════════════════════ -->
-  <!-- TAB 2 : GESTION DES UTILISATEURS & AGENTS                         -->
+  <!-- TAB 2 : GESTION COMPLÈTE DES CLIENTS EMPRUNTEURS                  -->
   <!-- ═════════════════════════════════════════════════════════════════ -->
-  <div *ngIf="currentTab() === 'users'" class="space-y-4 animate-slide-up">
-    <div class="card p-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <!-- Search & Role Filter -->
-        <div class="flex items-center gap-2 flex-1">
+  <div *ngIf="currentTab() === 'clients'" class="space-y-4 animate-slide-up">
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Search & Filter Controls -->
+        <div class="flex flex-wrap items-center gap-2 flex-1">
           <input
             type="text"
-            [ngModel]="userSearchQuery()"
-            (ngModelChange)="userSearchQuery.set($event)"
-            placeholder="Rechercher un compte par nom, email..."
-            class="form-input text-xs py-1.5"
+            [ngModel]="clientSearchQuery()"
+            (ngModelChange)="clientSearchQuery.set($event)"
+            placeholder="Rechercher client par nom, email, tél..."
+            class="form-input text-xs py-1.5 w-full sm:w-64 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
           />
           <select
-            [ngModel]="userRoleFilter()"
-            (ngModelChange)="userRoleFilter.set($event); loadUsers()"
-            class="form-select text-xs py-1.5 font-mono"
+            [ngModel]="clientSectorFilter()"
+            (ngModelChange)="clientSectorFilter.set($event); loadClients()"
+            class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
           >
-            <option value="all">Tous les rôles</option>
-            <option value="client">Clients Emprunteurs</option>
-            <option value="agent">Agents de Crédit</option>
-            <option value="admin">Administrateurs</option>
+            <option value="all">Tous les secteurs</option>
+            <option value="Commerce">Commerce</option>
+            <option value="Agriculture">Agriculture</option>
+            <option value="Artisanat">Artisanat</option>
+            <option value="TPE">TPE</option>
+          </select>
+          <select
+            [ngModel]="clientKycFilter()"
+            (ngModelChange)="clientKycFilter.set($event); loadClients()"
+            class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          >
+            <option value="all">Tous statuts KYC</option>
+            <option value="complet">KYC Complet</option>
+            <option value="partiel">KYC Partiel</option>
+            <option value="non_verifie">Non Vérifié</option>
           </select>
         </div>
 
-        <!-- Add User Button -->
-        <button (click)="openCreateUserModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0">
+        <!-- Add Client Button -->
+        <button (click)="openCreateClientModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0">
           <app-svg-icon name="plus" [size]="14"></app-svg-icon>
-          <span>+ Créer un Agent ou Admin</span>
+          <span>+ Enrôler un Client</span>
         </button>
       </div>
 
-      <!-- Users Table -->
-      <div class="mt-4 overflow-x-auto border border-zinc-200 rounded-md">
+      <!-- Clients Table -->
+      <div class="mt-4 overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-md">
         <table class="data-table text-xs">
           <thead>
             <tr>
               <th>Nom & Prénom</th>
-              <th>Email de Connexion</th>
-              <th>Téléphone</th>
-              <th>Rôle Attribué</th>
-              <th>Statut Compte</th>
-              <th class="text-right">Actions Administrateur</th>
+              <th>Coordonnées</th>
+              <th>Secteur</th>
+              <th>Statut KYC</th>
+              <th>Dossiers / Encours</th>
+              <th>Score Moyen</th>
+              <th>Compte</th>
+              <th class="text-right">Actions Super Admin</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let u of pagedUsers()">
-              <td class="font-bold text-zinc-900">{{ u.full_name }}</td>
-              <td class="font-mono text-zinc-600">{{ u.email }}</td>
-              <td class="font-mono text-zinc-500">{{ u.phone || '—' }}</td>
+            <tr *ngFor="let c of pagedClients()">
+              <td class="font-bold text-slate-900 dark:text-white">
+                <button (click)="viewClientDetail(c)" class="hover:underline text-left cursor-pointer">
+                  {{ c.full_name }}
+                </button>
+              </td>
+              <td class="font-mono text-slate-600 dark:text-slate-300">
+                <div>{{ c.email }}</div>
+                <div class="text-[10px] text-slate-400">{{ c.phone || '—' }}</div>
+              </td>
               <td>
-                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold"
-                  [class.bg-purple-100]="u.role === 'admin'"
-                  [class.text-purple-900]="u.role === 'admin'"
-                  [class.bg-blue-100]="u.role === 'agent'"
-                  [class.text-blue-900]="u.role === 'agent'"
-                  [class.bg-emerald-100]="u.role === 'client'"
-                  [class.text-emerald-900]="u.role === 'client'"
-                >
-                  {{ u.role.toUpperCase() }}
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                  {{ c.activity_sector || 'Général' }}
                 </span>
+              </td>
+              <td>
+                <span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded"
+                  [class.bg-emerald-100]="c.kyc_status === 'complet'"
+                  [class.text-emerald-800]="c.kyc_status === 'complet'"
+                  [class.dark:bg-emerald-950/60]="c.kyc_status === 'complet'"
+                  [class.dark:text-emerald-300]="c.kyc_status === 'complet'"
+                  [class.bg-amber-100]="c.kyc_status === 'partiel'"
+                  [class.text-amber-800]="c.kyc_status === 'partiel'"
+                  [class.dark:bg-amber-950/60]="c.kyc_status === 'partiel'"
+                  [class.dark:text-amber-300]="c.kyc_status === 'partiel'"
+                  [class.bg-rose-100]="c.kyc_status === 'non_verifie'"
+                  [class.text-rose-800]="c.kyc_status === 'non_verifie'"
+                  [class.dark:bg-rose-950/60]="c.kyc_status === 'non_verifie'"
+                  [class.dark:text-rose-300]="c.kyc_status === 'non_verifie'"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full"
+                    [class.bg-emerald-500]="c.kyc_status === 'complet'"
+                    [class.bg-amber-500]="c.kyc_status === 'partiel'"
+                    [class.bg-rose-500]="c.kyc_status === 'non_verifie'"
+                  ></span>
+                  {{ c.kyc_status === 'complet' ? 'Vérifié' : (c.kyc_status === 'partiel' ? 'Partiel' : 'Non Vérifié') }}
+                </span>
+              </td>
+              <td class="font-mono text-slate-700 dark:text-slate-300">
+                <div><strong>{{ c.applications_count }}</strong> dossier(s)</div>
+                <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{{ formatAmount(c.total_approved) }}</div>
+              </td>
+              <td class="font-mono font-bold">
+                <span *ngIf="c.average_score" [class.text-emerald-600]="c.average_score >= 700" [class.text-amber-600]="c.average_score >= 550 && c.average_score < 700" [class.text-rose-600]="c.average_score < 550">
+                  {{ c.average_score }}/1000
+                </span>
+                <span *ngIf="!c.average_score" class="text-slate-400 text-[10px]">—</span>
               </td>
               <td>
                 <span class="inline-flex items-center gap-1 text-[11px] font-medium"
-                  [class.text-emerald-700]="u.is_active !== false"
-                  [class.text-rose-700]="u.is_active === false"
+                  [class.text-emerald-700]="c.is_active"
+                  [class.dark:text-emerald-400]="c.is_active"
+                  [class.text-rose-700]="!c.is_active"
+                  [class.dark:text-rose-400]="!c.is_active"
                 >
-                  <span class="w-1.5 h-1.5 rounded-full" [class.bg-emerald-500]="u.is_active !== false" [class.bg-rose-500]="u.is_active === false"></span>
-                  {{ u.is_active !== false ? 'Actif' : 'Suspendu' }}
+                  <span class="w-1.5 h-1.5 rounded-full" [class.bg-emerald-500]="c.is_active" [class.bg-rose-500]="!c.is_active"></span>
+                  {{ c.is_active ? 'Actif' : 'Suspendu' }}
                 </span>
               </td>
-              <td class="text-right space-x-1">
+              <td class="text-right space-x-1 whitespace-nowrap">
                 <button
-                  *ngIf="u.role !== 'admin'"
-                  (click)="changeRole(u, u.role === 'agent' ? 'client' : 'agent')"
-                  class="btn-ghost text-[10px] py-0.5 px-1.5"
-                  title="Changer de rôle"
+                  (click)="viewClientDetail(c)"
+                  class="btn-ghost text-[10px] py-0.5 px-2 text-purple-700 dark:text-purple-300"
+                  title="Fiche 360° du client"
                 >
-                  Passer en {{ u.role === 'agent' ? 'Client' : 'Agent' }}
+                  Fiche 360°
                 </button>
                 <button
-                  (click)="toggleActive(u)"
-                  class="btn-ghost text-[10px] py-0.5 px-1.5"
-                  [class.text-rose-700]="u.is_active !== false"
-                  [class.text-emerald-700]="u.is_active === false"
+                  (click)="openResetPasswordModal(c)"
+                  class="btn-ghost text-[10px] py-0.5 px-1.5 text-slate-600 dark:text-slate-400"
+                  title="Réinitialiser le mot de passe"
                 >
-                  {{ u.is_active !== false ? 'Suspendre' : 'Activer' }}
+                  Mot de passe
                 </button>
                 <button
-                  *ngIf="u.role !== 'admin'"
-                  (click)="deleteUser(u)"
-                  class="btn-ghost text-[10px] py-0.5 px-1.5 text-rose-700 hover:bg-rose-50"
-                  title="Supprimer définitivement le compte"
+                  (click)="toggleClientStatus(c)"
+                  class="btn-ghost text-[10px] py-0.5 px-1.5"
+                  [class.text-rose-700]="c.is_active"
+                  [class.dark:text-rose-400]="c.is_active"
+                  [class.text-emerald-700]="!c.is_active"
+                  [class.dark:text-emerald-400]="!c.is_active"
                 >
-                  <app-svg-icon name="trash" [size]="12"></app-svg-icon>
-                  <span>Supprimer</span>
+                  {{ c.is_active ? 'Suspendre' : 'Activer' }}
                 </button>
               </td>
             </tr>
-            <tr *ngIf="filteredUsers().length === 0">
-              <td colspan="6" class="text-center py-6 text-zinc-400">
-                Aucun utilisateur trouvé.
+            <tr *ngIf="filteredClients().length === 0">
+              <td colspan="8" class="text-center py-8 text-slate-400 dark:text-slate-500">
+                Aucun client trouvé selon vos critères.
               </td>
             </tr>
           </tbody>
         </table>
 
-        <!-- Users Pagination Toolbar -->
-        <div *ngIf="filteredUsers().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-zinc-50 border-t border-zinc-200 text-xs text-zinc-600 font-mono">
+        <!-- Clients Pagination Toolbar -->
+        <div *ngIf="filteredClients().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-mono">
           <div class="flex items-center gap-2">
             <span>Afficher</span>
             <select
-              [ngModel]="usersPageSize()"
-              (ngModelChange)="usersPageSize.set(+$event); usersPage.set(1)"
-              class="form-select py-0.5 px-2 text-xs bg-white border border-zinc-300 rounded"
+              [ngModel]="clientsPageSize()"
+              (ngModelChange)="clientsPageSize.set(+$event); clientsPage.set(1)"
+              class="form-select py-0.5 px-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
             >
               <option [ngValue]="5">5</option>
               <option [ngValue]="10">10</option>
               <option [ngValue]="20">20</option>
             </select>
-            <span>sur <strong>{{ filteredUsers().length }}</strong> comptes</span>
+            <span>sur <strong>{{ filteredClients().length }}</strong> clients</span>
           </div>
 
           <div class="flex items-center gap-1">
             <button
-              (click)="usersPage.set(usersPage() - 1)"
-              [disabled]="usersPage() <= 1"
+              (click)="clientsPage.set(clientsPage() - 1)"
+              [disabled]="clientsPage() <= 1"
               class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
             >
               Précédent
             </button>
-            <span class="px-2 font-bold text-zinc-900">Page {{ usersPage() }} / {{ totalUsersPages() }}</span>
+            <span class="px-2 font-bold text-slate-900 dark:text-white">Page {{ clientsPage() }} / {{ totalClientsPages() }}</span>
             <button
-              (click)="usersPage.set(usersPage() + 1)"
-              [disabled]="usersPage() >= totalUsersPages()"
+              (click)="clientsPage.set(clientsPage() + 1)"
+              [disabled]="clientsPage() >= totalClientsPages()"
               class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
             >
               Suivant
@@ -301,19 +432,381 @@
   </div>
 
   <!-- ═════════════════════════════════════════════════════════════════ -->
-  <!-- TAB 3 : PARAMÉTRAGE PRUDENTIEL BCEAO & MOTEUR ML                  -->
+  <!-- TAB 3 : PILOTAGE & PERFORMANCE DES AGENTS DE CRÉDIT               -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentTab() === 'agents'" class="space-y-4 animate-slide-up">
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <!-- Search & Filter Controls -->
+        <div class="flex items-center gap-2 flex-1">
+          <input
+            type="text"
+            [ngModel]="agentSearchQuery()"
+            (ngModelChange)="agentSearchQuery.set($event)"
+            placeholder="Rechercher un agent par nom, email..."
+            class="form-input text-xs py-1.5 w-full sm:w-64 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+          <select
+            [ngModel]="agentBranchFilter()"
+            (ngModelChange)="agentBranchFilter.set($event); loadAgents()"
+            class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          >
+            <option value="all">Toutes les antennes</option>
+            <option value="Bamako">Bamako-District</option>
+            <option value="Ségou">Ségou</option>
+            <option value="Sikasso">Sikasso</option>
+          </select>
+        </div>
+
+        <!-- Add Agent Button -->
+        <button (click)="openCreateAgentModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0">
+          <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+          <span>+ Provisionner un Agent</span>
+        </button>
+      </div>
+
+      <!-- Agents Table -->
+      <div class="mt-4 overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-md">
+        <table class="data-table text-xs">
+          <thead>
+            <tr>
+              <th>Agent de Crédit</th>
+              <th>Antenne de Rattachement</th>
+              <th>Dossiers (Total / En attente)</th>
+              <th>Volume Accordé</th>
+              <th>Taux d'Accord</th>
+              <th>Délai Moyen</th>
+              <th>Statut</th>
+              <th class="text-right">Actions Opérationnelles</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of pagedAgents()">
+              <td>
+                <div class="font-bold text-slate-900 dark:text-white">{{ a.full_name }}</div>
+                <div class="text-[10px] font-mono text-slate-500">{{ a.email }}</div>
+              </td>
+              <td>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                  {{ a.branch }}
+                </span>
+              </td>
+              <td class="font-mono text-slate-700 dark:text-slate-300">
+                <div><strong>{{ a.assigned_applications_count }}</strong> total</div>
+                <div class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+                  {{ a.pending_applications_count }} en cours de vérif
+                </div>
+              </td>
+              <td class="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                {{ formatAmount(a.approved_volume) }}
+              </td>
+              <td class="font-mono font-bold text-slate-900 dark:text-white">
+                {{ a.approval_rate }}%
+              </td>
+              <td class="font-mono text-slate-500 dark:text-slate-400 text-[11px]">
+                ~{{ a.average_processing_hours }}h
+              </td>
+              <td>
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium"
+                  [class.text-emerald-700]="a.is_active"
+                  [class.dark:text-emerald-400]="a.is_active"
+                  [class.text-rose-700]="!a.is_active"
+                  [class.dark:text-rose-400]="!a.is_active"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full" [class.bg-emerald-500]="a.is_active" [class.bg-rose-500]="!a.is_active"></span>
+                  {{ a.is_active ? 'Actif' : 'Suspendu' }}
+                </span>
+              </td>
+              <td class="text-right space-x-1 whitespace-nowrap">
+                <button
+                  (click)="openReassignModal(a)"
+                  class="btn-ghost text-[10px] py-0.5 px-2 text-blue-900 dark:text-blue-400"
+                  title="Transférer les dossiers de cet agent"
+                >
+                  Réassigner
+                </button>
+                <button
+                  (click)="openResetPasswordModal(a)"
+                  class="btn-ghost text-[10px] py-0.5 px-1.5 text-slate-600 dark:text-slate-400"
+                  title="Réinitialiser le mot de passe"
+                >
+                  Mot de passe
+                </button>
+                <button
+                  (click)="toggleClientStatus(a)"
+                  class="btn-ghost text-[10px] py-0.5 px-1.5"
+                  [class.text-rose-700]="a.is_active"
+                  [class.dark:text-rose-400]="a.is_active"
+                  [class.text-emerald-700]="!a.is_active"
+                  [class.dark:text-emerald-400]="!a.is_active"
+                >
+                  {{ a.is_active ? 'Suspendre' : 'Activer' }}
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="filteredAgents().length === 0">
+              <td colspan="8" class="text-center py-8 text-slate-400 dark:text-slate-500">
+                Aucun agent de crédit trouvé.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Agents Pagination -->
+        <div *ngIf="filteredAgents().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-mono">
+          <div class="flex items-center gap-2">
+            <span>Afficher</span>
+            <select
+              [ngModel]="agentsPageSize()"
+              (ngModelChange)="agentsPageSize.set(+$event); agentsPage.set(1)"
+              class="form-select py-0.5 px-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
+            >
+              <option [ngValue]="5">5</option>
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="20">20</option>
+            </select>
+            <span>sur <strong>{{ filteredAgents().length }}</strong> agents</span>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <button
+              (click)="agentsPage.set(agentsPage() - 1)"
+              [disabled]="agentsPage() <= 1"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+            >
+              Précédent
+            </button>
+            <span class="px-2 font-bold text-slate-900 dark:text-white">Page {{ agentsPage() }} / {{ totalAgentsPages() }}</span>
+            <button
+              (click)="agentsPage.set(agentsPage() + 1)"
+              [disabled]="agentsPage() >= totalAgentsPages()"
+              class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+            >
+              Suivant
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 4 : RÉSEAU DES ANTENNES RÉGIONALES & GUICHETS                -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentTab() === 'branches'" class="space-y-4 animate-slide-up">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Implantation Territoriale & Limites Régionales</h3>
+        <p class="text-xs text-slate-500 font-mono">Supervision des antennes CIF/IMF et guichets mobiles ruraux</p>
+      </div>
+      <button (click)="openCreateBranchModal()" class="btn-primary text-xs py-1.5 px-3 cursor-pointer">
+        <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+        <span>+ Déployer une Antenne</span>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div *ngFor="let b of branches()" class="card p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300">
+              {{ b.branch_type }}
+            </span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+              {{ b.status }}
+            </span>
+          </div>
+          <h4 class="text-base font-bold text-slate-900 dark:text-white">{{ b.name }}</h4>
+          <p class="text-xs text-slate-500 font-mono mt-0.5">Ville : <strong>{{ b.city }}</strong> • Responsable : {{ b.lead_agent }}</p>
+
+          <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2 text-xs font-mono">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Agents affectés</span>
+              <span class="font-bold text-slate-800 dark:text-slate-200">{{ b.agents_count }} agents</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Dossiers actifs</span>
+              <span class="font-bold text-slate-800 dark:text-slate-200">{{ b.active_loans_count }} crédits</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Volume décaissé</span>
+              <span class="font-bold text-emerald-700 dark:text-emerald-400">{{ formatAmount(b.total_disbursed) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Plafond d'octroi</span>
+              <span class="font-bold text-slate-900 dark:text-white">{{ formatAmount(b.max_credit_limit) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">PAR 30 local</span>
+              <span class="font-bold text-blue-900 dark:text-blue-400">{{ b.par_30 }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+          <button (click)="exportBceaoReport()" class="btn-ghost text-[11px] py-1 text-purple-700 dark:text-purple-300">
+            Export Déclaration
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 5 : MATRICE PAR & STRESS-TESTING PRUDENTIEL BCEAO             -->
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentTab() === 'risk'" class="space-y-6 animate-slide-up">
+    <!-- Macro Risk Gauges -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <span class="text-xs font-mono text-slate-500">PAR 30 (CRÉDITS EN SOUFFRANCE &gt; 30J)</span>
+        <p class="text-2xl font-mono font-bold text-blue-900 dark:text-blue-400 mt-1">{{ riskMatrix()?.par_30 || 2.4 }}%</p>
+        <p class="text-[10px] text-emerald-600 font-semibold mt-1">Conforme BCEAO (&lt; 5.0%)</p>
+      </div>
+
+      <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <span class="text-xs font-mono text-slate-500">PAR 60 / PAR 90 CONSOLIDÉ</span>
+        <p class="text-2xl font-mono font-bold text-purple-900 dark:text-purple-300 mt-1">
+          {{ riskMatrix()?.par_60 || 1.1 }}% / {{ riskMatrix()?.par_90 || 0.4 }}%
+        </p>
+        <p class="text-[10px] text-slate-400 mt-1">Dégradation très faible</p>
+      </div>
+
+      <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <span class="text-xs font-mono text-slate-500">NPL (NON-PERFORMING LOANS)</span>
+        <p class="text-2xl font-mono font-bold text-amber-700 dark:text-amber-400 mt-1">{{ riskMatrix()?.npl_ratio || 1.8 }}%</p>
+        <p class="text-[10px] text-slate-400 mt-1">Provisionné à 100%</p>
+      </div>
+
+      <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <span class="text-xs font-mono text-slate-500">COUVERTURE GARANTIES & TONTINES</span>
+        <p class="text-2xl font-mono font-bold text-emerald-700 dark:text-emerald-400 mt-1">{{ riskMatrix()?.guarantee_coverage_rate || 84.5 }}%</p>
+        <p class="text-[10px] text-emerald-600 font-semibold mt-1">Garanties solides</p>
+      </div>
+    </div>
+
+    <!-- Interactive Macro Stress-Testing Simulator -->
+    <div class="card p-6 bg-purple-50/40 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800">
+      <div class="border-b border-purple-200 dark:border-purple-800 pb-3 mb-5 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-purple-950 dark:text-purple-200 flex items-center gap-2">
+            <app-svg-icon name="shield" [size]="16" class="text-purple-700 dark:text-purple-400"></app-svg-icon>
+            <span>Simulateur de Stress-Test Macro-Économique (UEMOA/Mali)</span>
+          </h3>
+          <p class="text-xs text-purple-700 dark:text-purple-300 font-mono">
+            Simulez des chocs conjoncturels pour tester la résilience des fonds propres et du ratio de solvabilité
+          </p>
+        </div>
+        <span class="px-2 py-1 rounded bg-purple-200 text-purple-900 dark:bg-purple-900 dark:text-purple-200 font-mono font-bold text-xs">
+          Simulation Active
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+        <!-- Shock Sliders -->
+        <div class="space-y-4 md:col-span-2">
+          <div>
+            <div class="flex justify-between font-mono mb-1 text-slate-700 dark:text-slate-300">
+              <span>Choc de Baisse des Revenus Agricoles & Informels :</span>
+              <strong class="text-rose-700 dark:text-rose-400">-{{ stressIncomeShock() }}%</strong>
+            </div>
+            <input
+              type="range"
+              min="0" max="40" step="5"
+              [ngModel]="stressIncomeShock()"
+              (ngModelChange)="stressIncomeShock.set($event)"
+              class="w-full accent-purple-800"
+            />
+            <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+              <span>Normal (0%)</span>
+              <span>Crise Modérée (-20%)</span>
+              <span>Choc Majeur (-40%)</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between font-mono mb-1 text-slate-700 dark:text-slate-300">
+              <span>Choc d'Inflation des Intrants / Coûts :</span>
+              <strong class="text-amber-700 dark:text-amber-400">+{{ stressInflationShock() }}%</strong>
+            </div>
+            <input
+              type="range"
+              min="0" max="30" step="5"
+              [ngModel]="stressInflationShock()"
+              (ngModelChange)="stressInflationShock.set($event)"
+              class="w-full accent-purple-800"
+            />
+            <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+              <span>Stable (0%)</span>
+              <span>Inflation +15%</span>
+              <span>Hyperinflation +30%</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 pt-2">
+            <input
+              type="checkbox"
+              id="droughtCheck"
+              [ngModel]="stressDroughtEvent()"
+              (ngModelChange)="stressDroughtEvent.set($event)"
+              class="w-4 h-4 rounded text-purple-800 focus:ring-purple-500"
+            />
+            <label for="droughtCheck" class="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+              Scénario Sécheresse / Retard de mousson dans la zone rizicole & maraîchère
+            </label>
+          </div>
+        </div>
+
+        <!-- Simulated Outcomes -->
+        <div class="bg-white dark:bg-slate-900 p-4 rounded-lg border border-purple-200 dark:border-purple-800 flex flex-col justify-between font-mono">
+          <div>
+            <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Résultats du Test de Résilience</span>
+            <div class="mt-3">
+              <span class="text-xs text-slate-600 dark:text-slate-300">PAR 30 Projeté :</span>
+              <p class="text-2xl font-bold"
+                [class.text-emerald-700]="simulatedPar30() <= 5.0"
+                [class.text-amber-600]="simulatedPar30() > 5.0 && simulatedPar30() <= 8.0"
+                [class.text-rose-700]="simulatedPar30() > 8.0"
+              >
+                {{ simulatedPar30() }}%
+              </p>
+              <span class="text-[10px]" [class.text-emerald-700]="simulatedPar30() <= 5.0" [class.text-rose-600]="simulatedPar30() > 5.0">
+                {{ simulatedPar30() <= 5.0 ? '✓ Respecte la norme BCEAO (< 5%)' : '⚠️ Dépassement de la tolérance BCEAO' }}
+              </span>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <span class="text-xs text-slate-600 dark:text-slate-300">Ratio de Solvabilité Simulée :</span>
+              <p class="text-xl font-bold text-purple-900 dark:text-purple-300">{{ simulatedCapitalAdequacy() }}%</p>
+              <span class="text-[10px] text-slate-400 font-sans">Seuil réglementaire UEMOA : 10.0%</span>
+            </div>
+          </div>
+
+          <button
+            (click)="stressIncomeShock.set(0); stressInflationShock.set(0); stressDroughtEvent.set(false)"
+            class="btn-secondary text-[11px] py-1 mt-4 w-full cursor-pointer"
+          >
+            Réinitialiser le stress-test
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════ -->
+  <!-- TAB 6 : PARAMÉTRAGE PRUDENTIEL BCEAO & MOTEUR ML                  -->
   <!-- ═════════════════════════════════════════════════════════════════ -->
   <div *ngIf="currentTab() === 'settings'" class="space-y-6 animate-slide-up">
-    <div class="card p-5">
-      <div class="border-b border-zinc-200 pb-3 mb-5">
-        <h3 class="text-sm font-bold text-zinc-900">Régulation Prudentielle BCEAO & Calibrage du Scoring ML</h3>
-        <p class="text-xs text-zinc-500 font-mono">Ajustez les seuils directeurs d'octroi et la pondération des variables pour tout le réseau</p>
+    <div class="card p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <div class="border-b border-slate-200 dark:border-slate-800 pb-3 mb-5">
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Régulation Prudentielle BCEAO & Calibrage du Scoring ML</h3>
+        <p class="text-xs text-slate-500 font-mono">Ajustez les seuils directeurs d'octroi et la pondération des variables pour tout le réseau</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
         <!-- Ratios & Seuils -->
         <div class="space-y-4">
-          <h4 class="font-bold text-zinc-800 uppercase tracking-wider text-[11px] font-mono">1. Ratios Prudentiels & Seuils de Décision</h4>
+          <h4 class="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[11px] font-mono">1. Ratios Prudentiels & Seuils de Décision</h4>
 
           <div>
             <label class="form-label text-xs">Plafond du Ratio d'Endettement (BCEAO)</label>
@@ -323,9 +816,9 @@
                 step="0.01"
                 [ngModel]="settings().debt_ratio_ceiling"
                 (ngModelChange)="settings().debt_ratio_ceiling = $event"
-                class="form-input text-xs font-mono w-32"
+                class="form-input text-xs font-mono w-32 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
               />
-              <span class="text-xs text-zinc-500">Ex: 0.40 pour 40% maximum</span>
+              <span class="text-xs text-slate-500 font-mono">Ex: 0.40 pour 40% maximum</span>
             </div>
           </div>
 
@@ -336,7 +829,7 @@
               step="5000"
               [ngModel]="settings().min_disposable_income"
               (ngModelChange)="settings().min_disposable_income = $event"
-              class="form-input text-xs font-mono"
+              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
             />
           </div>
 
@@ -347,7 +840,7 @@
                 type="number"
                 [ngModel]="settings().approval_score_threshold"
                 (ngModelChange)="settings().approval_score_threshold = $event"
-                class="form-input text-xs font-mono"
+                class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
               />
             </div>
             <div>
@@ -356,7 +849,7 @@
                 type="number"
                 [ngModel]="settings().counter_proposal_threshold"
                 (ngModelChange)="settings().counter_proposal_threshold = $event"
-                class="form-input text-xs font-mono"
+                class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
               />
             </div>
           </div>
@@ -368,18 +861,18 @@
               step="0.1"
               [ngModel]="settings().bceao_max_monthly_interest"
               (ngModelChange)="settings().bceao_max_monthly_interest = $event"
-              class="form-input text-xs font-mono w-32"
+              class="form-input text-xs font-mono w-32 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
             />
           </div>
         </div>
 
         <!-- SHAP ML Weights -->
         <div class="space-y-4">
-          <h4 class="font-bold text-zinc-800 uppercase tracking-wider text-[11px] font-mono">2. Pondération des Variables SHAP (Modèle ML)</h4>
+          <h4 class="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[11px] font-mono">2. Pondération des Variables SHAP (Modèle ML)</h4>
 
           <div>
             <div class="flex justify-between mb-1">
-              <span>Ratio d'Endettement</span>
+              <span class="text-slate-700 dark:text-slate-300">Ratio d'Endettement</span>
               <span class="font-mono font-bold">{{ (settings().shap_debt_weight * 100).toFixed(0) }}%</span>
             </div>
             <input
@@ -393,7 +886,7 @@
 
           <div>
             <div class="flex justify-between mb-1">
-              <span>Reste à Vivre / Trésorerie</span>
+              <span class="text-slate-700 dark:text-slate-300">Reste à Vivre / Trésorerie</span>
               <span class="font-mono font-bold">{{ (settings().shap_income_weight * 100).toFixed(0) }}%</span>
             </div>
             <input
@@ -407,7 +900,7 @@
 
           <div>
             <div class="flex justify-between mb-1">
-              <span>Régularité des Flux (sur 12 mois)</span>
+              <span class="text-slate-700 dark:text-slate-300">Régularité des Flux (sur 12 mois)</span>
               <span class="font-mono font-bold">{{ (settings().shap_regularity_weight * 100).toFixed(0) }}%</span>
             </div>
             <input
@@ -421,7 +914,7 @@
 
           <div>
             <div class="flex justify-between mb-1">
-              <span>Ancienneté d'Activité sur Place</span>
+              <span class="text-slate-700 dark:text-slate-300">Ancienneté d'Activité sur Place</span>
               <span class="font-mono font-bold">{{ (settings().shap_seniority_weight * 100).toFixed(0) }}%</span>
             </div>
             <input
@@ -435,7 +928,7 @@
         </div>
       </div>
 
-      <div class="flex justify-end pt-5 border-t border-zinc-200 mt-6">
+      <div class="flex justify-end pt-5 border-t border-slate-200 dark:border-slate-800 mt-6">
         <button (click)="savePrudentialSettings()" class="btn-primary text-xs shadow-xs" [disabled]="savingSettings()">
           <app-spinner *ngIf="savingSettings()" size="sm" [inline]="true" variant="white"></app-spinner>
           <app-svg-icon *ngIf="!savingSettings()" name="check-circle" [size]="14"></app-svg-icon>
@@ -446,19 +939,36 @@
   </div>
 
   <!-- ═════════════════════════════════════════════════════════════════ -->
-  <!-- TAB 4 : PISTE D'AUDIT GLOBALE                                     -->
+  <!-- TAB 7 : PISTE D'AUDIT GLOBALE CONSOLIDÉE                          -->
   <!-- ═════════════════════════════════════════════════════════════════ -->
   <div *ngIf="currentTab() === 'audit'" class="space-y-4 animate-slide-up font-mono text-xs">
-    <div class="card p-4">
-      <div class="flex items-center justify-between border-b border-zinc-200 pb-3 mb-4">
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4 gap-3">
         <div>
-          <h3 class="text-sm font-bold text-zinc-900 font-sans">Piste d'Audit Globale de l'Institution</h3>
-          <p class="text-xs text-zinc-500 font-sans">Traçabilité intégrale de toutes les transactions, certifications et décisions</p>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white font-sans">Piste d'Audit Globale de l'Institution</h3>
+          <p class="text-xs text-slate-500 font-sans">Traçabilité intégrale de toutes les transactions, certifications et décisions</p>
         </div>
-        <button (click)="loadAuditLogs()" class="btn-secondary text-xs py-1 px-2.5">
-          <app-svg-icon name="refresh" [size]="12"></app-svg-icon>
-          <span>Actualiser</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <button (click)="exportAuditTrail()" class="btn-secondary text-xs py-1 px-2.5 cursor-pointer">
+            <app-svg-icon name="printer" [size]="12"></app-svg-icon>
+            <span>Exporter Audit (JSON)</span>
+          </button>
+          <button (click)="loadAuditLogs()" class="btn-secondary text-xs py-1 px-2.5 cursor-pointer">
+            <app-svg-icon name="refresh" [size]="12"></app-svg-icon>
+            <span>Actualiser</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Audit Search and Filter Bar -->
+      <div class="flex items-center gap-2 mb-4">
+        <input
+          type="text"
+          [ngModel]="auditSearchQuery()"
+          (ngModelChange)="auditSearchQuery.set($event)"
+          placeholder="Filtrer événements par mot-clé, utilisateur..."
+          class="form-input text-xs py-1 flex-1 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
       </div>
 
       <div *ngIf="auditLoading()" class="py-12 text-center">
@@ -466,33 +976,33 @@
       </div>
 
       <div *ngIf="!auditLoading()" class="space-y-2">
-        <div *ngFor="let log of pagedAuditLogs()" class="p-3 bg-zinc-50 border border-zinc-200 rounded-md">
-          <div class="flex items-center justify-between text-zinc-500">
-            <span class="font-bold text-blue-900 uppercase font-sans">{{ log.action.replace('_', ' ') }}</span>
+        <div *ngFor="let log of pagedAuditLogs()" class="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-md">
+          <div class="flex items-center justify-between text-slate-500">
+            <span class="font-bold text-blue-900 dark:text-blue-400 uppercase font-sans">{{ log.action.replace('_', ' ') }}</span>
             <span>{{ log.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
           </div>
-          <p class="text-zinc-700 font-sans mt-0.5">Intervenant : <strong>{{ log.user_name || 'Système' }}</strong> • Dossier ID : {{ log.application_id }}</p>
-          <pre *ngIf="log.details" class="text-[10px] text-zinc-600 bg-white p-2 rounded border border-zinc-100 mt-1 overflow-x-auto">{{ log.details | json }}</pre>
+          <p class="text-slate-700 dark:text-slate-300 font-sans mt-0.5">Intervenant : <strong>{{ log.user_name || 'Système' }}</strong> • Réf Dossier : {{ log.application_id }}</p>
+          <pre *ngIf="log.details" class="text-[10px] text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800 mt-1 overflow-x-auto">{{ log.details | json }}</pre>
         </div>
 
-        <div *ngIf="auditLogs().length === 0" class="py-8 text-center text-zinc-400 text-xs">
+        <div *ngIf="filteredAuditLogs().length === 0" class="py-8 text-center text-slate-400 text-xs">
           Aucun événement d'audit enregistré.
         </div>
 
         <!-- Audit Pagination Toolbar -->
-        <div *ngIf="auditLogs().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-md text-xs text-zinc-600 font-mono mt-3">
+        <div *ngIf="filteredAuditLogs().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-md text-xs text-slate-600 dark:text-slate-300 font-mono mt-3">
           <div class="flex items-center gap-2">
             <span>Afficher</span>
             <select
               [ngModel]="auditPageSize()"
               (ngModelChange)="auditPageSize.set(+$event); auditPage.set(1)"
-              class="form-select py-0.5 px-2 text-xs bg-white border border-zinc-300 rounded"
+              class="form-select py-0.5 px-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
             >
               <option [ngValue]="5">5</option>
               <option [ngValue]="10">10</option>
               <option [ngValue]="20">20</option>
             </select>
-            <span>sur <strong>{{ auditLogs().length }}</strong> événements d'audit</span>
+            <span>sur <strong>{{ filteredAuditLogs().length }}</strong> événements</span>
           </div>
 
           <div class="flex items-center gap-1">
@@ -503,7 +1013,7 @@
             >
               Précédent
             </button>
-            <span class="px-2 font-bold text-zinc-900">Page {{ auditPage() }} / {{ totalAuditPages() }}</span>
+            <span class="px-2 font-bold text-slate-900 dark:text-white">Page {{ auditPage() }} / {{ totalAuditPages() }}</span>
             <button
               (click)="auditPage.set(auditPage() + 1)"
               [disabled]="auditPage() >= totalAuditPages()"
@@ -519,79 +1029,207 @@
 </div>
 
 <!-- ═════════════════════════════════════════════════════════════════ -->
-<!-- MODAL CRÉATION UTILISATEUR PAR SUPER ADMIN                        -->
+<!-- MODAL 1 : FICHE CLIENT 360° (PROFIL & DOSSIERS)                   -->
 <!-- ═════════════════════════════════════════════════════════════════ -->
-<div *ngIf="showCreateUserModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in">
+<div *ngIf="showClientModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4 overflow-y-auto">
+  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up my-8 max-h-[90vh] flex flex-col">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-purple-50 dark:bg-purple-950/50">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold text-base">
+          {{ selectedClient()?.full_name?.charAt(0) || 'C' }}
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-purple-950 dark:text-purple-200">{{ selectedClient()?.full_name }}</h3>
+          <p class="text-xs text-purple-700 dark:text-purple-300 font-mono">{{ selectedClient()?.email }} • {{ selectedClient()?.phone || 'Pas de numéro' }}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="exportClientKyc(selectedClient()!)" class="btn-secondary text-xs py-1 px-2.5 cursor-pointer">
+          <app-svg-icon name="printer" [size]="12"></app-svg-icon>
+          <span>Exporter KYC</span>
+        </button>
+        <button (click)="closeClientModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+          <app-svg-icon name="x-circle" [size]="22"></app-svg-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="p-6 overflow-y-auto space-y-6 text-xs flex-1">
+      <!-- Client Financial Profile -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] text-slate-500 block">SECTEUR D'ACTIVITÉ</span>
+          <strong class="text-slate-900 dark:text-white text-sm">{{ selectedClient()?.activity_sector || 'Commerce' }}</strong>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] text-slate-500 block">REVENUS DÉCLARÉS</span>
+          <strong class="text-emerald-700 dark:text-emerald-400 text-sm">{{ formatAmount(selectedClient()?.monthly_revenue || 0) }}</strong>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] text-slate-500 block">CHARGES MENSUELLES</span>
+          <strong class="text-rose-700 dark:text-rose-400 text-sm">{{ formatAmount(selectedClient()?.monthly_expenses || 0) }}</strong>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] text-slate-500 block">STATUT KYC</span>
+          <strong class="text-sm uppercase" [class.text-emerald-600]="selectedClient()?.kyc_status === 'complet'" [class.text-amber-600]="selectedClient()?.kyc_status === 'partiel'">
+            {{ selectedClient()?.kyc_status }}
+          </strong>
+        </div>
+      </div>
+
+      <!-- KYC Documents Verification Info -->
+      <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
+        <h4 class="font-bold text-slate-800 dark:text-slate-200 uppercase font-mono text-[11px]">Pièces d'Identité & Documents Réglementaires</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-[11px]">
+          <div>
+            <span class="text-slate-500 block">Type de Pièce :</span>
+            <strong>{{ selectedClient()?.kyc_documents?.['id_type'] || 'CNI / NINA' }}</strong>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Numéro Identifiant :</span>
+            <strong>{{ selectedClient()?.kyc_documents?.['id_number'] || 'En attente' }}</strong>
+          </div>
+          <div>
+            <span class="text-slate-500 block">NIF / Registre :</span>
+            <strong>{{ selectedClient()?.kyc_documents?.['business_registration_number'] || 'Non requis (TPE informelle)' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Applications History for this Client -->
+      <div>
+        <h4 class="font-bold text-slate-800 dark:text-slate-200 uppercase font-mono text-[11px] mb-2">Historique des Demandes de Crédit</h4>
+        <div class="border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden">
+          <table class="data-table text-xs">
+            <thead>
+              <tr>
+                <th>Référence</th>
+                <th>Montant Demandé</th>
+                <th>Montant Accordé</th>
+                <th>Score</th>
+                <th>Agent Assigné</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let app of selectedClient()?.applications">
+                <td class="font-mono font-bold text-purple-900 dark:text-purple-300">{{ app.reference }}</td>
+                <td class="font-mono">{{ formatAmount(app.requested_amount) }}</td>
+                <td class="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                  {{ app.approved_amount ? formatAmount(app.approved_amount) : '—' }}
+                </td>
+                <td class="font-mono font-bold">{{ app.score ? app.score + '/1000' : '—' }}</td>
+                <td class="text-slate-600 dark:text-slate-400">{{ app.agent_name || 'En attente' }}</td>
+                <td>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase"
+                    [class.bg-emerald-100]="app.status === 'approved'"
+                    [class.text-emerald-900]="app.status === 'approved'"
+                    [class.bg-amber-100]="app.status === 'adjusted'"
+                    [class.text-amber-900]="app.status === 'adjusted'"
+                    [class.bg-blue-100]="app.status.includes('pending') || app.status.includes('data')"
+                    [class.text-blue-900]="app.status.includes('pending') || app.status.includes('data')"
+                  >
+                    {{ app.status }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="!selectedClient()?.applications?.length">
+                <td colspan="6" class="text-center py-4 text-slate-400">Aucun dossier déposé pour ce client.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-6 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
+      <button
+        (click)="toggleClientStatus(selectedClient()!)"
+        class="btn-secondary text-xs"
+      >
+        {{ selectedClient()?.is_active ? 'Suspendre le compte' : 'Réactiver le compte' }}
+      </button>
+      <button (click)="closeClientModal()" class="btn-primary text-xs">Fermer la Fiche</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL 2 : ENRÔLEMENT DIRECT D'UN CLIENT                           -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showCreateClientModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
   <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
     <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-purple-50 dark:bg-purple-950/40">
       <div>
-        <h3 class="text-sm font-bold text-purple-950 dark:text-purple-200">Créer un Nouveau Compte</h3>
-        <p class="text-[11px] text-purple-700 dark:text-purple-300 font-mono">Provisionnement Agent / Administrateur</p>
+        <h3 class="text-sm font-bold text-purple-950 dark:text-purple-200">Enrôler un Nouveau Client</h3>
+        <p class="text-[11px] text-purple-700 dark:text-purple-300 font-mono">Création directe d'un compte emprunteur</p>
       </div>
-      <button (click)="closeCreateUserModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+      <button (click)="closeCreateClientModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
         <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
       </button>
     </div>
 
-    <form (ngSubmit)="createUser()" class="p-5 space-y-3.5 text-xs">
+    <form (ngSubmit)="createClient()" class="p-5 space-y-3 text-xs">
       <div>
-        <label class="form-label text-xs">Nom & Prénom</label>
+        <label class="form-label text-xs">Nom & Prénom du Client</label>
         <input
           type="text"
-          [ngModel]="newUser().full_name"
-          (ngModelChange)="newUser().full_name = $event"
+          [ngModel]="newClient().full_name"
+          (ngModelChange)="newClient().full_name = $event"
           name="full_name"
           required
           class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-          placeholder="ex: Seydou Traoré"
+          placeholder="ex: Fanta Diabaté"
         />
       </div>
 
       <div>
-        <label class="form-label text-xs">Email Professionnel</label>
+        <label class="form-label text-xs">Email du Client</label>
         <input
           type="email"
-          [ngModel]="newUser().email"
-          (ngModelChange)="newUser().email = $event"
+          [ngModel]="newClient().email"
+          (ngModelChange)="newClient().email = $event"
           name="email"
           required
           class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-          placeholder="seydou.traore@openscore.ml"
+          placeholder="fanta.diabate@mail.ml"
         />
       </div>
 
-      <div>
-        <label class="form-label text-xs">Numéro de Téléphone</label>
-        <input
-          type="text"
-          [ngModel]="newUser().phone"
-          (ngModelChange)="newUser().phone = $event"
-          name="phone"
-          class="form-input text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-          placeholder="+223 70 00 00 00"
-        />
-      </div>
-
-      <div>
-        <label class="form-label text-xs">Rôle dans l'Institution</label>
-        <select
-          [ngModel]="newUser().role"
-          (ngModelChange)="newUser().role = $event"
-          name="role"
-          class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-        >
-          <option value="agent">Agent de Crédit (Analyste)</option>
-          <option value="admin">Administrateur / Direction</option>
-          <option value="client">Client Emprunteur</option>
-        </select>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label text-xs">Numéro Téléphone</label>
+          <input
+            type="text"
+            [ngModel]="newClient().phone"
+            (ngModelChange)="newClient().phone = $event"
+            name="phone"
+            class="form-input text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            placeholder="+223 76 00 00 00"
+          />
+        </div>
+        <div>
+          <label class="form-label text-xs">Secteur d'Activité</label>
+          <select
+            [ngModel]="newClient().sector"
+            (ngModelChange)="newClient().sector = $event"
+            name="sector"
+            class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          >
+            <option value="Commerce">Commerce</option>
+            <option value="Agriculture">Agriculture</option>
+            <option value="Artisanat">Artisanat</option>
+            <option value="TPE">TPE</option>
+          </select>
+        </div>
       </div>
 
       <div>
         <label class="form-label text-xs">Mot de Passe Initial</label>
         <input
           type="password"
-          [ngModel]="newUser().password"
-          (ngModelChange)="newUser().password = $event"
+          [ngModel]="newClient().password"
+          (ngModelChange)="newClient().password = $event"
           name="password"
           required
           class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
@@ -599,12 +1237,283 @@
         />
       </div>
 
-      <div class="px-0 pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
-        <button type="button" (click)="closeCreateUserModal()" class="btn-secondary text-xs">Annuler</button>
-        <button type="submit" class="btn-primary text-xs" [disabled]="creatingUser()">
-          <app-spinner *ngIf="creatingUser()" size="sm" [inline]="true" variant="white"></app-spinner>
-          <span *ngIf="creatingUser()">Création...</span>
-          <span *ngIf="!creatingUser()">Créer le Compte</span>
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeCreateClientModal()" class="btn-secondary text-xs">Annuler</button>
+        <button type="submit" class="btn-primary text-xs" [disabled]="creatingClient()">
+          <app-spinner *ngIf="creatingClient()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!creatingClient()">Créer le Client</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL 3 : PROVISIONNEMENT AGENT DE CRÉDIT                         -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showCreateAgentModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-blue-50 dark:bg-blue-950/40">
+      <div>
+        <h3 class="text-sm font-bold text-blue-950 dark:text-blue-200">Provisionner un Agent de Crédit</h3>
+        <p class="text-[11px] text-blue-700 dark:text-blue-300 font-mono">Affectation territoriale & droits d'analyse</p>
+      </div>
+      <button (click)="closeCreateAgentModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="createAgent()" class="p-5 space-y-3 text-xs">
+      <div>
+        <label class="form-label text-xs">Nom & Prénom de l'Agent</label>
+        <input
+          type="text"
+          [ngModel]="newAgent().full_name"
+          (ngModelChange)="newAgent().full_name = $event"
+          name="full_name"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="ex: Moussa Diakité"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Email Professionnel</label>
+        <input
+          type="email"
+          [ngModel]="newAgent().email"
+          (ngModelChange)="newAgent().email = $event"
+          name="email"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="moussa.diakite@openscore.ml"
+        />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label text-xs">Téléphone Pro</label>
+          <input
+            type="text"
+            [ngModel]="newAgent().phone"
+            (ngModelChange)="newAgent().phone = $event"
+            name="phone"
+            class="form-input text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            placeholder="+223 70 12 34 56"
+          />
+        </div>
+        <div>
+          <label class="form-label text-xs">Antenne de Rattachement</label>
+          <select
+            [ngModel]="newAgent().branch"
+            (ngModelChange)="newAgent().branch = $event"
+            name="branch"
+            class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          >
+            <option *ngFor="let b of branches()" [value]="b.name">{{ b.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Mot de Passe Provisoire</label>
+        <input
+          type="password"
+          [ngModel]="newAgent().password"
+          (ngModelChange)="newAgent().password = $event"
+          name="password"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="••••••••"
+        />
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeCreateAgentModal()" class="btn-secondary text-xs">Annuler</button>
+        <button type="submit" class="btn-primary text-xs" [disabled]="creatingAgent()">
+          <app-spinner *ngIf="creatingAgent()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!creatingAgent()">Créer l'Agent</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL 4 : RÉASSIGNATION DE PORTEFEUILLE ENTRE AGENTS              -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showReassignModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-amber-50 dark:bg-amber-950/40">
+      <div>
+        <h3 class="text-sm font-bold text-amber-950 dark:text-amber-200">Réassignation de Portefeuille</h3>
+        <p class="text-[11px] text-amber-700 dark:text-amber-300 font-mono">Transfert de dossiers en attente</p>
+      </div>
+      <button (click)="closeReassignModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <div class="p-5 space-y-4 text-xs">
+      <div class="p-3 bg-amber-50/60 dark:bg-amber-950/30 rounded border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300">
+        <p>Agent source : <strong>{{ reassignSourceAgent()?.full_name }}</strong></p>
+        <p class="text-[11px] mt-1 font-mono">Dossiers en attente de vérification : <strong>{{ reassignSourceAgent()?.pending_applications_count }}</strong></p>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Désigner l'Agent de Crédit Receveur</label>
+        <select
+          [ngModel]="reassignTargetAgentId()"
+          (ngModelChange)="reassignTargetAgentId.set(+$event)"
+          class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+        >
+          <option [ngValue]="null">-- Sélectionner un agent actif --</option>
+          <option *ngFor="let ag of agents()" [ngValue]="ag.id" [disabled]="ag.id === reassignSourceAgent()?.id">
+            {{ ag.full_name }} ({{ ag.branch }})
+          </option>
+        </select>
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeReassignModal()" class="btn-secondary text-xs">Annuler</button>
+        <button (click)="executeReassign()" class="btn-primary text-xs" [disabled]="reassigning() || !reassignTargetAgentId()">
+          <app-spinner *ngIf="reassigning()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!reassigning()">Transférer les Dossiers</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL 5 : DÉPLOIEMENT D'UNE ANTENNE RÉGIONALE                     -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showCreateBranchModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-purple-50 dark:bg-purple-950/40">
+      <div>
+        <h3 class="text-sm font-bold text-purple-950 dark:text-purple-200">Déployer une Nouvelle Antenne</h3>
+        <p class="text-[11px] text-purple-700 dark:text-purple-300 font-mono">Extension du réseau OpenScore Finance</p>
+      </div>
+      <button (click)="closeCreateBranchModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="createBranch()" class="p-5 space-y-3 text-xs">
+      <div>
+        <label class="form-label text-xs">Nom de l'Antenne / Agence</label>
+        <input
+          type="text"
+          [ngModel]="newBranch().name"
+          (ngModelChange)="newBranch().name = $event"
+          name="name"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="ex: Antenne Mopti-Venise"
+        />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label text-xs">Ville / Région</label>
+          <input
+            type="text"
+            [ngModel]="newBranch().city"
+            (ngModelChange)="newBranch().city = $event"
+            name="city"
+            required
+            class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            placeholder="Mopti"
+          />
+        </div>
+        <div>
+          <label class="form-label text-xs">Type de Guichet</label>
+          <select
+            [ngModel]="newBranch().branch_type"
+            (ngModelChange)="newBranch().branch_type = $event"
+            name="branch_type"
+            class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          >
+            <option value="Antenne Régionale">Antenne Régionale</option>
+            <option value="Agence Centrale">Agence Centrale</option>
+            <option value="Guichet Mobile WA+">Guichet Mobile WA+</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Agent Responsable Désigné</label>
+        <input
+          type="text"
+          [ngModel]="newBranch().lead_agent"
+          (ngModelChange)="newBranch().lead_agent = $event"
+          name="lead_agent"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="ex: Fatoumata Koné"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Plafond d'Octroi Régional (FCFA)</label>
+        <input
+          type="number"
+          step="5000000"
+          [ngModel]="newBranch().max_credit_limit"
+          (ngModelChange)="newBranch().max_credit_limit = +$event"
+          name="max_credit_limit"
+          class="form-input text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+        />
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeCreateBranchModal()" class="btn-secondary text-xs">Annuler</button>
+        <button type="submit" class="btn-primary text-xs" [disabled]="creatingBranch()">
+          <app-spinner *ngIf="creatingBranch()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!creatingBranch()">Déployer l'Antenne</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL 6 : RÉINITIALISATION DE MOT DE PASSE                        -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showResetPasswordModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Réinitialiser Mot de Passe</h3>
+        <p class="text-[11px] text-slate-500 font-mono">{{ targetResetUser()?.name }}</p>
+      </div>
+      <button (click)="closeResetPasswordModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="executeResetPassword()" class="p-5 space-y-3 text-xs">
+      <div>
+        <label class="form-label text-xs">Nouveau Mot de Passe Temporaire</label>
+        <input
+          type="password"
+          [ngModel]="newPasswordInput()"
+          (ngModelChange)="newPasswordInput.set($event)"
+          name="new_password"
+          required
+          minlength="4"
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="••••••••"
+        />
+        <p class="text-[10px] text-slate-400 mt-1 font-mono">L'action sera enregistrée dans la piste d'audit.</p>
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeResetPasswordModal()" class="btn-secondary text-xs">Annuler</button>
+        <button type="submit" class="btn-primary text-xs" [disabled]="resettingPassword()">
+          <app-spinner *ngIf="resettingPassword()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!resettingPassword()">Réinitialiser</span>
         </button>
       </div>
     </form>

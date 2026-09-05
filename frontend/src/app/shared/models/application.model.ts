@@ -73,6 +73,140 @@ export interface AdminUserCreate {
   role: 'client' | 'agent' | 'admin';
 }
 
+export interface AdminResetPasswordPayload {
+  new_password: string;
+}
+
+export interface AdminClientSummary {
+  id: number;
+  full_name: string;
+  email: string;
+  phone?: string;
+  is_active: boolean;
+  created_at: string;
+  activity_sector?: ActivitySector;
+  applications_count: number;
+  total_requested: number;
+  total_approved: number;
+  average_score?: number;
+  kyc_status: 'complet' | 'partiel' | 'non_verifie';
+  monthly_revenue?: number;
+  monthly_expenses?: number;
+  last_application_status?: string;
+  last_application_date?: string;
+}
+
+export interface AdminClientDetail {
+  id: number;
+  full_name: string;
+  email: string;
+  phone?: string;
+  is_active: boolean;
+  created_at: string;
+  activity_sector?: ActivitySector;
+  monthly_revenue?: number;
+  monthly_expenses?: number;
+  existing_debt?: number;
+  business_description?: string;
+  years_in_business?: number;
+  kyc_status: 'complet' | 'partiel' | 'non_verifie';
+  kyc_documents: Record<string, any>;
+  applications: Array<{
+    id: number;
+    reference: string;
+    activity_sector: string;
+    requested_amount: number;
+    requested_duration_months: number;
+    status: string;
+    agent_name?: string;
+    score?: number;
+    risk_level?: string;
+    approved_amount?: number;
+    created_at?: string;
+  }>;
+  audit_logs: Array<{
+    id: number;
+    action: string;
+    details?: any;
+    timestamp?: string;
+  }>;
+}
+
+export interface AdminClientUpdate {
+  full_name?: string;
+  phone?: string;
+  email?: string;
+  is_active?: boolean;
+}
+
+export interface AdminAgentSummary {
+  id: number;
+  full_name: string;
+  email: string;
+  phone?: string;
+  is_active: boolean;
+  created_at: string;
+  branch: string;
+  assigned_applications_count: number;
+  certified_applications_count: number;
+  pending_applications_count: number;
+  approved_volume: number;
+  approval_rate: number;
+  average_processing_hours: number;
+}
+
+export interface AdminAgentReassignPayload {
+  target_agent_id: number;
+  application_ids?: number[];
+}
+
+export interface AdminBranchInfo {
+  id: string;
+  name: string;
+  city: string;
+  branch_type: string;
+  status: string;
+  lead_agent: string;
+  agents_count: number;
+  active_loans_count: number;
+  total_disbursed: number;
+  par_30: number;
+  max_credit_limit: number;
+}
+
+export interface AdminBranchCreate {
+  name: string;
+  city: string;
+  branch_type?: string;
+  lead_agent: string;
+  max_credit_limit?: number;
+}
+
+export interface RiskMatrixData {
+  par_30: number;
+  par_60: number;
+  par_90: number;
+  npl_ratio: number;
+  guarantee_coverage_rate: number;
+  sector_risk: Record<string, {
+    exposure_pct: number;
+    par_30: number;
+    default_rate: number;
+    risk_grade: string;
+  }>;
+  branch_risk: Record<string, {
+    active_loans: number;
+    exposure: number;
+    par_30: number;
+  }>;
+  stress_test_defaults: {
+    income_shock_pct: number;
+    inflation_shock_pct: number;
+    baseline_par_30: number;
+    capital_adequacy_ratio: number;
+  };
+}
+
 // ── Application ──────────────────────────────────────────────────────
 export type ActivitySector = 'Commerce' | 'Agriculture' | 'Artisanat' | 'TPE';
 

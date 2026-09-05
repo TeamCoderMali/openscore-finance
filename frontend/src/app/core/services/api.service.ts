@@ -10,7 +10,10 @@ import {
   ReceiptData, VoiceQueryResponse, AuditLogListResponse,
   UserRegisterRequest, TokenResponse, PortfolioStats,
   RejectApplicationRequest, FieldSurveyRequest,
-  AdminStats, AdminPrudentialSettings, AdminUserCreate, User
+  AdminStats, AdminPrudentialSettings, AdminUserCreate, User,
+  AdminClientSummary, AdminClientDetail, AdminClientUpdate,
+  AdminAgentSummary, AdminAgentReassignPayload, AdminResetPasswordPayload,
+  AdminBranchInfo, AdminBranchCreate, RiskMatrixData
 } from '../../shared/models/application.model';
 
 @Injectable({ providedIn: 'root' })
@@ -51,25 +54,42 @@ export class ApiService {
       }
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: 'Erreur serveur' }));
-        throw new Error(error.detail || `Erreur ${response.status}`);
+        let errorMessage = `HTTP ${response.status} - ${response.statusText}`;
+        try {
+          const errData = await response.json();
+          errorMessage = errData.detail || errData.message || errorMessage;
+        } catch {
+          // Keep default message if not JSON
+        }
+        throw new Error(errorMessage);
       }
 
-      return response.json();
-    } catch (err: any) {
-      if (!navigator.onLine || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+      return await response.json();
+    } catch (error: any) {
+      if (!navigator.onLine || error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
         throw new Error('Connexion réseau indisponible');
       }
-      throw err;
+      throw error;
     }
   }
 
-  // ── Auth ─────────────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────
+  async login(credentials: { email: string; password: string }): Promise<TokenResponse> {
+    return this.request<TokenResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  }
+
   async register(data: UserRegisterRequest): Promise<TokenResponse> {
     return this.request<TokenResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async getMe(): Promise<User> {
+    return this.request<User>('/auth/me');
   }
 
   // ── Portfolio stats (Agent Cockpit) ──────────────────────────────
@@ -114,6 +134,63 @@ export class ApiService {
       method: 'PATCH',
       body: JSON.stringify({ role }),
     });
+  }
+
+  async getAdminClients(sector?: string, kycStatus?: string, search?: string): Promise<AdminClientSummary[]> {
+    const params = new URLSearchParams();
+    if (sector && sector !== 'all') params.append('sector', sector);
+    if (kycStatus && kycStatus !== 'all') params.append('kyc_status', kycStatus);
+    if (search) params.append('search', search);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<AdminClientSummary[]>(`/admin/clients${query}`);
+  }
+
+  async getAdminClientDetail(clientId: number): Promise<AdminClientDetail> {
+    return this.request<AdminClientDetail>(`/admin/clients/${clientId}`);
+  }
+
+  async updateAdminClient(clientId: number, data: AdminClientUpdate): Promise<User> {
+    return this.request<User>(`/admin/clients/${clientId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAdminAgents(branch?: string, search?: string): Promise<AdminAgentSummary[]> {
+    const params = new URLSearchParams();
+    if (branch && branch !== 'all') params.append('branch', branch);
+    if (search) params.append('search', search);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<AdminAgentSummary[]>(`/admin/agents${query}`);
+  }
+
+  async reassignAgentApplications(agentId: number, data: AdminAgentReassignPayload): Promise<{ status: string; reassigned_count: number; target_agent: string; message: string }> {
+    return this.request<{ status: string; reassigned_count: number; target_agent: string; message: string }>(`/admin/agents/${agentId}/reassign`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async resetUserPassword(userId: number, data: AdminResetPasswordPayload): Promise<{ status: string; message: string }> {
+    return this.request<{ status: string; message: string }>(`/admin/users/${userId}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAdminBranches(): Promise<AdminBranchInfo[]> {
+    return this.request<AdminBranchInfo[]>('/admin/branches');
+  }
+
+  async createAdminBranch(data: AdminBranchCreate): Promise<AdminBranchInfo> {
+    return this.request<AdminBranchInfo>('/admin/branches', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getRiskMatrix(): Promise<RiskMatrixData> {
+    return this.request<RiskMatrixData>('/admin/risk-matrix');
   }
 
   async getPrudentialSettings(): Promise<AdminPrudentialSettings> {
