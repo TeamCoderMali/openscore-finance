@@ -41,6 +41,13 @@ export class AppComponent {
 
   isActive(basePath: string, view?: string): boolean {
     const url = this.router.url;
+    if (basePath === '/admin') {
+      if (!url.startsWith('/admin')) return false;
+      if (view) {
+        return url.includes(`/admin/${view}`) || url.includes(`view=${view}`);
+      }
+      return url === '/admin' || url.includes('/admin/overview');
+    }
     if (!url.startsWith(basePath)) return false;
     if (!view) {
       return !url.includes('view=') || url.includes('view=applications') || url.includes('view=pipeline') || url.includes('view=overview');

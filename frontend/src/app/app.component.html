@@ -175,9 +175,8 @@
             Direction & Supervision
           </div>
           <a
-            [routerLink]="['/admin']"
-            [queryParams]="{view: 'overview'}"
-            [class.active]="isActive('/admin', 'overview') || isActive('/admin')"
+            [routerLink]="['/admin/overview']"
+            [class.active]="isActive('/admin', 'overview')"
             class="sidebar-link"
             [title]="'Cockpit & Macro KPIs'"
             [class.justify-center]="isSidebarCollapsed()"
@@ -186,8 +185,7 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Cockpit & KPIs</span>
           </a>
           <a
-            [routerLink]="['/admin']"
-            [queryParams]="{view: 'clients'}"
+            [routerLink]="['/admin/clients']"
             [class.active]="isActive('/admin', 'clients')"
             class="sidebar-link"
             [title]="'Portefeuille des Clients Emprunteurs'"
@@ -197,8 +195,7 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Gestion Clients</span>
           </a>
           <a
-            [routerLink]="['/admin']"
-            [queryParams]="{view: 'agents'}"
+            [routerLink]="['/admin/agents']"
             [class.active]="isActive('/admin', 'agents')"
             class="sidebar-link"
             [title]="'Pilotage & Performance des Agents'"
@@ -208,8 +205,7 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Gestion Agents</span>
           </a>
           <a
-            [routerLink]="['/admin']"
-            [queryParams]="{view: 'branches'}"
+            [routerLink]="['/admin/branches']"
             [class.active]="isActive('/admin', 'branches')"
             class="sidebar-link"
             [title]="'Antennes Régionales & Guichets'"
@@ -219,8 +215,7 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Antennes & Agences</span>
           </a>
           <a
-            [routerLink]="['/admin']"
-            [queryParams]="{view: 'risk'}"
+            [routerLink]="['/admin/risk']"
             [class.active]="isActive('/admin', 'risk')"
             class="sidebar-link"
             [title]="'Matrice PAR & Stress-Testing'"
@@ -230,8 +225,7 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Matrice PAR & Risques</span>
           </a>
           <a
-            [routerLink]="['/admin']"
-            [queryParams]="{view: 'settings'}"
+            [routerLink]="['/admin/settings']"
             [class.active]="isActive('/admin', 'settings')"
             class="sidebar-link"
             [title]="'Politique Prudentielle BCEAO'"
@@ -241,8 +235,7 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Politique BCEAO</span>
           </a>
           <a
-            [routerLink]="['/admin']"
-            [queryParams]="{view: 'audit'}"
+            [routerLink]="['/admin/audit']"
             [class.active]="isActive('/admin', 'audit')"
             class="sidebar-link"
             [title]="'Piste d\'Audit Globale'"

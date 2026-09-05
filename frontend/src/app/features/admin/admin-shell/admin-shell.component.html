@@ -1,0 +1,74 @@
+<div class="space-y-6 animate-fade-in">
+  <!-- Super Admin Title Header with Navigation Tabs -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 gap-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="text-xl font-bold text-slate-900 dark:text-white">
+          {{ currentTitle() }}
+        </h1>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 text-purple-900 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800">
+          SUPER ADMIN
+        </span>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+        Gouvernance institutionnelle, gestion des clients & agents, surveillance du risque BCEAO
+      </p>
+    </div>
+
+    <!-- Quick Action Tabs in Header -->
+    <div class="flex items-center gap-1 overflow-x-auto bg-slate-100 dark:bg-slate-800/80 p-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium">
+      <a
+        routerLink="/admin/overview"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-purple-950 dark:text-purple-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Cockpit
+      </a>
+      <a
+        routerLink="/admin/clients"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-purple-950 dark:text-purple-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Clients
+      </a>
+      <a
+        routerLink="/admin/agents"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-purple-950 dark:text-purple-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Agents
+      </a>
+      <a
+        routerLink="/admin/branches"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-purple-950 dark:text-purple-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Antennes
+      </a>
+      <a
+        routerLink="/admin/risk"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-purple-950 dark:text-purple-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Risques PAR
+      </a>
+      <a
+        routerLink="/admin/settings"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-purple-950 dark:text-purple-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Politique BCEAO
+      </a>
+      <a
+        routerLink="/admin/audit"
+        routerLinkActive="bg-white dark:bg-slate-900 shadow-xs text-purple-950 dark:text-purple-300 font-bold"
+        class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer whitespace-nowrap"
+      >
+        Audit
+      </a>
+    </div>
+  </div>
+
+  <!-- Router Outlet for Child Admin Components -->
+  <router-outlet></router-outlet>
+</div>

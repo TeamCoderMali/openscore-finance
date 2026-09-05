@@ -1,0 +1,451 @@
+<div class="space-y-4 animate-slide-up">
+  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <!-- Search & Filter Controls -->
+      <div class="flex flex-wrap items-center gap-2 flex-1">
+        <input
+          type="text"
+          [ngModel]="clientSearchQuery()"
+          (ngModelChange)="clientSearchQuery.set($event)"
+          placeholder="Rechercher client par nom, email, tél..."
+          class="form-input text-xs py-1.5 w-full sm:w-64 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
+        <select
+          [ngModel]="clientSectorFilter()"
+          (ngModelChange)="clientSectorFilter.set($event); loadClients()"
+          class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        >
+          <option value="all">Tous les secteurs</option>
+          <option value="Commerce">Commerce</option>
+          <option value="Agriculture">Agriculture</option>
+          <option value="Artisanat">Artisanat</option>
+          <option value="TPE">TPE</option>
+        </select>
+        <select
+          [ngModel]="clientKycFilter()"
+          (ngModelChange)="clientKycFilter.set($event); loadClients()"
+          class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        >
+          <option value="all">Tous statuts KYC</option>
+          <option value="complet">KYC Complet</option>
+          <option value="partiel">KYC Partiel</option>
+          <option value="non_verifie">Non Vérifié</option>
+        </select>
+      </div>
+
+      <!-- Add Client Button -->
+      <button (click)="openCreateClientModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0">
+        <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+        <span>+ Enrôler un Client</span>
+      </button>
+    </div>
+
+    <!-- Clients Table -->
+    <div class="mt-4 overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-md">
+      <table class="data-table text-xs">
+        <thead>
+          <tr>
+            <th>Nom & Prénom</th>
+            <th>Coordonnées</th>
+            <th>Secteur</th>
+            <th>Statut KYC</th>
+            <th>Dossiers / Encours</th>
+            <th>Score Moyen</th>
+            <th>Compte</th>
+            <th class="text-right">Actions Super Admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of pagedClients()">
+            <td class="font-bold text-slate-900 dark:text-white">
+              <button (click)="viewClientDetail(c)" class="hover:underline text-left cursor-pointer">
+                {{ c.full_name }}
+              </button>
+            </td>
+            <td class="font-mono text-slate-600 dark:text-slate-300">
+              <div>{{ c.email }}</div>
+              <div class="text-[10px] text-slate-400">{{ c.phone || '—' }}</div>
+            </td>
+            <td>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                {{ c.activity_sector || 'Général' }}
+              </span>
+            </td>
+            <td>
+              <span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded"
+                [class.bg-emerald-100]="c.kyc_status === 'complet'"
+                [class.text-emerald-800]="c.kyc_status === 'complet'"
+                [class.dark:bg-emerald-950/60]="c.kyc_status === 'complet'"
+                [class.dark:text-emerald-300]="c.kyc_status === 'complet'"
+                [class.bg-amber-100]="c.kyc_status === 'partiel'"
+                [class.text-amber-800]="c.kyc_status === 'partiel'"
+                [class.dark:bg-amber-950/60]="c.kyc_status === 'partiel'"
+                [class.dark:text-amber-300]="c.kyc_status === 'partiel'"
+                [class.bg-rose-100]="c.kyc_status === 'non_verifie'"
+                [class.text-rose-800]="c.kyc_status === 'non_verifie'"
+                [class.dark:bg-rose-950/60]="c.kyc_status === 'non_verifie'"
+                [class.dark:text-rose-300]="c.kyc_status === 'non_verifie'"
+              >
+                <span class="w-1.5 h-1.5 rounded-full"
+                  [class.bg-emerald-500]="c.kyc_status === 'complet'"
+                  [class.bg-amber-500]="c.kyc_status === 'partiel'"
+                  [class.bg-rose-500]="c.kyc_status === 'non_verifie'"
+                ></span>
+                {{ c.kyc_status === 'complet' ? 'Vérifié' : (c.kyc_status === 'partiel' ? 'Partiel' : 'Non Vérifié') }}
+              </span>
+            </td>
+            <td class="font-mono text-slate-700 dark:text-slate-300">
+              <div><strong>{{ c.applications_count }}</strong> dossier(s)</div>
+              <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{{ formatAmount(c.total_approved) }}</div>
+            </td>
+            <td class="font-mono font-bold">
+              <span *ngIf="c.average_score" [class.text-emerald-600]="c.average_score >= 700" [class.text-amber-600]="c.average_score >= 550 && c.average_score < 700" [class.text-rose-600]="c.average_score < 550">
+                {{ c.average_score }}/1000
+              </span>
+              <span *ngIf="!c.average_score" class="text-slate-400 text-[10px]">—</span>
+            </td>
+            <td>
+              <span class="inline-flex items-center gap-1 text-[11px] font-medium"
+                [class.text-emerald-700]="c.is_active"
+                [class.dark:text-emerald-400]="c.is_active"
+                [class.text-rose-700]="!c.is_active"
+                [class.dark:text-rose-400]="!c.is_active"
+              >
+                <span class="w-1.5 h-1.5 rounded-full" [class.bg-emerald-500]="c.is_active" [class.bg-rose-500]="!c.is_active"></span>
+                {{ c.is_active ? 'Actif' : 'Suspendu' }}
+              </span>
+            </td>
+            <td class="text-right space-x-1 whitespace-nowrap">
+              <button
+                (click)="viewClientDetail(c)"
+                class="btn-ghost text-[10px] py-0.5 px-2 text-purple-700 dark:text-purple-300"
+                title="Fiche 360° du client"
+              >
+                Fiche 360°
+              </button>
+              <button
+                (click)="openResetPasswordModal(c)"
+                class="btn-ghost text-[10px] py-0.5 px-1.5 text-slate-600 dark:text-slate-400"
+                title="Réinitialiser le mot de passe"
+              >
+                Mot de passe
+              </button>
+              <button
+                (click)="toggleClientStatus(c)"
+                class="btn-ghost text-[10px] py-0.5 px-1.5"
+                [class.text-rose-700]="c.is_active"
+                [class.dark:text-rose-400]="c.is_active"
+                [class.text-emerald-700]="!c.is_active"
+                [class.dark:text-emerald-400]="!c.is_active"
+              >
+                {{ c.is_active ? 'Suspendre' : 'Activer' }}
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredClients().length === 0">
+            <td colspan="8" class="text-center py-8 text-slate-400 dark:text-slate-500">
+              Aucun client trouvé selon vos critères.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Clients Pagination Toolbar -->
+      <div *ngIf="filteredClients().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-mono">
+        <div class="flex items-center gap-2">
+          <span>Afficher</span>
+          <select
+            [ngModel]="clientsPageSize()"
+            (ngModelChange)="clientsPageSize.set(+$event); clientsPage.set(1)"
+            class="form-select py-0.5 px-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
+          >
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+          </select>
+          <span>sur <strong>{{ filteredClients().length }}</strong> clients</span>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <button
+            (click)="clientsPage.set(clientsPage() - 1)"
+            [disabled]="clientsPage() <= 1"
+            class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+          >
+            Précédent
+          </button>
+          <span class="px-2 font-bold text-slate-900 dark:text-white">Page {{ clientsPage() }} / {{ totalClientsPages() }}</span>
+          <button
+            (click)="clientsPage.set(clientsPage() + 1)"
+            [disabled]="clientsPage() >= totalClientsPages()"
+            class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+          >
+            Suivant
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL : FICHE CLIENT 360° (PROFIL & DOSSIERS)                     -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showClientModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4 overflow-y-auto">
+  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up my-8 max-h-[90vh] flex flex-col">
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-purple-50 dark:bg-purple-950/50">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold text-base">
+          {{ selectedClient()?.full_name?.charAt(0) || 'C' }}
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-purple-950 dark:text-purple-200">{{ selectedClient()?.full_name }}</h3>
+          <p class="text-xs text-purple-700 dark:text-purple-300 font-mono">{{ selectedClient()?.email }} • {{ selectedClient()?.phone || 'Pas de numéro' }}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="exportClientKyc(selectedClient()!)" class="btn-secondary text-xs py-1 px-2.5 cursor-pointer">
+          <app-svg-icon name="printer" [size]="12"></app-svg-icon>
+          <span>Exporter KYC</span>
+        </button>
+        <button (click)="closeClientModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+          <app-svg-icon name="x-circle" [size]="22"></app-svg-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="p-6 overflow-y-auto space-y-6 text-xs flex-1">
+      <!-- Client Financial Profile -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] text-slate-500 block">SECTEUR D'ACTIVITÉ</span>
+          <strong class="text-slate-900 dark:text-white text-sm">{{ selectedClient()?.activity_sector || 'Commerce' }}</strong>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] text-slate-500 block">REVENUS DÉCLARÉS</span>
+          <strong class="text-emerald-700 dark:text-emerald-400 text-sm">{{ formatAmount(selectedClient()?.monthly_revenue || 0) }}</strong>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] text-slate-500 block">CHARGES MENSUELLES</span>
+          <strong class="text-rose-700 dark:text-rose-400 text-sm">{{ formatAmount(selectedClient()?.monthly_expenses || 0) }}</strong>
+        </div>
+        <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
+          <span class="text-[10px] text-slate-500 block">STATUT KYC</span>
+          <strong class="text-sm uppercase" [class.text-emerald-600]="selectedClient()?.kyc_status === 'complet'" [class.text-amber-600]="selectedClient()?.kyc_status === 'partiel'">
+            {{ selectedClient()?.kyc_status }}
+          </strong>
+        </div>
+      </div>
+
+      <!-- KYC Documents Verification Info -->
+      <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
+        <h4 class="font-bold text-slate-800 dark:text-slate-200 uppercase font-mono text-[11px]">Pièces d'Identité & Documents Réglementaires</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-[11px]">
+          <div>
+            <span class="text-slate-500 block">Type de Pièce :</span>
+            <strong>{{ selectedClient()?.kyc_documents?.['id_type'] || 'CNI / NINA' }}</strong>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Numéro Identifiant :</span>
+            <strong>{{ selectedClient()?.kyc_documents?.['id_number'] || 'En attente' }}</strong>
+          </div>
+          <div>
+            <span class="text-slate-500 block">NIF / Registre :</span>
+            <strong>{{ selectedClient()?.kyc_documents?.['business_registration_number'] || 'Non requis (TPE informelle)' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Applications History for this Client -->
+      <div>
+        <h4 class="font-bold text-slate-800 dark:text-slate-200 uppercase font-mono text-[11px] mb-2">Historique des Demandes de Crédit</h4>
+        <div class="border border-slate-200 dark:border-slate-800 rounded-md overflow-hidden">
+          <table class="data-table text-xs">
+            <thead>
+              <tr>
+                <th>Référence</th>
+                <th>Montant Demandé</th>
+                <th>Montant Accordé</th>
+                <th>Score</th>
+                <th>Agent Assigné</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let app of selectedClient()?.applications">
+                <td class="font-mono font-bold text-purple-900 dark:text-purple-300">{{ app.reference }}</td>
+                <td class="font-mono">{{ formatAmount(app.requested_amount) }}</td>
+                <td class="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                  {{ app.approved_amount ? formatAmount(app.approved_amount) : '—' }}
+                </td>
+                <td class="font-mono font-bold">{{ app.score ? app.score + '/1000' : '—' }}</td>
+                <td class="text-slate-600 dark:text-slate-400">{{ app.agent_name || 'En attente' }}</td>
+                <td>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase"
+                    [class.bg-emerald-100]="app.status === 'approved'"
+                    [class.text-emerald-900]="app.status === 'approved'"
+                    [class.bg-amber-100]="app.status === 'adjusted'"
+                    [class.text-amber-900]="app.status === 'adjusted'"
+                    [class.bg-blue-100]="app.status.includes('pending') || app.status.includes('data')"
+                    [class.text-blue-900]="app.status.includes('pending') || app.status.includes('data')"
+                  >
+                    {{ app.status }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="!selectedClient()?.applications?.length">
+                <td colspan="6" class="text-center py-4 text-slate-400">Aucun dossier déposé pour ce client.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-6 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
+      <button
+        (click)="toggleClientStatus(selectedClient()!)"
+        class="btn-secondary text-xs cursor-pointer"
+      >
+        {{ selectedClient()?.is_active ? 'Suspendre le compte' : 'Réactiver le compte' }}
+      </button>
+      <button (click)="closeClientModal()" class="btn-primary text-xs cursor-pointer">Fermer la Fiche</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL : ENRÔLEMENT DIRECT D'UN CLIENT                             -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showCreateClientModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-purple-50 dark:bg-purple-950/40">
+      <div>
+        <h3 class="text-sm font-bold text-purple-950 dark:text-purple-200">Enrôler un Nouveau Client</h3>
+        <p class="text-[11px] text-purple-700 dark:text-purple-300 font-mono">Création directe d'un compte emprunteur</p>
+      </div>
+      <button (click)="closeCreateClientModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="createClient()" class="p-5 space-y-3 text-xs">
+      <div>
+        <label class="form-label text-xs">Nom & Prénom du Client</label>
+        <input
+          type="text"
+          [ngModel]="newClient().full_name"
+          (ngModelChange)="newClient().full_name = $event"
+          name="full_name"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="ex: Fanta Diabaté"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Email du Client</label>
+        <input
+          type="email"
+          [ngModel]="newClient().email"
+          (ngModelChange)="newClient().email = $event"
+          name="email"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="fanta.diabate@mail.ml"
+        />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label text-xs">Numéro Téléphone</label>
+          <input
+            type="text"
+            [ngModel]="newClient().phone"
+            (ngModelChange)="newClient().phone = $event"
+            name="phone"
+            class="form-input text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            placeholder="+223 76 00 00 00"
+          />
+        </div>
+        <div>
+          <label class="form-label text-xs">Secteur d'Activité</label>
+          <select
+            [ngModel]="newClient().sector"
+            (ngModelChange)="newClient().sector = $event"
+            name="sector"
+            class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          >
+            <option value="Commerce">Commerce</option>
+            <option value="Agriculture">Agriculture</option>
+            <option value="Artisanat">Artisanat</option>
+            <option value="TPE">TPE</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Mot de Passe Initial</label>
+        <input
+          type="password"
+          [ngModel]="newClient().password"
+          (ngModelChange)="newClient().password = $event"
+          name="password"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="••••••••"
+        />
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeCreateClientModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+        <button type="submit" class="btn-primary text-xs cursor-pointer" [disabled]="creatingClient()">
+          <app-spinner *ngIf="creatingClient()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!creatingClient()">Créer le Client</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL : RÉINITIALISATION DE MOT DE PASSE                          -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showResetPasswordModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Réinitialiser Mot de Passe</h3>
+        <p class="text-[11px] text-slate-500 font-mono">{{ targetResetUser()?.name }}</p>
+      </div>
+      <button (click)="closeResetPasswordModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="executeResetPassword()" class="p-5 space-y-3 text-xs">
+      <div>
+        <label class="form-label text-xs">Nouveau Mot de Passe Temporaire</label>
+        <input
+          type="password"
+          [ngModel]="newPasswordInput()"
+          (ngModelChange)="newPasswordInput.set($event)"
+          name="new_password"
+          required
+          minlength="4"
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="••••••••"
+        />
+        <p class="text-[10px] text-slate-400 mt-1 font-mono">L'action sera enregistrée dans la piste d'audit.</p>
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeResetPasswordModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+        <button type="submit" class="btn-primary text-xs cursor-pointer" [disabled]="resettingPassword()">
+          <app-spinner *ngIf="resettingPassword()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!resettingPassword()">Réinitialiser</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

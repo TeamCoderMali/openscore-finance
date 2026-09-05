@@ -1,0 +1,143 @@
+<div class="space-y-6 animate-slide-up">
+  <!-- Macro Risk Gauges -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs font-mono text-slate-500">PAR 30 (CRÉDITS EN SOUFFRANCE &gt; 30J)</span>
+      <p class="text-2xl font-mono font-bold text-blue-900 dark:text-blue-400 mt-1">{{ riskMatrix()?.par_30 || 2.4 }}%</p>
+      <p class="text-[10px] text-emerald-600 font-semibold mt-1">Conforme BCEAO (&lt; 5.0%)</p>
+    </div>
+
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs font-mono text-slate-500">PAR 60 / PAR 90 CONSOLIDÉ</span>
+      <p class="text-2xl font-mono font-bold text-purple-900 dark:text-purple-300 mt-1">
+        {{ riskMatrix()?.par_60 || 1.1 }}% / {{ riskMatrix()?.par_90 || 0.4 }}%
+      </p>
+      <p class="text-[10px] text-slate-400 mt-1">Dégradation très faible</p>
+    </div>
+
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs font-mono text-slate-500">NPL (NON-PERFORMING LOANS)</span>
+      <p class="text-2xl font-mono font-bold text-amber-700 dark:text-amber-400 mt-1">{{ riskMatrix()?.npl_ratio || 1.8 }}%</p>
+      <p class="text-[10px] text-slate-400 mt-1">Provisionné à 100%</p>
+    </div>
+
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs font-mono text-slate-500">COUVERTURE GARANTIES & TONTINES</span>
+      <p class="text-2xl font-mono font-bold text-emerald-700 dark:text-emerald-400 mt-1">{{ riskMatrix()?.guarantee_coverage_rate || 84.5 }}%</p>
+      <p class="text-[10px] text-emerald-600 font-semibold mt-1">Garanties solides</p>
+    </div>
+  </div>
+
+  <!-- Interactive Macro Stress-Testing Simulator -->
+  <div class="card p-6 bg-purple-50/40 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800">
+    <div class="border-b border-purple-200 dark:border-purple-800 pb-3 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <h3 class="text-sm font-bold text-purple-950 dark:text-purple-200 flex items-center gap-2">
+          <app-svg-icon name="shield" [size]="16" class="text-purple-700 dark:text-purple-400"></app-svg-icon>
+          <span>Simulateur de Stress-Test Macro-Économique (UEMOA/Mali)</span>
+        </h3>
+        <p class="text-xs text-purple-700 dark:text-purple-300 font-mono">
+          Simulez des chocs conjoncturels pour tester la résilience des fonds propres et du ratio de solvabilité
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="exportBceaoReport()" class="btn-ghost text-[11px] py-1 px-2.5 text-purple-700 dark:text-purple-300 cursor-pointer">
+          <app-svg-icon name="printer" [size]="12"></app-svg-icon>
+          <span>Export Scénario</span>
+        </button>
+        <span class="px-2 py-1 rounded bg-purple-200 text-purple-900 dark:bg-purple-900 dark:text-purple-200 font-mono font-bold text-xs">
+          Simulation Active
+        </span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+      <!-- Shock Sliders -->
+      <div class="space-y-4 md:col-span-2">
+        <div>
+          <div class="flex justify-between font-mono mb-1 text-slate-700 dark:text-slate-300">
+            <span>Choc de Baisse des Revenus Agricoles & Informels :</span>
+            <strong class="text-rose-700 dark:text-rose-400">-{{ stressIncomeShock() }}%</strong>
+          </div>
+          <input
+            type="range"
+            min="0" max="40" step="5"
+            [ngModel]="stressIncomeShock()"
+            (ngModelChange)="stressIncomeShock.set($event)"
+            class="w-full accent-purple-800 cursor-pointer"
+          />
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+            <span>Normal (0%)</span>
+            <span>Crise Modérée (-20%)</span>
+            <span>Choc Majeur (-40%)</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between font-mono mb-1 text-slate-700 dark:text-slate-300">
+            <span>Choc d'Inflation des Intrants / Coûts :</span>
+            <strong class="text-amber-700 dark:text-amber-400">+{{ stressInflationShock() }}%</strong>
+          </div>
+          <input
+            type="range"
+            min="0" max="30" step="5"
+            [ngModel]="stressInflationShock()"
+            (ngModelChange)="stressInflationShock.set($event)"
+            class="w-full accent-purple-800 cursor-pointer"
+          />
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+            <span>Stable (0%)</span>
+            <span>Inflation +15%</span>
+            <span>Hyperinflation +30%</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+          <input
+            type="checkbox"
+            id="droughtCheck"
+            [ngModel]="stressDroughtEvent()"
+            (ngModelChange)="stressDroughtEvent.set($event)"
+            class="w-4 h-4 rounded text-purple-800 focus:ring-purple-500 cursor-pointer"
+          />
+          <label for="droughtCheck" class="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer">
+            Scénario Sécheresse / Retard de mousson dans la zone rizicole & maraîchère
+          </label>
+        </div>
+      </div>
+
+      <!-- Simulated Outcomes -->
+      <div class="bg-white dark:bg-slate-900 p-4 rounded-lg border border-purple-200 dark:border-purple-800 flex flex-col justify-between font-mono">
+        <div>
+          <span class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Résultats du Test de Résilience</span>
+          <div class="mt-3">
+            <span class="text-xs text-slate-600 dark:text-slate-300">PAR 30 Projeté :</span>
+            <p class="text-2xl font-bold"
+              [class.text-emerald-700]="simulatedPar30() <= 5.0"
+              [class.text-amber-600]="simulatedPar30() > 5.0 && simulatedPar30() <= 8.0"
+              [class.text-rose-700]="simulatedPar30() > 8.0"
+            >
+              {{ simulatedPar30() }}%
+            </p>
+            <span class="text-[10px]" [class.text-emerald-700]="simulatedPar30() <= 5.0" [class.text-rose-600]="simulatedPar30() > 5.0">
+              {{ simulatedPar30() <= 5.0 ? '✓ Respecte la norme BCEAO (< 5%)' : '⚠️ Dépassement de la tolérance BCEAO' }}
+            </span>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <span class="text-xs text-slate-600 dark:text-slate-300">Ratio de Solvabilité Simulée :</span>
+            <p class="text-xl font-bold text-purple-900 dark:text-purple-300">{{ simulatedCapitalAdequacy() }}%</p>
+            <span class="text-[10px] text-slate-400 font-sans">Seuil réglementaire UEMOA : 10.0%</span>
+          </div>
+        </div>
+
+        <button
+          (click)="resetStressTest()"
+          class="btn-secondary text-[11px] py-1 mt-4 w-full cursor-pointer"
+        >
+          Réinitialiser le stress-test
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

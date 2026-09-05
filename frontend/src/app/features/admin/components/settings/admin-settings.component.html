@@ -1,0 +1,141 @@
+<div class="space-y-6 animate-slide-up">
+  <div class="card p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+    <div class="border-b border-slate-200 dark:border-slate-800 pb-3 mb-5">
+      <h3 class="text-sm font-bold text-slate-900 dark:text-white">Régulation Prudentielle BCEAO & Calibrage du Scoring ML</h3>
+      <p class="text-xs text-slate-500 font-mono">Ajustez les seuils directeurs d'octroi et la pondération des variables pour tout le réseau</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+      <!-- Ratios & Seuils -->
+      <div class="space-y-4">
+        <h4 class="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[11px] font-mono">1. Ratios Prudentiels & Seuils de Décision</h4>
+
+        <div>
+          <label class="form-label text-xs">Plafond du Ratio d'Endettement (BCEAO)</label>
+          <div class="flex items-center gap-2">
+            <input
+              type="number"
+              step="0.01"
+              [ngModel]="settings().debt_ratio_ceiling"
+              (ngModelChange)="settings().debt_ratio_ceiling = $event"
+              class="form-input text-xs font-mono w-32 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+            />
+            <span class="text-xs text-slate-500 font-mono">Ex: 0.40 pour 40% maximum</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label text-xs">Reste à Vivre Minimum Vital (FCFA / mois)</label>
+          <input
+            type="number"
+            step="5000"
+            [ngModel]="settings().min_disposable_income"
+            (ngModelChange)="settings().min_disposable_income = $event"
+            class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="form-label text-xs">Seuil Accord Direct (Score)</label>
+            <input
+              type="number"
+              [ngModel]="settings().approval_score_threshold"
+              (ngModelChange)="settings().approval_score_threshold = $event"
+              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+            />
+          </div>
+          <div>
+            <label class="form-label text-xs">Seuil Ajustement (Score)</label>
+            <input
+              type="number"
+              [ngModel]="settings().counter_proposal_threshold"
+              (ngModelChange)="settings().counter_proposal_threshold = $event"
+              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label text-xs">Taux d'Usure Mensuel Plafond BCEAO (%)</label>
+          <input
+            type="number"
+            step="0.1"
+            [ngModel]="settings().bceao_max_monthly_interest"
+            (ngModelChange)="settings().bceao_max_monthly_interest = $event"
+            class="form-input text-xs font-mono w-32 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+      </div>
+
+      <!-- SHAP ML Weights -->
+      <div class="space-y-4">
+        <h4 class="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[11px] font-mono">2. Pondération des Variables SHAP (Modèle ML)</h4>
+
+        <div>
+          <div class="flex justify-between mb-1">
+            <span class="text-slate-700 dark:text-slate-300">Ratio d'Endettement</span>
+            <span class="font-mono font-bold">{{ (settings().shap_debt_weight * 100).toFixed(0) }}%</span>
+          </div>
+          <input
+            type="range"
+            min="0.1" max="0.5" step="0.05"
+            [ngModel]="settings().shap_debt_weight"
+            (ngModelChange)="settings().shap_debt_weight = $event"
+            class="w-full accent-blue-900 cursor-pointer"
+          />
+        </div>
+
+        <div>
+          <div class="flex justify-between mb-1">
+            <span class="text-slate-700 dark:text-slate-300">Reste à Vivre / Trésorerie</span>
+            <span class="font-mono font-bold">{{ (settings().shap_income_weight * 100).toFixed(0) }}%</span>
+          </div>
+          <input
+            type="range"
+            min="0.1" max="0.4" step="0.05"
+            [ngModel]="settings().shap_income_weight"
+            (ngModelChange)="settings().shap_income_weight = $event"
+            class="w-full accent-blue-900 cursor-pointer"
+          />
+        </div>
+
+        <div>
+          <div class="flex justify-between mb-1">
+            <span class="text-slate-700 dark:text-slate-300">Régularité des Flux (sur 12 mois)</span>
+            <span class="font-mono font-bold">{{ (settings().shap_regularity_weight * 100).toFixed(0) }}%</span>
+          </div>
+          <input
+            type="range"
+            min="0.1" max="0.4" step="0.05"
+            [ngModel]="settings().shap_regularity_weight"
+            (ngModelChange)="settings().shap_regularity_weight = $event"
+            class="w-full accent-blue-900 cursor-pointer"
+          />
+        </div>
+
+        <div>
+          <div class="flex justify-between mb-1">
+            <span class="text-slate-700 dark:text-slate-300">Ancienneté d'Activité sur Place</span>
+            <span class="font-mono font-bold">{{ (settings().shap_seniority_weight * 100).toFixed(0) }}%</span>
+          </div>
+          <input
+            type="range"
+            min="0.05" max="0.3" step="0.05"
+            [ngModel]="settings().shap_seniority_weight"
+            (ngModelChange)="settings().shap_seniority_weight = $event"
+            class="w-full accent-blue-900 cursor-pointer"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-end pt-5 border-t border-slate-200 dark:border-slate-800 mt-6">
+      <button (click)="savePrudentialSettings()" class="btn-primary text-xs shadow-xs cursor-pointer" [disabled]="savingSettings()">
+        <app-spinner *ngIf="savingSettings()" size="sm" [inline]="true" variant="white"></app-spinner>
+        <app-svg-icon *ngIf="!savingSettings()" name="check-circle" [size]="14"></app-svg-icon>
+        <span>Enregistrer les Paramètres Réglementaires</span>
+      </button>
+    </div>
+  </div>
+</div>

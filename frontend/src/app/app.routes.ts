@@ -23,8 +23,8 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    loadComponent: () =>
-      import('./features/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+    loadChildren: () =>
+      import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
     canActivate: [authGuard],
     data: { role: 'admin' },
   },

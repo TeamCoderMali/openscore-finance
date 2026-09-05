@@ -1,0 +1,334 @@
+<div class="space-y-4 animate-slide-up">
+  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <!-- Search & Filter Controls -->
+      <div class="flex items-center gap-2 flex-1">
+        <input
+          type="text"
+          [ngModel]="agentSearchQuery()"
+          (ngModelChange)="agentSearchQuery.set($event)"
+          placeholder="Rechercher un agent par nom, email..."
+          class="form-input text-xs py-1.5 w-full sm:w-64 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
+        <select
+          [ngModel]="agentBranchFilter()"
+          (ngModelChange)="agentBranchFilter.set($event); loadAgents()"
+          class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        >
+          <option value="all">Toutes les antennes</option>
+          <option value="Bamako">Bamako-District</option>
+          <option value="Ségou">Ségou</option>
+          <option value="Sikasso">Sikasso</option>
+        </select>
+      </div>
+
+      <!-- Add Agent Button -->
+      <button (click)="openCreateAgentModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0">
+        <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+        <span>+ Provisionner un Agent</span>
+      </button>
+    </div>
+
+    <!-- Agents Table -->
+    <div class="mt-4 overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-md">
+      <table class="data-table text-xs">
+        <thead>
+          <tr>
+            <th>Agent de Crédit</th>
+            <th>Antenne de Rattachement</th>
+            <th>Dossiers (Total / En attente)</th>
+            <th>Volume Accordé</th>
+            <th>Taux d'Accord</th>
+            <th>Délai Moyen</th>
+            <th>Statut</th>
+            <th class="text-right">Actions Opérationnelles</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of pagedAgents()">
+            <td>
+              <div class="font-bold text-slate-900 dark:text-white">{{ a.full_name }}</div>
+              <div class="text-[10px] font-mono text-slate-500">{{ a.email }}</div>
+            </td>
+            <td>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                {{ a.branch }}
+              </span>
+            </td>
+            <td class="font-mono text-slate-700 dark:text-slate-300">
+              <div><strong>{{ a.assigned_applications_count }}</strong> total</div>
+              <div class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+                {{ a.pending_applications_count }} en cours de vérif
+              </div>
+            </td>
+            <td class="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+              {{ formatAmount(a.approved_volume) }}
+            </td>
+            <td class="font-mono font-bold text-slate-900 dark:text-white">
+              {{ a.approval_rate }}%
+            </td>
+            <td class="font-mono text-slate-500 dark:text-slate-400 text-[11px]">
+              ~{{ a.average_processing_hours }}h
+            </td>
+            <td>
+              <span class="inline-flex items-center gap-1 text-[11px] font-medium"
+                [class.text-emerald-700]="a.is_active"
+                [class.dark:text-emerald-400]="a.is_active"
+                [class.text-rose-700]="!a.is_active"
+                [class.dark:text-rose-400]="!a.is_active"
+              >
+                <span class="w-1.5 h-1.5 rounded-full" [class.bg-emerald-500]="a.is_active" [class.bg-rose-500]="!a.is_active"></span>
+                {{ a.is_active ? 'Actif' : 'Suspendu' }}
+              </span>
+            </td>
+            <td class="text-right space-x-1 whitespace-nowrap">
+              <button
+                (click)="openReassignModal(a)"
+                class="btn-ghost text-[10px] py-0.5 px-2 text-blue-900 dark:text-blue-400 cursor-pointer"
+                title="Transférer les dossiers de cet agent"
+              >
+                Réassigner
+              </button>
+              <button
+                (click)="openResetPasswordModal(a)"
+                class="btn-ghost text-[10px] py-0.5 px-1.5 text-slate-600 dark:text-slate-400 cursor-pointer"
+                title="Réinitialiser le mot de passe"
+              >
+                Mot de passe
+              </button>
+              <button
+                (click)="toggleAgentStatus(a)"
+                class="btn-ghost text-[10px] py-0.5 px-1.5 cursor-pointer"
+                [class.text-rose-700]="a.is_active"
+                [class.dark:text-rose-400]="a.is_active"
+                [class.text-emerald-700]="!a.is_active"
+                [class.dark:text-emerald-400]="!a.is_active"
+              >
+                {{ a.is_active ? 'Suspendre' : 'Activer' }}
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredAgents().length === 0">
+            <td colspan="8" class="text-center py-8 text-slate-400 dark:text-slate-500">
+              Aucun agent de crédit trouvé.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Agents Pagination -->
+      <div *ngIf="filteredAgents().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-mono">
+        <div class="flex items-center gap-2">
+          <span>Afficher</span>
+          <select
+            [ngModel]="agentsPageSize()"
+            (ngModelChange)="agentsPageSize.set(+$event); agentsPage.set(1)"
+            class="form-select py-0.5 px-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
+          >
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+          </select>
+          <span>sur <strong>{{ filteredAgents().length }}</strong> agents</span>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <button
+            (click)="agentsPage.set(agentsPage() - 1)"
+            [disabled]="agentsPage() <= 1"
+            class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+          >
+            Précédent
+          </button>
+          <span class="px-2 font-bold text-slate-900 dark:text-white">Page {{ agentsPage() }} / {{ totalAgentsPages() }}</span>
+          <button
+            (click)="agentsPage.set(agentsPage() + 1)"
+            [disabled]="agentsPage() >= totalAgentsPages()"
+            class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+          >
+            Suivant
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL : PROVISIONNEMENT AGENT DE CRÉDIT                           -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showCreateAgentModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-blue-50 dark:bg-blue-950/40">
+      <div>
+        <h3 class="text-sm font-bold text-blue-950 dark:text-blue-200">Provisionner un Agent de Crédit</h3>
+        <p class="text-[11px] text-blue-700 dark:text-blue-300 font-mono">Affectation territoriale & droits d'analyse</p>
+      </div>
+      <button (click)="closeCreateAgentModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="createAgent()" class="p-5 space-y-3 text-xs">
+      <div>
+        <label class="form-label text-xs">Nom & Prénom de l'Agent</label>
+        <input
+          type="text"
+          [ngModel]="newAgent().full_name"
+          (ngModelChange)="newAgent().full_name = $event"
+          name="full_name"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="ex: Moussa Diakité"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Email Professionnel</label>
+        <input
+          type="email"
+          [ngModel]="newAgent().email"
+          (ngModelChange)="newAgent().email = $event"
+          name="email"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="moussa.diakite@openscore.ml"
+        />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label text-xs">Téléphone Pro</label>
+          <input
+            type="text"
+            [ngModel]="newAgent().phone"
+            (ngModelChange)="newAgent().phone = $event"
+            name="phone"
+            class="form-input text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            placeholder="+223 70 12 34 56"
+          />
+        </div>
+        <div>
+          <label class="form-label text-xs">Antenne de Rattachement</label>
+          <select
+            [ngModel]="newAgent().branch"
+            (ngModelChange)="newAgent().branch = $event"
+            name="branch"
+            class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          >
+            <option *ngFor="let b of branches()" [value]="b.name">{{ b.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Mot de Passe Provisoire</label>
+        <input
+          type="password"
+          [ngModel]="newAgent().password"
+          (ngModelChange)="newAgent().password = $event"
+          name="password"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="••••••••"
+        />
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeCreateAgentModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+        <button type="submit" class="btn-primary text-xs cursor-pointer" [disabled]="creatingAgent()">
+          <app-spinner *ngIf="creatingAgent()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!creatingAgent()">Créer l'Agent</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL : RÉASSIGNATION DE PORTEFEUILLE ENTRE AGENTS                -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showReassignModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-amber-50 dark:bg-amber-950/40">
+      <div>
+        <h3 class="text-sm font-bold text-amber-950 dark:text-amber-200">Réassignation de Portefeuille</h3>
+        <p class="text-[11px] text-amber-700 dark:text-amber-300 font-mono">Transfert de dossiers en attente</p>
+      </div>
+      <button (click)="closeReassignModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <div class="p-5 space-y-4 text-xs">
+      <div class="p-3 bg-amber-50/60 dark:bg-amber-950/30 rounded border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300">
+        <p>Agent source : <strong>{{ reassignSourceAgent()?.full_name }}</strong></p>
+        <p class="text-[11px] mt-1 font-mono">Dossiers en attente de vérification : <strong>{{ reassignSourceAgent()?.pending_applications_count }}</strong></p>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Désigner l'Agent de Crédit Receveur</label>
+        <select
+          [ngModel]="reassignTargetAgentId()"
+          (ngModelChange)="reassignTargetAgentId.set(+$event)"
+          class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+        >
+          <option [ngValue]="null">-- Sélectionner un agent actif --</option>
+          <option *ngFor="let ag of agents()" [ngValue]="ag.id" [disabled]="ag.id === reassignSourceAgent()?.id">
+            {{ ag.full_name }} ({{ ag.branch }})
+          </option>
+        </select>
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeReassignModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+        <button (click)="executeReassign()" class="btn-primary text-xs cursor-pointer" [disabled]="reassigning() || !reassignTargetAgentId()">
+          <app-spinner *ngIf="reassigning()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!reassigning()">Transférer les Dossiers</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL : RÉINITIALISATION DE MOT DE PASSE                          -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showResetPasswordModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-sm mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Réinitialiser Mot de Passe</h3>
+        <p class="text-[11px] text-slate-500 font-mono">{{ targetResetUser()?.name }}</p>
+      </div>
+      <button (click)="closeResetPasswordModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="executeResetPassword()" class="p-5 space-y-3 text-xs">
+      <div>
+        <label class="form-label text-xs">Nouveau Mot de Passe Temporaire</label>
+        <input
+          type="password"
+          [ngModel]="newPasswordInput()"
+          (ngModelChange)="newPasswordInput.set($event)"
+          name="new_password"
+          required
+          minlength="4"
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="••••••••"
+        />
+        <p class="text-[10px] text-slate-400 mt-1 font-mono">L'action sera enregistrée dans la piste d'audit.</p>
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeResetPasswordModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+        <button type="submit" class="btn-primary text-xs cursor-pointer" [disabled]="resettingPassword()">
+          <app-spinner *ngIf="resettingPassword()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!resettingPassword()">Réinitialiser</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
