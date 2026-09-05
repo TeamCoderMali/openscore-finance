@@ -1,19 +1,19 @@
 <div class="space-y-4 animate-slide-up">
   <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <!-- Search & Filter Controls -->
-      <div class="flex items-center gap-2 flex-1">
+    <div class="flex items-center justify-between gap-3 overflow-x-auto pb-1">
+      <!-- Search & Filter Controls (Single Row) -->
+      <div class="flex items-center gap-2.5 flex-1 min-w-0">
         <input
           type="text"
           [ngModel]="agentSearchQuery()"
           (ngModelChange)="agentSearchQuery.set($event)"
-          placeholder="Rechercher un agent par nom, email..."
-          class="form-input text-xs py-1.5 w-full sm:w-64 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          placeholder="Rechercher un agent (nom, email)..."
+          class="form-input text-xs py-1.5 min-w-[200px] max-w-xs flex-1 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         />
         <select
           [ngModel]="agentBranchFilter()"
           (ngModelChange)="agentBranchFilter.set($event); loadAgents()"
-          class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          class="form-select text-xs py-1.5 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         >
           <option value="all">Toutes les antennes</option>
           <option value="Bamako">Bamako-District</option>
@@ -23,7 +23,7 @@
       </div>
 
       <!-- Add Agent Button -->
-      <button (click)="openCreateAgentModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0">
+      <button (click)="openCreateAgentModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0 font-medium whitespace-nowrap">
         <app-svg-icon name="plus" [size]="14"></app-svg-icon>
         <span>+ Provisionner un Agent</span>
       </button>

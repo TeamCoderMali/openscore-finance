@@ -116,7 +116,7 @@
         </tr>
         <tr>
           <td class="py-2 text-zinc-600">Niveau de risque évalué</td>
-          <td class="py-2 text-right font-mono font-semibold uppercase text-zinc-700">{{ receipt()!.risk_level }}</td>
+          <td class="py-2 text-right font-mono font-semibold uppercase text-zinc-700">{{ getRiskLabel(receipt()!.risk_level) }}</td>
         </tr>
       </tbody>
     </table>

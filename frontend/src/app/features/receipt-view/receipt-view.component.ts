@@ -39,10 +39,10 @@ export class ReceiptViewComponent implements OnInit {
     try {
       const data = await this.api.getReceipt(appId);
       this.receipt.set(data);
-      this.toast.info('Bordereau genere', `Recepisse officiel ${data.receipt_id} pret.`);
+      this.toast.info('Bordereau généré', `Récépissé officiel ${data.receipt_id} prêt.`);
     } catch (e: any) {
       this.error.set(e.message);
-      this.toast.error('Erreur recepisse', e.message);
+      this.toast.error('Erreur récépissé', e.message);
     } finally {
       this.loading.set(false);
     }
@@ -56,11 +56,21 @@ export class ReceiptViewComponent implements OnInit {
     window.history.back();
   }
 
+  getRiskLabel(risk?: string): string {
+    switch (risk?.toLowerCase()) {
+      case 'low': return 'FAIBLE';
+      case 'medium': return 'MODÉRÉ';
+      case 'high': return 'ÉLEVÉ';
+      case 'critical': return 'CRITIQUE';
+      default: return risk ? risk.toUpperCase() : 'NON DÉTERMINÉ';
+    }
+  }
+
   getDecisionLabel(decision: string): string {
     switch (decision) {
-      case 'approved': return 'ACCORDE';
-      case 'adjusted': return 'MONTANT AJUSTE';
-      case 'rejected': return 'NON ELIGIBLE';
+      case 'approved': return 'ACCORDÉ';
+      case 'adjusted': return 'MONTANT AJUSTÉ';
+      case 'rejected': return 'NON ÉLIGIBLE';
       default: return decision.toUpperCase();
     }
   }

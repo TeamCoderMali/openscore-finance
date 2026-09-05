@@ -538,6 +538,35 @@ export class AgentPipelineComponent implements OnInit {
     return 'bg-rose-50';
   }
 
+  onQuickClientSelect(appIdStr: string): void {
+    if (!appIdStr) return;
+    const app = this.applications().find(a => a.id === +appIdStr);
+    if (app) {
+      this.selectApplication(app);
+    }
+  }
+
+  getRiskLabel(risk?: string): string {
+    if (!risk) return 'Non déterminé';
+    const labels: Record<string, string> = {
+      low: 'Faible (Solvabilité Élevée)',
+      medium: 'Modéré (Surveillance Prudentielle)',
+      high: 'Élevé (Garanties Recommandées)',
+      critical: 'Critique (Risque Élevé de Défaut)',
+    };
+    return labels[risk.toLowerCase()] || risk.toUpperCase();
+  }
+
+  getDecisionLabel(decision?: string): string {
+    if (!decision) return 'En attente d\'arbitrage';
+    const labels: Record<string, string> = {
+      approved: 'Favorable (Accord suggéré)',
+      adjusted: 'Ajustement prudentiel requis',
+      rejected: 'Défavorable (Rejet suggéré)',
+    };
+    return labels[decision.toLowerCase()] || decision;
+  }
+
   formatAmount(amount: number): string {
     return (amount || 0).toLocaleString('fr-FR') + ' FCFA';
   }

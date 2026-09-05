@@ -28,35 +28,54 @@
 
   <!-- Applications Table List (Full Width) -->
   <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-    <!-- Search and Filter Controls -->
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-2 flex-1">
-        <input
-          type="text"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-          placeholder="Rechercher client par nom, réf, tél..."
-          class="form-input text-xs py-1.5 w-full sm:w-72 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-        />
+    <!-- Search, Client Selector and Filter Controls (Strictly Single Row) -->
+    <div class="flex items-center justify-between gap-3 w-full overflow-x-auto pb-1">
+      <div class="flex items-center gap-2.5 flex-1 min-w-0">
+        <!-- Champ de recherche client -->
+        <div class="relative min-w-[200px] sm:min-w-[240px] max-w-xs flex-1">
+          <input
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Rechercher client (nom, réf, tél)..."
+            class="form-input text-xs py-1.5 w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+
+        <!-- Sélecteur direct de client (Menu déroulant rapide) -->
+        <select
+          (change)="onQuickClientSelect($any($event.target).value); $any($event.target).value = ''"
+          class="form-select text-xs py-1.5 font-sans shrink-0 bg-blue-50/70 dark:bg-blue-950/40 text-blue-950 dark:text-blue-200 border-blue-300 dark:border-blue-800 font-medium"
+          title="Sélectionner directement un client pour ouvrir sa fiche"
+        >
+          <option value="">👤 Sélectionner un client...</option>
+          <option *ngFor="let a of applications()" [value]="a.id">
+            {{ a.applicant_name }} ({{ a.reference }})
+          </option>
+        </select>
+
+        <!-- Filtre par Statut -->
         <select
           [ngModel]="selectedStatusFilter()"
           (ngModelChange)="selectedStatusFilter.set($event)"
-          class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          class="form-select text-xs py-1.5 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         >
-          <option value="all">Tous statuts</option>
+          <option value="all">Tous les statuts</option>
           <option value="pending">À certifier</option>
           <option value="verified">Certifié conforme</option>
           <option value="scored">Évalué (Arbitrage Requis)</option>
-          <option value="approved">Accordé</option>
+          <option value="approved">Accordé & Validé</option>
           <option value="adjusted">Contre-proposition</option>
           <option value="rejected">Refusé</option>
         </select>
+
+        <!-- Filtre par Secteur -->
         <select
           [ngModel]="selectedSectorFilter()"
           (ngModelChange)="selectedSectorFilter.set($event)"
-          class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          class="form-select text-xs py-1.5 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         >
-          <option value="all">Tous secteurs</option>
+          <option value="all">Tous les secteurs</option>
           <option value="Commerce">Commerce</option>
           <option value="Agriculture">Agriculture</option>
           <option value="Artisanat">Artisanat</option>
@@ -64,7 +83,8 @@
         </select>
       </div>
 
-      <div class="text-xs text-slate-500 font-mono">
+      <!-- Compteur de dossiers -->
+      <div class="text-xs text-slate-500 font-mono whitespace-nowrap shrink-0">
         <strong>{{ filteredApplications().length }}</strong> dossier(s) trouvé(s)
       </div>
     </div>
@@ -80,7 +100,7 @@
             <th>Montant Sollicité</th>
             <th>Durée</th>
             <th>Statut</th>
-            <th class="text-right">Action</th>
+            <th class="text-right">Décision & Fiche</th>
           </tr>
         </thead>
         <tbody>
@@ -123,9 +143,9 @@
             <td class="text-right">
               <button
                 (click)="selectApplication(a); $event.stopPropagation()"
-                class="btn-secondary text-[11px] py-1 px-3 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950 text-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                class="btn-secondary text-[11px] py-1 px-3 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950 text-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800 font-medium"
               >
-                Examiner
+                Consulter la Fiche
               </button>
             </td>
           </tr>
@@ -178,16 +198,18 @@
 <!-- ═════════════════════════════════════════════════════════════════ -->
 <!-- MODAL PRINCIPAL : FICHE CLIENT & INSTRUCTION DU DOSSIER           -->
 <!-- ═════════════════════════════════════════════════════════════════ -->
-<div *ngIf="selectedApp()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4 overflow-y-auto">
-  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up my-6 max-h-[92vh] flex flex-col">
+<!-- MODAL PRINCIPAL : FICHE CLIENT & INSTRUCTION DU DOSSIER           -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="selectedApp()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs animate-fade-in p-2 sm:p-4 md:p-6 overflow-y-auto">
+  <div class="bg-white dark:bg-[#111827] rounded-2xl shadow-2xl w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1440px] h-[95vh] max-h-[95vh] overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up flex flex-col">
     <!-- Header (Sticky top) -->
-    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-blue-700 text-white flex items-center justify-center font-bold text-base shadow-xs">
+        <div class="w-11 h-11 rounded-full bg-blue-800 text-white flex items-center justify-center font-bold text-base shadow-sm">
           {{ selectedApp()?.applicant_name?.charAt(0) || 'C' }}
         </div>
         <div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2.5">
             <h3 class="text-base font-bold text-slate-900 dark:text-white">
               {{ selectedApp()?.applicant_name || 'Fiche Client' }}
             </h3>
@@ -201,13 +223,13 @@
         </div>
       </div>
 
-      <button (click)="closeDetail()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+      <button (click)="closeDetail()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" title="Fermer la fiche">
         <app-svg-icon name="x-circle" [size]="24"></app-svg-icon>
       </button>
     </div>
 
     <!-- Bandeau de Contact Immédiat -->
-    <div class="px-6 py-3 bg-blue-50/70 dark:bg-blue-950/30 border-b border-blue-200 dark:border-blue-800/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div class="px-6 py-3 bg-blue-50/80 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-800/60 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
       <div>
         <p class="font-bold text-blue-950 dark:text-blue-200 flex items-center gap-2">
           <span>Coordonnées de l'Emprunteur :</span>
@@ -218,13 +240,13 @@
         </p>
       </div>
 
-      <!-- Quick Action Buttons for Contacting Client -->
-      <div class="flex flex-wrap items-center gap-1.5">
+      <!-- Quick Action Buttons for Contacting Client (100% French) -->
+      <div class="flex flex-wrap items-center gap-2">
         <!-- Call Button -->
         <a
           *ngIf="selectedApp()?.applicant_phone"
           [href]="'tel:' + selectedApp()?.applicant_phone"
-          class="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 cursor-pointer shadow-2xs hover:border-blue-500"
+          class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 cursor-pointer shadow-2xs hover:border-blue-500 font-medium"
           title="Appeler directement l'emprunteur"
         >
           <span>📞 Appeler</span>
@@ -235,34 +257,34 @@
           *ngIf="selectedApp()?.applicant_phone"
           [href]="getWhatsAppUrl(selectedApp()!)"
           target="_blank"
-          class="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 cursor-pointer shadow-2xs hover:bg-emerald-100"
+          class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 cursor-pointer shadow-2xs hover:bg-emerald-100 font-medium"
           title="Ouvrir une discussion WhatsApp pré-remplie"
         >
-          <span>💬 WhatsApp Direct</span>
+          <span>💬 Échanger sur WhatsApp</span>
         </a>
 
-        <!-- Email Button -->
+        <!-- Email Button (French: Courriel) -->
         <a
           *ngIf="selectedApp()?.applicant_email"
           [href]="'mailto:' + selectedApp()?.applicant_email + '?subject=OpenScore Finance - Dossier ' + selectedApp()?.reference"
-          class="btn-secondary text-xs py-1 px-2 flex items-center gap-1 bg-white dark:bg-slate-900 cursor-pointer shadow-2xs"
-          title="Envoyer un email officiel"
+          class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 bg-white dark:bg-slate-900 cursor-pointer shadow-2xs font-medium"
+          title="Envoyer un courriel officiel"
         >
-          <span>✉️ Email</span>
+          <span>✉️ Envoyer un Courriel</span>
         </a>
 
         <!-- Formal Message & Notification Modal Button -->
         <button
           (click)="openContactModal('whatsapp')"
-          class="btn-primary text-xs py-1 px-3 cursor-pointer shadow-xs bg-blue-800 hover:bg-blue-900 text-white font-medium"
+          class="btn-primary text-xs py-1.5 px-3.5 cursor-pointer shadow-xs bg-blue-800 hover:bg-blue-900 text-white font-medium"
         >
-          <span>+ Message & Relance</span>
+          <span>+ Rédiger un Message & Relance</span>
         </button>
       </div>
     </div>
 
     <!-- Navigation Tabs Inside Modal -->
-    <div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-xs font-mono px-4">
+    <div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-xs font-mono px-4 shrink-0 overflow-x-auto">
       <button
         (click)="setDetailTab('certification')"
         [class.bg-white]="currentDetailTab() === 'certification'"
@@ -270,9 +292,9 @@
         [class.font-bold]="currentDetailTab() === 'certification'"
         [class.border-b-2]="currentDetailTab() === 'certification'"
         [class.border-blue-900]="currentDetailTab() === 'certification'"
-        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all"
+        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all whitespace-nowrap"
       >
-        1. Données & Certification
+        1. Données Vérifiées & Certification
       </button>
       <button
         (click)="setDetailTab('field_survey')"
@@ -281,7 +303,7 @@
         [class.font-bold]="currentDetailTab() === 'field_survey'"
         [class.border-b-2]="currentDetailTab() === 'field_survey'"
         [class.border-blue-900]="currentDetailTab() === 'field_survey'"
-        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all"
+        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all whitespace-nowrap"
       >
         2. Enquête Terrain & Garanties
       </button>
@@ -292,9 +314,9 @@
         [class.font-bold]="currentDetailTab() === 'scoring'"
         [class.border-b-2]="currentDetailTab() === 'scoring'"
         [class.border-blue-900]="currentDetailTab() === 'scoring'"
-        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all"
+        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all whitespace-nowrap"
       >
-        3. Score ML & Décision
+        3. Score Prédictif IA & Décision
       </button>
       <button
         (click)="setDetailTab('audit_logs')"
@@ -303,9 +325,9 @@
         [class.font-bold]="currentDetailTab() === 'audit_logs'"
         [class.border-b-2]="currentDetailTab() === 'audit_logs'"
         [class.border-blue-900]="currentDetailTab() === 'audit_logs'"
-        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all"
+        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all whitespace-nowrap"
       >
-        4. Piste d'Audit
+        4. Piste d'Audit & Historique
       </button>
     </div>
 
@@ -315,7 +337,7 @@
       <!-- TAB 1 : DONNÉES & CERTIFICATION                             -->
       <!-- ═══════════════════════════════════════════════════════════ -->
       <div *ngIf="currentDetailTab() === 'certification'" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label class="form-label text-xs">Nom & Prénom Emprunteur</label>
             <input
@@ -333,6 +355,19 @@
               (ngModelChange)="updateField('id_number', $event)"
               class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
             />
+          </div>
+          <div>
+            <label class="form-label text-xs">Type de Pièce d'Identité</label>
+            <select
+              [ngModel]="verifiedFields().id_type"
+              (ngModelChange)="updateField('id_type', $event)"
+              class="form-select text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+            >
+              <option value="NINA">Fiche NINA</option>
+              <option value="CNI">Carte Nationale d'Identité (CNI)</option>
+              <option value="Passeport">Passeport CEDEAO</option>
+              <option value="Permis">Permis de Conduire</option>
+            </select>
           </div>
           <div>
             <label class="form-label text-xs">Revenu Mensuel Vérifié (FCFA)</label>
@@ -374,6 +409,26 @@
               class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
             />
           </div>
+          <div>
+            <label class="form-label text-xs">Régularité des Revenus (Mois consécutifs)</label>
+            <input
+              type="number"
+              step="1"
+              [ngModel]="verifiedFields().revenue_regularity_months"
+              (ngModelChange)="updateField('revenue_regularity_months', +$event)"
+              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+            />
+          </div>
+          <div>
+            <label class="form-label text-xs">N° Registre Commerce / RCCM</label>
+            <input
+              type="text"
+              [ngModel]="verifiedFields().business_registration_number"
+              (ngModelChange)="updateField('business_registration_number', $event)"
+              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+              placeholder="Ex: MA.BKO.2022.A.1234"
+            />
+          </div>
         </div>
 
         <div>
@@ -396,7 +451,7 @@
           <button (click)="evaluateApplication()" class="btn-primary text-xs cursor-pointer shadow-xs" [disabled]="scoringLoading()">
             <app-spinner *ngIf="scoringLoading()" size="sm" [inline]="true" variant="white"></app-spinner>
             <app-svg-icon *ngIf="!scoringLoading()" name="bar-chart" [size]="14"></app-svg-icon>
-            <span>2. Calculer le Score ML (SHAP)</span>
+            <span>2. Calculer le Score Prédictif IA</span>
           </button>
         </div>
       </div>
@@ -480,16 +535,16 @@
       </div>
 
       <!-- ═══════════════════════════════════════════════════════════ -->
-      <!-- TAB 3 : SCORING ML & DÉCISION                               -->
+      <!-- TAB 3 : SCORING ALGORITHMIQUE IA & DÉCISION                 -->
       <!-- ═══════════════════════════════════════════════════════════ -->
       <div *ngIf="currentDetailTab() === 'scoring'" class="space-y-4">
         <div *ngIf="scoringResult()" class="space-y-4">
           <!-- Score Card & Status Reminder -->
-          <div class="p-4 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          <div class="p-5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
             [class]="getScoreBgColor(scoringResult()!.score)"
           >
             <div>
-              <span class="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">Score Algorithmique</span>
+              <span class="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">Score Algorithmique Solvabilité</span>
               <div class="flex items-baseline gap-2">
                 <span class="text-3xl font-bold font-mono" [class]="getScoreColor(scoringResult()!.score)">
                   {{ scoringResult()!.score }}
@@ -497,7 +552,7 @@
                 <span class="text-xs text-slate-400 font-mono">/ 1000</span>
               </div>
               <p class="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mt-1">
-                Niveau de risque estimé : <strong>{{ scoringResult()!.risk_level.toUpperCase() }}</strong>
+                Niveau de risque estimé : <strong>{{ getRiskLabel(scoringResult()!.risk_level) }}</strong>
               </p>
             </div>
 
@@ -511,10 +566,10 @@
                 [class.bg-rose-100]="scoringResult()!.decision === 'rejected'"
                 [class.text-rose-900]="scoringResult()!.decision === 'rejected'"
               >
-                {{ scoringResult()!.decision === 'approved' ? 'Favorable (Accord suggéré)' : (scoringResult()!.decision === 'adjusted' ? 'Ajustement requis' : 'Défavorable (Rejet suggéré)') }}
+                {{ getDecisionLabel(scoringResult()!.decision) }}
               </span>
               <p class="text-[10px] text-purple-800 dark:text-purple-300 font-mono mt-1 font-bold">
-                ⚠️ Avis purement consultatif — Décision humaine requise
+                ⚠️ Avis purement consultatif — Décision d'arbitrage de l'agent requise
               </p>
             </div>
           </div>
@@ -524,7 +579,7 @@
             <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
               <span class="text-[10px] text-slate-500 block">RATIO D'ENDETTEMENT</span>
               <strong class="text-sm text-slate-900 dark:text-white">{{ ((scoringResult()?.debt_ratio || 0) * 100).toFixed(1) }}%</strong>
-              <span class="text-[10px] text-slate-400 block font-sans">Plafond BCEAO : 40%</span>
+              <span class="text-[10px] text-slate-400 block font-sans">Plafond prudentiel BCEAO : 40%</span>
             </div>
             <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
               <span class="text-[10px] text-slate-500 block">RESTE À VIVRE MENSUEL</span>
@@ -535,7 +590,7 @@
 
           <!-- SHAP Explainability List -->
           <div class="space-y-2">
-            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">Facteurs explicatifs SHAP (Modèle Random Forest) :</h4>
+            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">Facteurs explicatifs algorithmiques de l'Intelligence Artificielle (Attributions SHAP) :</h4>
             <div *ngFor="let item of scoringResult()!.explainability" class="p-2.5 rounded border border-slate-200 dark:border-slate-800 text-xs bg-slate-50 dark:bg-slate-800/60">
               <div class="flex items-center justify-between font-mono">
                 <span class="font-sans font-semibold text-slate-900 dark:text-slate-100">{{ item.label }} ({{ item.value }})</span>
@@ -656,7 +711,7 @@
 <!-- SOUS-MODAL : CONTACT DIRECT & RELANCE CLIENT                      -->
 <!-- ═════════════════════════════════════════════════════════════════ -->
 <div *ngIf="showContactModal()" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4">
-  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
     <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-blue-50 dark:bg-blue-950/40">
       <div>
         <h3 class="text-sm font-bold text-blue-950 dark:text-blue-200">Contacter Directement le Client</h3>
@@ -702,7 +757,7 @@
             [class.border-purple-800]="contactChannel() === 'email'"
             class="py-1.5 px-2 rounded border border-slate-300 dark:border-slate-700 text-center cursor-pointer"
           >
-            ✉️ Email Pro
+            ✉️ Courriel Pro
           </button>
         </div>
       </div>
@@ -777,7 +832,7 @@
 <!-- SOUS-MODAL : VALIDATION EXPLICITE & OCTROI DE CRÉDIT              -->
 <!-- ═════════════════════════════════════════════════════════════════ -->
 <div *ngIf="showApproveModal()" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4">
-  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
     <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40">
       <div>
         <h3 class="text-sm font-bold text-emerald-950 dark:text-emerald-200">Validation & Octroi du Crédit</h3>
@@ -820,7 +875,7 @@
         <button type="button" (click)="closeApproveModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
         <button
           (click)="confirmApprove()"
-          class="btn-primary text-xs bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer shadow-xs"
+          class="btn-primary text-xs bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer shadow-xs font-bold"
           [disabled]="approvingApp() || !approveAmount()"
         >
           <app-spinner *ngIf="approvingApp()" size="sm" [inline]="true" variant="white"></app-spinner>
@@ -835,7 +890,7 @@
 <!-- SOUS-MODAL : MOTIF OFFICIEL DE REFUS BCEAO                        -->
 <!-- ═════════════════════════════════════════════════════════════════ -->
 <div *ngIf="showRejectModal()" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4">
-  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
     <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-rose-50 dark:bg-rose-950/40">
       <div>
         <h3 class="text-sm font-bold text-rose-950 dark:text-rose-200">Motif Réglementaire de Refus (BCEAO)</h3>

@@ -1,19 +1,19 @@
 <div class="space-y-4 animate-slide-up">
   <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-      <!-- Search & Filter Controls -->
-      <div class="flex flex-wrap items-center gap-2 flex-1">
+    <div class="flex items-center justify-between gap-3 overflow-x-auto pb-1">
+      <!-- Search & Filter Controls (Single Row) -->
+      <div class="flex items-center gap-2.5 flex-1 min-w-0">
         <input
           type="text"
           [ngModel]="clientSearchQuery()"
           (ngModelChange)="clientSearchQuery.set($event)"
-          placeholder="Rechercher client par nom, email, tél..."
-          class="form-input text-xs py-1.5 w-full sm:w-64 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          placeholder="Rechercher client (nom, email, tél)..."
+          class="form-input text-xs py-1.5 min-w-[200px] max-w-xs flex-1 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         />
         <select
           [ngModel]="clientSectorFilter()"
           (ngModelChange)="clientSectorFilter.set($event); loadClients()"
-          class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          class="form-select text-xs py-1.5 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         >
           <option value="all">Tous les secteurs</option>
           <option value="Commerce">Commerce</option>
@@ -24,7 +24,7 @@
         <select
           [ngModel]="clientKycFilter()"
           (ngModelChange)="clientKycFilter.set($event); loadClients()"
-          class="form-select text-xs py-1.5 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          class="form-select text-xs py-1.5 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         >
           <option value="all">Tous statuts KYC</option>
           <option value="complet">KYC Complet</option>
@@ -34,7 +34,7 @@
       </div>
 
       <!-- Add Client Button -->
-      <button (click)="openCreateClientModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0">
+      <button (click)="openCreateClientModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0 font-medium whitespace-nowrap">
         <app-svg-icon name="plus" [size]="14"></app-svg-icon>
         <span>+ Enrôler un Client</span>
       </button>
@@ -192,7 +192,7 @@
 <!-- MODAL : FICHE CLIENT 360° (PROFIL & DOSSIERS)                     -->
 <!-- ═════════════════════════════════════════════════════════════════ -->
 <div *ngIf="showClientModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4 overflow-y-auto">
-  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up my-8 max-h-[90vh] flex flex-col">
+  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-5xl lg:max-w-6xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up my-6 max-h-[92vh] flex flex-col">
     <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-purple-50 dark:bg-purple-950/50">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-purple-700 text-white flex items-center justify-center font-bold text-base">
