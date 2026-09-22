@@ -336,7 +336,8 @@ class KpiCard extends StatelessWidget {
                 fontFamily: 'monospace',
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
-                color: valueColor ?? (isDark ? Colors.white : AppTheme.slate900),
+                color:
+                    valueColor ?? (isDark ? Colors.white : AppTheme.slate900),
               ),
               maxLines: 1,
             ),
@@ -393,7 +394,8 @@ class LiquidGlassThemeToggle extends StatelessWidget {
               onTap: () => themeService.toggleTheme(),
               borderRadius: BorderRadius.circular(20),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
@@ -819,13 +821,14 @@ class OsfLogo extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      'BCEAO',
+                      'CIF',
                       style: TextStyle(
                         fontSize: size * 0.18,
                         fontWeight: FontWeight.w800,
@@ -859,7 +862,14 @@ Future<void> showCustomAmountBottomSheet({
   required String title,
   required double currentValue,
   required ValueChanged<double> onSubmitted,
-  List<double> presets = const [100000, 250000, 500000, 1000000, 2000000, 5000000],
+  List<double> presets = const [
+    100000,
+    250000,
+    500000,
+    1000000,
+    2000000,
+    5000000
+  ],
 }) async {
   final ctrl = TextEditingController(text: currentValue.toInt().toString());
   await showModalBottomSheet<void>(
@@ -954,7 +964,10 @@ Future<void> showCustomAmountBottomSheet({
                   return ActionChip(
                     label: Text(
                       formatFCFA(amt),
-                      style: const TextStyle(inherit: true, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                          inherit: true,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600),
                     ),
                     onPressed: () {
                       ctrl.text = amt.toInt().toString();
@@ -1038,10 +1051,12 @@ class EditableAmountSlider extends StatelessWidget {
                 title: label,
                 currentValue: value,
                 onSubmitted: onChanged,
-                presets: presets ?? const [100000, 250000, 500000, 1000000, 2000000, 5000000],
+                presets: presets ??
+                    const [100000, 250000, 500000, 1000000, 2000000, 5000000],
               ),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: effectiveColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
@@ -1110,4 +1125,3 @@ class EditableAmountSlider extends StatelessWidget {
     );
   }
 }
-

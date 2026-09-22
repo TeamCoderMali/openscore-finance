@@ -415,7 +415,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ).animate().fadeIn(duration: 400.ms),
           const SizedBox(height: 4),
           Text(
-            'Espace Microfinance Mali • Sécurisé BCEAO',
+            'Espace Microfinance Mali • Sécurisé BCEAO / CIF',
             style: Theme.of(context).textTheme.bodySmall,
           ).animate().fadeIn(delay: 100.ms),
           const SizedBox(height: 24),
@@ -478,7 +478,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ).animate().fadeIn(delay: 350.ms),
           const SizedBox(height: 28),
           PrimaryButton(
-            label: 'Continuer → Profil financier',
+            label: 'Continuer',
             onPressed: _goNext,
             icon: Icons.arrow_forward,
             width: double.infinity,
@@ -962,11 +962,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Icon(Icons.lock_outline_rounded, size: 12, color: AppTheme.slate400),
+                Icon(Icons.lock_outline_rounded,
+                    size: 12, color: AppTheme.slate400),
                 SizedBox(width: 4),
                 Text(
                   'Vos données sont protégées par chiffrement AES-256',
-                  style: TextStyle(inherit: true, color: AppTheme.slate400, fontSize: 10),
+                  style: TextStyle(
+                      inherit: true, color: AppTheme.slate400, fontSize: 10),
                 ),
               ],
             ),

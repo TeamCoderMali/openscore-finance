@@ -10,7 +10,7 @@
 
 **Solution digitale de scoring de crédit explicable pour la Microfinance en Afrique de l'Ouest**
 
-*DigiCoop-WA+ Hackathon 2026 • BCEAO/UEMOA • Mali*
+*DigiCoop-WA+ Hackathon 2026 • CIF • Mali*
 
 </div>
 
@@ -27,10 +27,10 @@ Les IMF au Mali traitent encore la majorité des dossiers manuellement (papier, 
 ### Solution
 
 | Acteur | Bénéfice |
-|--------|----------|
+| -------- | ---------- |
 | **Emprunteur** | Dépôt de dossier en ligne ou mobile, suivi en temps réel, récépissé officiel |
 | **Agent CIF/IMF** | Tableau de bord opérationnel, extraction IA des pièces, certification assistée |
-| **Décideur IMF** | Score explicable 0–1000, piste d'audit complète, conformité BCEAO |
+| **Décideur IMF** | Score explicable 0–100, piste d'audit complète, conformité BCEAO |
 
 ---
 
@@ -46,7 +46,7 @@ openscore-finance/
 ### Dépendances clés
 
 | Couche | Technologie | Version |
-|--------|-------------|---------|
+| -------- | ------------- | --------- |
 | API REST | FastAPI + Uvicorn | 0.115 / 0.34 |
 | ORM | SQLAlchemy async | 2.0.36 |
 | Base de données | MySQL (aiomysql) | — |
@@ -121,10 +121,10 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 | Endpoint | URL |
-|----------|-----|
-| API Swagger | http://localhost:8000/docs |
-| Health check | http://localhost:8000/api/health |
-| ReDoc | http://localhost:8000/redoc |
+| ---------- | ----- |
+| API Swagger | <http://localhost:8000/docs> |
+| Health check | <http://localhost:8000/api/health> |
+| ReDoc | <http://localhost:8000/redoc> |
 
 #### Variables d'environnement (`backend/.env`)
 
@@ -145,7 +145,7 @@ npm install
 npm start
 ```
 
-Application Web : **http://localhost:4200**
+Application Web : **<http://localhost:4200>**
 
 ---
 
@@ -222,7 +222,7 @@ openscore-finance/
 ## Comptes de Démonstration
 
 | Rôle | Nom | Email | Mot de passe |
-|------|-----|-------|--------------|
+| ------ | ----- | ------- | -------------- |
 | Client Emprunteur | Amadou Diallo (Commerce) | `amadou.diallo@mail.ml` | `password123` |
 | Client Emprunteur | Fatoumata Traoré (Agriculture) | `fatoumata.traore@mail.ml` | `password123` |
 | Client Emprunteur | Moussa Keïta (Artisanat) | `moussa.keita@mail.ml` | `password123` |
@@ -236,7 +236,7 @@ openscore-finance/
 La plateforme respecte les exigences KYC de la BCEAO. Selon le profil :
 
 | Secteur | Documents obligatoires | Documents recommandés |
-|---------|------------------------|----------------------|
+| --------- | ------------------------ | ---------------------- |
 | **Commerce** | NINA ou CNI | Carte de commerçant (Mairie) |
 | **Agriculture** | NINA ou CNI | Attestation d'exploitation agricole |
 | **Artisanat** | NINA ou CNI | Carte d'artisan APIM |
@@ -248,7 +248,7 @@ La plateforme respecte les exigences KYC de la BCEAO. Selon le profil :
 
 ```
 Emprunteur soumet     →    Agent vérifie     →    Moteur score     →    Décision
-(upload docs + profil)     (certifie données)     (0-1000 + risque)     (approuvé / ajusté / refusé)
+(upload docs + profil)     (certifie données)     (0-100 + risque)     (approuvé / ajusté / refusé)
        ↓                         ↓                      ↓                       ↓
    Gemini IA               Piste d'audit          Explicabilité            Récépissé
   extraction auto          horodatée               SHAP-like               officiel
@@ -270,4 +270,4 @@ Emprunteur soumet     →    Agent vérifie     →    Moteur score     →    D
 ## Licence
 
 Projet développé dans le cadre du **DigiCoop-WA+ Hackathon 2026**.
-Équipe : **TeamCoderMali**
+Équipe : **CodeNova**

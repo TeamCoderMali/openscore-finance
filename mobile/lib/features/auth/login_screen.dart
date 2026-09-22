@@ -85,7 +85,8 @@ class _LoginScreenState extends State<LoginScreen> {
               // ── Hero Liquid Glass Card (Sans Dégradé) ─────────
               LiquidGlassCard(
                 borderRadius: 22,
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                 child: SizedBox(
                   width: size.width * 0.78,
                   child: Column(
@@ -102,7 +103,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'Microfinance Mali',
                         style: TextStyle(
-                          color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
+                          color: isDark
+                              ? const Color(0xFF60A5FA)
+                              : AppTheme.primaryBlue,
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
                           letterSpacing: 0.2,
@@ -110,9 +113,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'BCEAO • UEMOA • WA+',
+                        'BCEAO • CIF • WA+',
                         style: TextStyle(
-                          color: isDark ? const Color(0xFF64748B) : AppTheme.slate400,
+                          color: isDark
+                              ? const Color(0xFF64748B)
+                              : AppTheme.slate400,
                           fontSize: 10.5,
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.w600,
@@ -121,7 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-              ).animate().fadeIn(delay: 150.ms).scale(begin: const Offset(0.94, 0.94)),
+              )
+                  .animate()
+                  .fadeIn(delay: 150.ms)
+                  .scale(begin: const Offset(0.94, 0.94)),
 
               const SizedBox(height: 28),
 
@@ -162,11 +170,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: BoxDecoration(
                           color: AppTheme.roseLight,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.rose.withValues(alpha: 0.4)),
+                          border: Border.all(
+                              color: AppTheme.rose.withValues(alpha: 0.4)),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.error_outline, color: AppTheme.rose, size: 18),
+                            Icon(Icons.error_outline,
+                                color: AppTheme.rose, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -218,7 +228,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty) return 'Mot de passe requis';
+                        if (v == null || v.isEmpty)
+                          return 'Mot de passe requis';
                         if (v.length < 6) return 'Minimum 6 caractères';
                         return null;
                       },
@@ -251,7 +262,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             : 'Compte démo (Amadou Diallo)',
                         style: TextStyle(
                           inherit: true,
-                          color: _demoFilled ? AppTheme.emerald : AppTheme.amber,
+                          color:
+                              _demoFilled ? AppTheme.emerald : AppTheme.amber,
                           fontSize: 13,
                         ),
                       ),
@@ -320,7 +332,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 style: TextButton.styleFrom(
-                  foregroundColor: isDark ? const Color(0xFF94A3B8) : AppTheme.slate600,
+                  foregroundColor:
+                      isDark ? const Color(0xFF94A3B8) : AppTheme.slate600,
                 ),
               ),
 
@@ -328,7 +341,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // UEMOA / BCEAO badge (Flexible to fit any screen width without overflow)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : AppTheme.slate100,
                   borderRadius: BorderRadius.circular(20),
@@ -342,17 +356,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     Icon(
                       Icons.lock_outline_rounded,
                       size: 12,
-                      color: isDark ? const Color(0xFF94A3B8) : AppTheme.slate500,
+                      color:
+                          isDark ? const Color(0xFF94A3B8) : AppTheme.slate500,
                     ),
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        'Connexion sécurisée • BCEAO / UEMOA',
+                        'Connexion sécurisée • BCEAO / CIF',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           inherit: true,
-                          color: isDark ? const Color(0xFF94A3B8) : AppTheme.slate500,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : AppTheme.slate500,
                           fontSize: 10.5,
                           fontWeight: FontWeight.w600,
                         ),
