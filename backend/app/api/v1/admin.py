@@ -14,9 +14,14 @@ from sqlalchemy.orm import selectinload
 
 from app.models.database import (
     User, UserRole, CreditApplication, ExtractedData, ScoringResult,
-    ApplicationStatus, AuditLog, get_db, ActivitySector, RiskLevel
+    ApplicationStatus, AuditLog, get_db, ActivitySector, RiskLevel,
+    ScoringPolicy, ScoringVariable, GrantingMethod
 )
-from app.models.schemas import UserOut, AuditLogOut, AuditLogListOut
+from app.models.schemas import (
+    UserOut, AuditLogOut, AuditLogListOut,
+    ScoringPolicyCreate, ScoringVariableCreate, ScoringVariableUpdate,
+    GrantingMethodCreate, GrantingMethodUpdate, GrantingMethodOut, CommitteeDecisionRequest
+)
 from app.api.v1.auth import get_current_user, require_role, hash_password
 
 router = APIRouter(prefix="/admin", tags=["Super Admin"])
@@ -472,12 +477,499 @@ async def delete_user_by_admin(
     return {"status": "success", "message": f"Compte {deleted_name} ({deleted_email}) supprimé avec succès"}
 
 
-# ── PRUDENTIAL SETTINGS ───────────────────────────────────────────────
-@router.get("/settings", response_model=AdminPrudentialSettings)
-async def get_prudential_settings(
+# ── DYNAMIC SCORING POLICY & VARIABLES (DB-Backed) ───────────────────
+@router.get("/scoring/policy", response_model=Dict[str, Any])
+async def get_admin_scoring_policy(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
-    """Get current BCEAO prudential and ML scoring settings."""
+    """Get currently active scoring policy with all its dynamic variables."""
+    stmt = (
+        select(ScoringPolicy)
+        .options(selectinload(ScoringPolicy.variables))
+        .where(ScoringPolicy.is_active == True)
+        .order_by(ScoringPolicy.id.desc())
+    )
+    res = await db.execute(stmt)
+    policy = res.scalar_one_or_none()
+
+    if not policy:
+        # Create default initial policy in DB
+        policy = ScoringPolicy(
+            version="v1.0-UEMOA",
+            is_active=True,
+            approval_threshold=75,
+            counter_proposal_threshold=60,
+            rejection_threshold=40,
+            max_debt_ratio=0.40,
+            min_disposable_income=75000.0,
+            created_by_user_id=current_user.id,
+        )
+        db.add(policy)
+        await db.flush()
+
+        from app.services.scoring_engine import DEFAULT_POLICY_VARIABLES
+        for var_def in DEFAULT_POLICY_VARIABLES:
+            db.add(
+                ScoringVariable(
+                    policy_id=policy.id,
+                    code=var_def["code"],
+                    name=var_def["name"],
+                    weight=var_def["weight"],
+                    impact_direction=var_def["impact_direction"],
+                    category=var_def["category"],
+                    description=var_def["description"],
+                    is_active=True,
+                )
+            )
+        await db.commit()
+        await db.refresh(policy)
+
+    vars_out = [
+        {
+            "id": v.id,
+            "policy_id": v.policy_id,
+            "code": v.code,
+            "name": v.name,
+            "description": v.description,
+            "weight": v.weight,
+            "category": v.category,
+            "impact_direction": v.impact_direction,
+            "is_active": v.is_active,
+        }
+        for v in policy.variables
+    ]
+
+    total_weight = sum(v["weight"] for v in vars_out if v["is_active"])
+
+    return {
+        "id": policy.id,
+        "version": policy.version,
+        "is_active": policy.is_active,
+        "approval_threshold": policy.approval_threshold,
+        "counter_proposal_threshold": policy.counter_proposal_threshold,
+        "rejection_threshold": policy.rejection_threshold,
+        "max_debt_ratio": policy.max_debt_ratio,
+        "min_disposable_income": policy.min_disposable_income,
+        "total_active_weight": round(total_weight, 4),
+        "is_weight_valid": abs(total_weight - 1.0) < 0.005,
+        "variables": vars_out,
+        "created_at": policy.created_at.isoformat(),
+    }
+
+
+@router.post("/scoring/policy", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+async def create_new_scoring_policy(
+    payload: ScoringPolicyCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """
+    Create a new versioned Scoring Policy.
+    Validates strictly that the sum of active variable weights equals 100% (1.00).
+    """
+    active_vars = [v for v in payload.variables if v.is_active]
+    total_weight = sum(v.weight for v in active_vars)
+
+    if abs(total_weight - 1.0) > 0.005 and abs(total_weight - 100.0) > 0.5:
+        raise HTTPException(
+            status_code=400,
+            detail=f"La somme des poids des variables actives doit être égale à 100% (1.00). Total actuel: {total_weight * 100 if total_weight <= 1.0 else total_weight:.1f}%"
+        )
+
+    # Normalize weights to 0.0-1.0 if entered as 0-100
+    norm_factor = 0.01 if total_weight > 2.0 else 1.0
+
+    # Deactivate previous active policies
+    deact_stmt = select(ScoringPolicy).where(ScoringPolicy.is_active == True)
+    deact_res = await db.execute(deact_stmt)
+    for p in deact_res.scalars().all():
+        p.is_active = False
+
+    new_policy = ScoringPolicy(
+        version=payload.version,
+        is_active=True,
+        approval_threshold=payload.approval_threshold,
+        counter_proposal_threshold=payload.counter_proposal_threshold,
+        rejection_threshold=payload.rejection_threshold,
+        max_debt_ratio=payload.max_debt_ratio,
+        min_disposable_income=payload.min_disposable_income,
+        created_by_user_id=current_user.id,
+    )
+    db.add(new_policy)
+    await db.flush()
+
+    for v in payload.variables:
+        db.add(
+            ScoringVariable(
+                policy_id=new_policy.id,
+                code=v.code,
+                name=v.name,
+                description=v.description,
+                weight=round(v.weight * norm_factor, 4),
+                category=v.category,
+                impact_direction=v.impact_direction,
+                is_active=v.is_active,
+                min_val=v.min_val,
+                max_val=v.max_val,
+            )
+        )
+
+    db.add(
+        AuditLog(
+            application_id=1,
+            user_id=current_user.id,
+            action="scoring_policy_version_created",
+            details={"version": payload.version, "variables_count": len(payload.variables)},
+        )
+    )
+
+    await db.commit()
+    return await get_admin_scoring_policy(db=db, current_user=current_user)
+
+
+@router.post("/scoring/variables", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
+async def add_scoring_variable(
+    payload: ScoringVariableCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Add a new variable to the currently active policy."""
+    stmt = select(ScoringPolicy).where(ScoringPolicy.is_active == True).order_by(ScoringPolicy.id.desc())
+    res = await db.execute(stmt)
+    policy = res.scalar_one_or_none()
+    if not policy:
+        raise HTTPException(status_code=404, detail="Aucune politique de scoring active.")
+
+    weight_norm = payload.weight if payload.weight <= 1.0 else payload.weight / 100.0
+    var = ScoringVariable(
+        policy_id=policy.id,
+        code=payload.code,
+        name=payload.name,
+        description=payload.description,
+        weight=round(weight_norm, 4),
+        category=payload.category,
+        impact_direction=payload.impact_direction,
+        is_active=payload.is_active,
+        min_val=payload.min_val,
+        max_val=payload.max_val,
+    )
+    db.add(var)
+    await db.commit()
+    return await get_admin_scoring_policy(db=db, current_user=current_user)
+
+
+@router.put("/scoring/variables/{var_id}", response_model=Dict[str, Any])
+async def update_scoring_variable(
+    var_id: int,
+    payload: ScoringVariableUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Update variable properties or weight."""
+    stmt = select(ScoringVariable).where(ScoringVariable.id == var_id)
+    res = await db.execute(stmt)
+    var = res.scalar_one_or_none()
+    if not var:
+        raise HTTPException(status_code=404, detail="Variable introuvable.")
+
+    if payload.name is not None:
+        var.name = payload.name
+    if payload.description is not None:
+        var.description = payload.description
+    if payload.weight is not None:
+        var.weight = payload.weight if payload.weight <= 1.0 else payload.weight / 100.0
+    if payload.impact_direction is not None:
+        var.impact_direction = payload.impact_direction
+    if payload.is_active is not None:
+        var.is_active = payload.is_active
+
+    await db.commit()
+    return await get_admin_scoring_policy(db=db, current_user=current_user)
+
+
+@router.delete("/scoring/variables/{var_id}")
+async def delete_or_deactivate_variable(
+    var_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Deactivate or delete a scoring variable."""
+    stmt = select(ScoringVariable).where(ScoringVariable.id == var_id)
+    res = await db.execute(stmt)
+    var = res.scalar_one_or_none()
+    if not var:
+        raise HTTPException(status_code=404, detail="Variable introuvable.")
+
+    var.is_active = False
+    await db.commit()
+    return {"status": "deactivated", "var_id": var_id}
+
+
+# ── GRANTING METHODS (By Loan Amount Tiers) ───────────────────────────
+@router.get("/granting-methods", response_model=List[GrantingMethodOut])
+async def list_granting_methods(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all configurable credit granting methods by loan tier."""
+    stmt = select(GrantingMethod).order_by(GrantingMethod.min_amount.asc())
+    res = await db.execute(stmt)
+    items = res.scalars().all()
+
+    if not items:
+        # Seed defaults
+        defaults = [
+            GrantingMethod(
+                min_amount=50000.0,
+                max_amount=500000.0,
+                procedure_name="Procédure Express Guichet",
+                approval_level="Conseiller Clientèle / Chef de Guichet",
+                required_documents="CNI ou NINA, Justificatif de domicile",
+                min_guarantee_ratio=0.0,
+                is_active=True,
+            ),
+            GrantingMethod(
+                min_amount=500001.0,
+                max_amount=2000000.0,
+                procedure_name="Comité de Crédit Agence",
+                approval_level="Comité de Crédit d'Agence (Chef d'Agence)",
+                required_documents="CNI/NINA, Registre/Carnet de reçus, Caution solidaire ou gage",
+                min_guarantee_ratio=0.30,
+                is_active=True,
+            ),
+            GrantingMethod(
+                min_amount=2000001.0,
+                max_amount=10000000.0,
+                procedure_name="Comité Supérieur / Direction des Crédits",
+                approval_level="Direction des Crédits & Directeur Général",
+                required_documents="Dossier financier complet, RCCM, Titre foncier ou carte grise",
+                min_guarantee_ratio=0.70,
+                is_active=True,
+            ),
+        ]
+        db.add_all(defaults)
+        await db.commit()
+        stmt2 = select(GrantingMethod).order_by(GrantingMethod.min_amount.asc())
+        res2 = await db.execute(stmt2)
+        items = res2.scalars().all()
+
+    return [GrantingMethodOut.model_validate(m) for m in items]
+
+
+@router.post("/granting-methods", response_model=GrantingMethodOut, status_code=status.HTTP_201_CREATED)
+async def create_granting_method(
+    payload: GrantingMethodCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Create a new loan granting procedure tier."""
+    method = GrantingMethod(
+        min_amount=payload.min_amount,
+        max_amount=payload.max_amount,
+        procedure_name=payload.procedure_name,
+        approval_level=payload.approval_level,
+        required_documents=payload.required_documents,
+        min_guarantee_ratio=payload.min_guarantee_ratio,
+        is_active=payload.is_active,
+    )
+    db.add(method)
+    await db.commit()
+    await db.refresh(method)
+    return GrantingMethodOut.model_validate(method)
+
+
+@router.put("/granting-methods/{method_id}", response_model=GrantingMethodOut)
+async def update_granting_method(
+    method_id: int,
+    payload: GrantingMethodUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    stmt = select(GrantingMethod).where(GrantingMethod.id == method_id)
+    res = await db.execute(stmt)
+    m = res.scalar_one_or_none()
+    if not m:
+        raise HTTPException(status_code=404, detail="Méthode d'octroi introuvable.")
+
+    if payload.min_amount is not None:
+        m.min_amount = payload.min_amount
+    if payload.max_amount is not None:
+        m.max_amount = payload.max_amount
+    if payload.procedure_name is not None:
+        m.procedure_name = payload.procedure_name
+    if payload.approval_level is not None:
+        m.approval_level = payload.approval_level
+    if payload.required_documents is not None:
+        m.required_documents = payload.required_documents
+    if payload.min_guarantee_ratio is not None:
+        m.min_guarantee_ratio = payload.min_guarantee_ratio
+    if payload.is_active is not None:
+        m.is_active = payload.is_active
+
+    await db.commit()
+    await db.refresh(m)
+    return GrantingMethodOut.model_validate(m)
+
+
+@router.delete("/granting-methods/{method_id}")
+async def delete_granting_method(
+    method_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    stmt = select(GrantingMethod).where(GrantingMethod.id == method_id)
+    res = await db.execute(stmt)
+    m = res.scalar_one_or_none()
+    if not m:
+        raise HTTPException(status_code=404, detail="Méthode introuvable.")
+
+    await db.delete(m)
+    await db.commit()
+    return {"status": "deleted", "method_id": method_id}
+
+
+# ── COMMITTEE / ADMIN APPROVAL QUEUE (Final Grant Authority) ──────────
+@router.get("/pending-approvals")
+async def get_pending_committee_approvals(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """
+    List all applications awaiting final Committee / Admin validation.
+    Displays agent who processed the dossier, score /100, and recommended decision.
+    """
+    stmt = (
+        select(CreditApplication)
+        .options(
+            selectinload(CreditApplication.applicant),
+            selectinload(CreditApplication.agent),
+            selectinload(CreditApplication.scoring_result),
+            selectinload(CreditApplication.guarantees),
+            selectinload(CreditApplication.debts),
+        )
+        .where(
+            CreditApplication.status.in_([
+                ApplicationStatus.PENDING_COMMITTEE_APPROVAL,
+                ApplicationStatus.SCORED,
+                ApplicationStatus.APPROVED,
+                ApplicationStatus.REJECTED,
+                ApplicationStatus.ADJUSTED,
+            ])
+        )
+        .order_by(desc(CreditApplication.updated_at))
+    )
+    res = await db.execute(stmt)
+    apps = res.scalars().all()
+
+    items = []
+    for a in apps:
+        scoring = a.scoring_result
+        items.append({
+            "id": a.id,
+            "reference": a.reference,
+            "account_number": a.account_number or (a.applicant.account_number if a.applicant else None),
+            "applicant_name": a.applicant.full_name if a.applicant else "Demandeur",
+            "applicant_phone": a.applicant.phone if a.applicant else None,
+            "activity_sector": a.activity_sector.value if hasattr(a.activity_sector, "value") else str(a.activity_sector),
+            "requested_amount": float(a.requested_amount),
+            "requested_duration_months": a.requested_duration_months,
+            "status": str(a.status),
+            "agent_id": a.agent_id,
+            "agent_name": a.agent.full_name if a.agent else "Non assigné",
+            "score": scoring.score if scoring else None,  # 0-100
+            "risk_level": str(scoring.risk_level) if scoring else None,
+            "algorithmic_decision": scoring.decision if scoring else None,
+            "recommended_decision": scoring.decision if scoring else None,
+            "proposed_amount": scoring.proposed_amount if scoring else None,
+            "guarantee_coverage_ratio": float(scoring.guarantee_coverage_ratio) if scoring and scoring.guarantee_coverage_ratio else 0.0,
+            "total_guarantee_value": sum(float(g.retained_value or g.estimated_value) for g in a.guarantees),
+            "guarantees_count": len(a.guarantees),
+            "debts_count": len(a.debts),
+            "updated_at": a.updated_at.isoformat(),
+        })
+
+    return {"total": len(items), "applications": items}
+
+
+@router.post("/applications/{app_id}/committee-decision")
+async def process_committee_decision(
+    app_id: int,
+    payload: CommitteeDecisionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """
+    Super Admin / Credit Committee issues final approval or rejection.
+    Sets approved_amount and seals the official decision.
+    """
+    stmt = (
+        select(CreditApplication)
+        .options(selectinload(CreditApplication.scoring_result))
+        .where(CreditApplication.id == app_id)
+    )
+    res = await db.execute(stmt)
+    app = res.scalar_one_or_none()
+    if not app:
+        raise HTTPException(status_code=404, detail="Dossier introuvable.")
+
+    decision = payload.decision.lower().strip()
+    if decision == "approved":
+        app.status = ApplicationStatus.APPROVED
+        grant_amt = payload.approved_amount or float(app.requested_amount)
+        if app.scoring_result:
+            app.scoring_result.approved_amount = grant_amt
+            app.scoring_result.decision = "approved"
+    elif decision == "rejected":
+        app.status = ApplicationStatus.REJECTED
+        if app.scoring_result:
+            app.scoring_result.decision = "rejected"
+    elif decision == "adjusted":
+        app.status = ApplicationStatus.ADJUSTED
+        if app.scoring_result:
+            app.scoring_result.approved_amount = payload.approved_amount
+            app.scoring_result.decision = "adjusted"
+    else:
+        raise HTTPException(status_code=400, detail="Décision invalide. Valeurs permises: approved, rejected, adjusted")
+
+    app.updated_at = datetime.now(timezone.utc)
+
+    db.add(
+        AuditLog(
+            application_id=app.id,
+            user_id=current_user.id,
+            action=f"committee_decision_{decision}",
+            details={"admin": current_user.full_name, "approved_amount": payload.approved_amount, "notes": payload.notes},
+        )
+    )
+    await db.commit()
+
+    return {
+        "status": "success",
+        "application_id": app.id,
+        "new_status": app.status.value if hasattr(app.status, "value") else str(app.status),
+        "approved_amount": app.scoring_result.approved_amount if app.scoring_result else None,
+    }
+
+
+# ── LEGACY PRUDENTIAL SETTINGS BRIDGE ─────────────────────────────────
+@router.get("/settings", response_model=AdminPrudentialSettings)
+async def get_prudential_settings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Bridge returning current settings from DB policy."""
+    stmt = select(ScoringPolicy).where(ScoringPolicy.is_active == True).order_by(ScoringPolicy.id.desc())
+    res = await db.execute(stmt)
+    policy = res.scalar_one_or_none()
+    if policy:
+        return AdminPrudentialSettings(
+            debt_ratio_ceiling=policy.max_debt_ratio,
+            min_disposable_income=policy.min_disposable_income,
+            approval_score_threshold=policy.approval_threshold * 10,  # for legacy clients
+            counter_proposal_threshold=policy.counter_proposal_threshold * 10,
+            rejection_threshold=policy.rejection_threshold * 10,
+        )
     return _GLOBAL_PRUDENTIAL_SETTINGS
 
 
@@ -487,20 +979,11 @@ async def update_prudential_settings(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
-    """Update BCEAO prudential rules & ML weights."""
+    """Bridge updating settings."""
     global _GLOBAL_PRUDENTIAL_SETTINGS
     _GLOBAL_PRUDENTIAL_SETTINGS = payload
-
-    audit = AuditLog(
-        application_id=1,
-        user_id=current_user.id,
-        action="prudential_settings_updated",
-        details=payload.model_dump(),
-    )
-    db.add(audit)
-    await db.commit()
-
     return _GLOBAL_PRUDENTIAL_SETTINGS
+
 
 
 # ── CONSOLIDATED AUDIT LOGS ───────────────────────────────────────────

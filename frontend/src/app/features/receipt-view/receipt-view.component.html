@@ -83,6 +83,10 @@
         <span class="text-zinc-500 font-medium">Secteur d'activité :</span>
         <span class="ml-2 font-semibold text-zinc-900">{{ receipt()!.activity_sector }}</span>
       </div>
+      <div *ngIf="receipt()!.account_number">
+        <span class="text-zinc-500 font-medium">N° Compte IMF :</span>
+        <span class="ml-2 font-mono font-bold text-blue-900 bg-blue-50 px-2 py-0.5 rounded">{{ receipt()!.account_number }}</span>
+      </div>
     </div>
   </div>
 
@@ -112,7 +116,7 @@
         </tr>
         <tr class="border-b border-zinc-100">
           <td class="py-2 text-zinc-600">Score de solvabilité attribué</td>
-          <td class="py-2 text-right font-mono font-bold text-zinc-900">{{ receipt()!.score }} / 1000</td>
+          <td class="py-2 text-right font-mono font-bold text-zinc-900">{{ receipt()!.score }} / 100</td>
         </tr>
         <tr>
           <td class="py-2 text-zinc-600">Niveau de risque évalué</td>

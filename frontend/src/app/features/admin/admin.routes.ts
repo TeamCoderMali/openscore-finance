@@ -16,6 +16,12 @@ export const ADMIN_ROUTES: Routes = [
         title: 'Cockpit Direction IMF | OpenScore'
       },
       {
+        path: 'committee',
+        loadComponent: () =>
+          import('./components/committee/admin-committee.component').then(m => m.AdminCommitteeComponent),
+        title: 'Comité de Crédit & Arbitrage | OpenScore'
+      },
+      {
         path: 'clients',
         loadComponent: () =>
           import('./components/clients/admin-clients.component').then(m => m.AdminClientsComponent),

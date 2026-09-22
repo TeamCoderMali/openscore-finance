@@ -120,7 +120,7 @@
               {{ simulatedPar30() }}%
             </p>
             <span class="text-[10px]" [class.text-emerald-700]="simulatedPar30() <= 5.0" [class.text-rose-600]="simulatedPar30() > 5.0">
-              {{ simulatedPar30() <= 5.0 ? '✓ Respecte la norme BCEAO (< 5%)' : '⚠️ Dépassement de la tolérance BCEAO' }}
+              {{ simulatedPar30() <= 5.0 ? 'Conforme à la norme BCEAO (< 5%)' : 'Alerte : Dépassement de la tolérance BCEAO' }}
             </span>
           </div>
 

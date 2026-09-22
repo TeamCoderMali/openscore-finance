@@ -1,948 +1,907 @@
 <div class="space-y-6 animate-slide-up">
-  <!-- Top KPI Ribbon -->
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-    <div class="card p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-      <span class="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">À Certifier (Terrain)</span>
-      <p class="text-xl font-mono font-bold text-amber-600 dark:text-amber-400 mt-1">{{ pendingCount() }}</p>
-      <p class="text-[10px] text-slate-400">Données à vérifier</p>
+  <!-- Top KPI Header & Quick Init Action -->
+  <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">À Certifier / En Cours</span>
+      <p class="text-2xl font-mono font-bold text-amber-600 dark:text-amber-400 mt-1">{{ pendingCount() }}</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">Enquête et pièces à vérifier</p>
     </div>
 
-    <div class="card p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-      <span class="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">Certifiés Conformes</span>
-      <p class="text-xl font-mono font-bold text-blue-900 dark:text-blue-400 mt-1">{{ verifiedCount() }}</p>
-      <p class="text-[10px] text-slate-400">Prêts pour scoring ML</p>
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">Évalués (/100)</span>
+      <p class="text-2xl font-mono font-bold text-blue-900 dark:text-blue-400 mt-1">{{ scoredCount() }}</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">Scoring ML & ratios calculés</p>
     </div>
 
-    <div class="card p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-      <span class="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">Évalués (Arbitrage Requis)</span>
-      <p class="text-xl font-mono font-bold text-purple-900 dark:text-purple-300 mt-1">{{ scoredCount() }}</p>
-      <p class="text-[10px] text-purple-700 dark:text-purple-400 font-semibold">Décision finale agent</p>
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">En Attente Comité</span>
+      <p class="text-2xl font-mono font-bold text-purple-700 dark:text-purple-400 mt-1">{{ committeeCount() }}</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">Soumis à la Direction / Comité</p>
     </div>
 
-    <div class="card p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-      <span class="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">Accordés / Validés</span>
-      <p class="text-xl font-mono font-bold text-emerald-700 dark:text-emerald-400 mt-1">{{ approvedCount() }}</p>
-      <p class="text-[10px] text-emerald-700 dark:text-emerald-400">Décaissements prêts</p>
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">Validés & Décaissés</span>
+      <p class="text-2xl font-mono font-bold text-emerald-700 dark:text-emerald-400 mt-1">{{ approvedCount() }}</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">Accords formels d'octroi</p>
     </div>
   </div>
 
-  <!-- Applications Table List (Full Width) -->
-  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-    <!-- Search, Client Selector and Filter Controls (Strictly Single Row, NON-SCROLLABLE) -->
-    <div class="flex items-center gap-2.5 w-full">
-      <!-- Champ de recherche client -->
-      <div class="relative flex-1 min-w-[140px]">
-        <input
-          type="text"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-          placeholder="Rechercher (nom, réf, tél)..."
-          class="form-input text-xs py-1.5 w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-        />
-      </div>
-
-      <!-- Sélecteur direct de client (Menu déroulant rapide) -->
-      <div class="w-44 sm:w-52 shrink-0">
-        <select
-          (change)="onQuickClientSelect($any($event.target).value); $any($event.target).value = ''"
-          class="form-select text-xs py-1.5 font-sans w-full truncate bg-blue-50/70 dark:bg-blue-950/40 text-blue-950 dark:text-blue-200 border-blue-300 dark:border-blue-800 font-medium"
-          title="Sélectionner directement un client pour ouvrir sa fiche"
-        >
-          <option value="">👤 Sélectionner un client...</option>
-          <option *ngFor="let a of applications()" [value]="a.id">
-            {{ a.applicant_name }} ({{ a.reference }})
-          </option>
-        </select>
-      </div>
-
-      <!-- Filtre par Statut -->
-      <div class="w-32 sm:w-36 shrink-0">
-        <select
-          [ngModel]="selectedStatusFilter()"
-          (ngModelChange)="selectedStatusFilter.set($event)"
-          class="form-select text-xs py-1.5 font-mono w-full truncate dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-        >
-          <option value="all">Tous les statuts</option>
-          <option value="pending">À certifier</option>
-          <option value="verified">Certifié conforme</option>
-          <option value="scored">Évalué</option>
-          <option value="approved">Accordé & Validé</option>
-          <option value="adjusted">Contre-proposition</option>
-          <option value="rejected">Refusé</option>
-        </select>
-      </div>
-
-      <!-- Filtre par Secteur -->
-      <div class="w-28 sm:w-32 shrink-0">
-        <select
-          [ngModel]="selectedSectorFilter()"
-          (ngModelChange)="selectedSectorFilter.set($event)"
-          class="form-select text-xs py-1.5 font-mono w-full truncate dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-        >
-          <option value="all">Tous les secteurs</option>
-          <option value="Commerce">Commerce</option>
-          <option value="Agriculture">Agriculture</option>
-          <option value="Artisanat">Artisanat</option>
-          <option value="TPE">TPE</option>
-        </select>
-      </div>
-
-      <!-- Compteur de dossiers -->
-      <div class="text-xs text-slate-500 font-mono whitespace-nowrap shrink-0 pl-1">
-        <strong>{{ filteredApplications().length }}</strong> dossier(s)
-      </div>
+  <!-- Search Bar & Filters -->
+  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+    <!-- Multi-Search (OSF-... or CMF-...) -->
+    <div class="flex-1 relative">
+      <app-svg-icon name="search" [size]="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></app-svg-icon>
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        placeholder="Rechercher par référence dossier (OSF-...) ou N° de compte (CMF-...)..."
+        class="form-input pl-9 text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white w-full"
+      />
     </div>
 
-    <!-- Table -->
-    <div class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-md">
-      <table class="data-table text-xs">
+    <!-- Status & Sector Filters -->
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <select [(ngModel)]="selectedStatusFilter" class="form-input py-1.5 text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white">
+        <option value="all">Tous les statuts</option>
+        <option value="pending">À certifier</option>
+        <option value="scored">Évalués</option>
+        <option value="committee">En attente comité</option>
+        <option value="decided">Décidés</option>
+      </select>
+
+      <select [(ngModel)]="selectedSectorFilter" class="form-input py-1.5 text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white">
+        <option value="all">Tous secteurs</option>
+        <option value="Commerce">Commerce</option>
+        <option value="Agriculture">Agriculture</option>
+        <option value="Artisanat">Artisanat</option>
+        <option value="TPE">TPE</option>
+      </select>
+
+      <!-- Quick Init Button -->
+      <button (click)="openQuickInitModal()" class="btn-primary text-xs shadow-sm cursor-pointer whitespace-nowrap">
+        <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+        <span>Nouveau Dossier Rapide (N° Compte)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Applications Table -->
+  <div class="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+    <div *ngIf="loading()" class="py-12">
+      <app-spinner size="md" label="Chargement du portefeuille des demandes..."></app-spinner>
+    </div>
+
+    <div *ngIf="!loading()" class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
         <thead>
-          <tr>
-            <th>Demandeur & Dossier</th>
-            <th>Coordonnées</th>
-            <th>Secteur</th>
-            <th>Montant Sollicité</th>
-            <th>Durée</th>
-            <th>Statut</th>
-            <th class="text-right">Décision & Fiche</th>
+          <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-mono uppercase text-[10px] bg-slate-50 dark:bg-slate-800/50">
+            <th class="py-3 px-4">Réf. Dossier</th>
+            <th class="py-3 px-4">Compte IMF</th>
+            <th class="py-3 px-4">Client / Emprunteur</th>
+            <th class="py-3 px-4">Secteur</th>
+            <th class="py-3 px-4 text-right">Montant Demandé</th>
+            <th class="py-3 px-4 text-center">Score (/100)</th>
+            <th class="py-3 px-4 text-center">Statut</th>
+            <th class="py-3 px-4 text-right">Actions</th>
           </tr>
         </thead>
-        <tbody>
-          <tr
-            *ngFor="let a of pagedApplications()"
-            (click)="selectApplication(a)"
-            class="cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60"
-          >
-            <td>
-              <div class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 flex items-center justify-center font-bold text-[11px]">
-                  {{ a.applicant_name?.charAt(0) || 'C' }}
-                </span>
-                <span class="hover:underline">{{ a.applicant_name || 'Demandeur' }}</span>
-              </div>
-              <div class="text-[10px] font-mono text-slate-400 mt-0.5 ml-8">Réf : {{ a.reference }}</div>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <tr *ngFor="let app of pagedApplications()" class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+            <td class="py-3 px-4 font-mono font-bold text-blue-900 dark:text-blue-400 cursor-pointer" (click)="selectApplication(app)">
+              {{ app.reference }}
             </td>
-            <td class="font-mono">
-              <div class="text-slate-800 dark:text-slate-200">
-                {{ a.applicant_phone ? ('📞 ' + a.applicant_phone) : '—' }}
-              </div>
-              <div class="text-[10px] text-slate-400">{{ a.applicant_email || '—' }}</div>
-            </td>
-            <td>
-              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                {{ a.activity_sector }}
+            <td class="py-3 px-4 font-mono">
+              <span *ngIf="app.account_number" class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+                {{ app.account_number }}
               </span>
+              <span *ngIf="!app.account_number" class="text-slate-400 text-[10px] italic">Non rattaché</span>
             </td>
-            <td class="font-mono font-bold text-slate-900 dark:text-white text-sm">
-              {{ formatAmount(a.requested_amount) }}
+            <td class="py-3 px-4">
+              <p class="font-semibold text-slate-900 dark:text-white">{{ app.applicant_name || 'Demandeur' }}</p>
+              <p class="text-[10px] text-slate-400 font-mono">{{ app.applicant_phone || '—' }}</p>
             </td>
-            <td class="font-mono text-slate-600 dark:text-slate-300">
-              {{ a.requested_duration_months }} mois
+            <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">
+              {{ app.activity_sector }}
             </td>
-            <td>
-              <span [class]="getStatusBadgeClass(a.status)" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase inline-block">
-                {{ getStatusLabel(a.status) }}
-              </span>
+            <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
+              {{ formatAmount(app.requested_amount) }}
             </td>
-            <td class="text-right">
-              <button
-                (click)="selectApplication(a); $event.stopPropagation()"
-                class="btn-secondary text-[11px] py-1 px-3 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950 text-blue-900 dark:text-blue-300 border-blue-200 dark:border-blue-800 font-medium"
+            <td class="py-3 px-4 text-center font-mono font-bold">
+              <span *ngIf="app.guarantee_coverage_ratio !== undefined || app.status === 'scored' || app.status === 'approved' || app.status === 'adjusted'"
+                class="px-2 py-0.5 rounded text-xs"
+                [class.bg-emerald-100]="app.status === 'approved'"
+                [class.text-emerald-800]="app.status === 'approved'"
+                [class.bg-purple-100]="app.status === 'scored'"
+                [class.text-purple-900]="app.status === 'scored'"
+                [class.bg-amber-100]="app.status === 'adjusted'"
+                [class.text-amber-800]="app.status === 'adjusted'"
               >
-                Consulter la Fiche
-              </button>
+                {{ app.status === 'approved' ? 'Accordé' : (app.status === 'scored' ? 'Évalué' : '—') }}
+              </span>
+              <span *ngIf="!['scored', 'approved', 'adjusted'].includes(app.status)" class="text-slate-400 text-[11px]">—</span>
             </td>
-          </tr>
-          <tr *ngIf="filteredApplications().length === 0">
-            <td colspan="7" class="text-center py-8 text-slate-400">
-              Aucun dossier de crédit ne correspond à vos critères de recherche.
+            <td class="py-3 px-4 text-center">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold" [class]="getStatusBadgeClass(app.status)">
+                {{ getStatusLabel(app.status) }}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right space-x-2 whitespace-nowrap">
+              <button (click)="selectApplication(app)" class="btn-secondary text-[11px] py-1 px-2 cursor-pointer">
+                <span>Instruire</span>
+              </button>
+              <button *ngIf="app.status === 'approved' || app.status === 'adjusted'" (click)="viewReceipt(app.id)" class="p-1 text-slate-600 hover:text-blue-900 dark:text-slate-400 cursor-pointer" title="Voir récépissé">
+                <app-svg-icon name="printer" [size]="14"></app-svg-icon>
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
 
-    <!-- Pagination Toolbar -->
-    <div *ngIf="filteredApplications().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-md text-xs text-slate-600 dark:text-slate-300 font-mono">
-      <div class="flex items-center gap-2">
-        <span>Afficher</span>
-        <select
-          [ngModel]="pipelinePageSize()"
-          (ngModelChange)="pipelinePageSize.set(+$event); pipelinePage.set(1)"
-          class="form-select py-0.5 px-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
-        >
-          <option [ngValue]="6">6</option>
-          <option [ngValue]="12">12</option>
-          <option [ngValue]="20">20</option>
-        </select>
-        <span>sur <strong>{{ filteredApplications().length }}</strong> dossiers</span>
+      <!-- Empty State -->
+      <div *ngIf="filteredApplications().length === 0" class="text-center py-12 text-slate-400 text-xs">
+        <app-svg-icon name="search" [size]="32" class="mx-auto mb-2 text-slate-300"></app-svg-icon>
+        <p>Aucun dossier ne correspond aux critères de recherche.</p>
       </div>
 
-      <div class="flex items-center gap-1">
-        <button
-          (click)="pipelinePage.set(pipelinePage() - 1)"
-          [disabled]="pipelinePage() <= 1"
-          class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
-        >
-          Précédent
-        </button>
-        <span class="px-2 font-bold text-slate-900 dark:text-white">Page {{ pipelinePage() }} / {{ totalPages() }}</span>
-        <button
-          (click)="pipelinePage.set(pipelinePage() + 1)"
-          [disabled]="pipelinePage() >= totalPages()"
-          class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
-        >
-          Suivant
-        </button>
+      <!-- Pagination -->
+      <div *ngIf="totalPages() > 1" class="p-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-mono">
+        <span class="text-slate-500">Page {{ pipelinePage() }} sur {{ totalPages() }} ({{ filteredApplications().length }} dossiers)</span>
+        <div class="flex items-center gap-1">
+          <button (click)="pipelinePage.set(pipelinePage() - 1)" [disabled]="pipelinePage() <= 1" class="btn-secondary text-xs py-1 px-2 cursor-pointer disabled:opacity-30">Précédent</button>
+          <button (click)="pipelinePage.set(pipelinePage() + 1)" [disabled]="pipelinePage() >= totalPages()" class="btn-secondary text-xs py-1 px-2 cursor-pointer disabled:opacity-30">Suivant</button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═════════════════════════════════════════════════════════════════ -->
-<!-- MODAL PRINCIPAL : FICHE CLIENT & INSTRUCTION DU DOSSIER           -->
-<!-- ═════════════════════════════════════════════════════════════════ -->
-<!-- MODAL PRINCIPAL : FICHE CLIENT & INSTRUCTION DU DOSSIER           -->
-<!-- ═════════════════════════════════════════════════════════════════ -->
-<div *ngIf="selectedApp()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs animate-fade-in p-2 sm:p-4 md:p-6 overflow-y-auto">
-  <div class="bg-white dark:bg-[#111827] rounded-2xl shadow-2xl w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1440px] h-[95vh] max-h-[95vh] overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up flex flex-col">
-    <!-- Header (Sticky top) -->
-    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-3">
-        <div class="w-11 h-11 rounded-full bg-blue-800 text-white flex items-center justify-center font-bold text-base shadow-sm">
-          {{ selectedApp()?.applicant_name?.charAt(0) || 'C' }}
-        </div>
-        <div>
-          <div class="flex items-center gap-2.5">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">
-              {{ selectedApp()?.applicant_name || 'Fiche Client' }}
-            </h3>
-            <span [class]="getStatusBadgeClass(selectedApp()!.status)" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase">
-              {{ getStatusLabel(selectedApp()!.status) }}
-            </span>
-          </div>
-          <p class="text-xs text-slate-500 font-mono mt-0.5">
-            Réf : <strong>{{ selectedApp()?.reference }}</strong> • Secteur : {{ selectedApp()?.activity_sector }} • Montant Sollicité : <strong>{{ formatAmount(selectedApp()!.requested_amount) }}</strong>
-          </p>
-        </div>
-      </div>
-
-      <button (click)="closeDetail()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer p-1.5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" title="Fermer la fiche">
-        <app-svg-icon name="x-circle" [size]="24"></app-svg-icon>
-      </button>
-    </div>
-
-    <!-- Bandeau de Contact Immédiat -->
-    <div class="px-6 py-3 bg-blue-50/80 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-800/60 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+<!-- ========================================================================= -->
+<!-- MODAL DOSSIER STREAMLINÉ EN 3 PARTIES DISTINCTES                          -->
+<!-- ========================================================================= -->
+<div *ngIf="selectedApp()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-6 overflow-y-auto animate-fade-in">
+  <div class="bg-white dark:bg-slate-900 rounded-xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+    
+    <!-- Modal Header -->
+    <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
       <div>
-        <p class="font-bold text-blue-950 dark:text-blue-200 flex items-center gap-2">
-          <span>Coordonnées de l'Emprunteur :</span>
-          <span *ngIf="selectedApp()?.applicant_phone" class="font-mono text-blue-800 dark:text-blue-300 font-bold">📞 {{ selectedApp()?.applicant_phone }}</span>
-        </p>
-        <p *ngIf="selectedApp()?.applicant_email" class="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-          ✉️ {{ selectedApp()?.applicant_email }}
+        <div class="flex items-center gap-3">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white font-mono">{{ selectedApp()!.reference }}</h3>
+          <span *ngIf="selectedApp()!.account_number" class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-100 text-blue-900 dark:bg-blue-900/60 dark:text-blue-200">
+            Compte : {{ selectedApp()!.account_number }}
+          </span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold" [class]="getStatusBadgeClass(selectedApp()!.status)">
+            {{ getStatusLabel(selectedApp()!.status) }}
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 mt-0.5">
+          Demandeur : <strong>{{ selectedApp()!.applicant_name }}</strong> • {{ selectedApp()!.activity_sector }} • Demande : <strong>{{ formatAmount(selectedApp()!.requested_amount) }}</strong> ({{ selectedApp()!.requested_duration_months }} mois)
         </p>
       </div>
 
-      <!-- Quick Action Buttons for Contacting Client (100% French) -->
-      <div class="flex flex-wrap items-center gap-2">
-        <!-- Call Button -->
-        <a
-          *ngIf="selectedApp()?.applicant_phone"
-          [href]="'tel:' + selectedApp()?.applicant_phone"
-          class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 cursor-pointer shadow-2xs hover:border-blue-500 font-medium"
-          title="Appeler directement l'emprunteur"
-        >
-          <span>📞 Appeler</span>
-        </a>
-
-        <!-- WhatsApp Direct Button -->
-        <a
-          *ngIf="selectedApp()?.applicant_phone"
-          [href]="getWhatsAppUrl(selectedApp()!)"
-          target="_blank"
-          class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 cursor-pointer shadow-2xs hover:bg-emerald-100 font-medium"
-          title="Ouvrir une discussion WhatsApp pré-remplie"
-        >
-          <span>💬 Échanger sur WhatsApp</span>
-        </a>
-
-        <!-- Email Button (French: Courriel) -->
-        <a
-          *ngIf="selectedApp()?.applicant_email"
-          [href]="'mailto:' + selectedApp()?.applicant_email + '?subject=OpenScore Finance - Dossier ' + selectedApp()?.reference"
-          class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 bg-white dark:bg-slate-900 cursor-pointer shadow-2xs font-medium"
-          title="Envoyer un courriel officiel"
-        >
-          <span>✉️ Envoyer un Courriel</span>
-        </a>
-
-        <!-- Formal Message & Notification Modal Button -->
-        <button
-          (click)="openContactModal('whatsapp')"
-          class="btn-primary text-xs py-1.5 px-3.5 cursor-pointer shadow-xs bg-blue-800 hover:bg-blue-900 text-white font-medium"
-        >
-          <span>+ Rédiger un Message & Relance</span>
+      <div class="flex items-center gap-2">
+        <button (click)="openContactModal('whatsapp')" class="btn-secondary text-xs py-1 px-2 cursor-pointer" title="Échanger avec le client">
+          <app-svg-icon name="message-circle" [size]="14"></app-svg-icon>
+          <span class="hidden sm:inline">Contacter</span>
         </button>
+        <button (click)="closeDetail()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg font-bold p-1 cursor-pointer">✕</button>
       </div>
     </div>
 
-    <!-- Navigation Tabs Inside Modal -->
-    <div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/40 text-xs font-mono px-4 shrink-0 overflow-x-auto">
+    <!-- 3-Tab Streamlined Navigation Bar -->
+    <div class="border-b border-slate-200 dark:border-slate-800 px-6 flex items-center gap-2 bg-white dark:bg-slate-900 text-xs font-semibold overflow-x-auto">
       <button
-        (click)="setDetailTab('certification')"
-        [class.bg-white]="currentDetailTab() === 'certification'"
-        [class.dark:bg-slate-900]="currentDetailTab() === 'certification'"
-        [class.font-bold]="currentDetailTab() === 'certification'"
-        [class.border-b-2]="currentDetailTab() === 'certification'"
-        [class.border-blue-900]="currentDetailTab() === 'certification'"
-        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all whitespace-nowrap"
+        (click)="setDetailTab('financials_guarantees')"
+        class="py-3 px-3 border-b-2 transition-colors cursor-pointer whitespace-nowrap"
+        [class.border-blue-900]="currentDetailTab() === 'financials_guarantees'"
+        [class.text-blue-900]="currentDetailTab() === 'financials_guarantees'"
+        [class.dark:border-blue-400]="currentDetailTab() === 'financials_guarantees'"
+        [class.dark:text-blue-400]="currentDetailTab() === 'financials_guarantees'"
+        [class.border-transparent]="currentDetailTab() !== 'financials_guarantees'"
+        [class.text-slate-500]="currentDetailTab() !== 'financials_guarantees'"
       >
-        1. Données Vérifiées & Certification
+        <span>1. Données Financières, Dettes & Garanties</span>
       </button>
+
       <button
-        (click)="setDetailTab('field_survey')"
-        [class.bg-white]="currentDetailTab() === 'field_survey'"
-        [class.dark:bg-slate-900]="currentDetailTab() === 'field_survey'"
-        [class.font-bold]="currentDetailTab() === 'field_survey'"
-        [class.border-b-2]="currentDetailTab() === 'field_survey'"
-        [class.border-blue-900]="currentDetailTab() === 'field_survey'"
-        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all whitespace-nowrap"
+        (click)="setDetailTab('scoring_shap')"
+        class="py-3 px-3 border-b-2 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+        [class.border-blue-900]="currentDetailTab() === 'scoring_shap'"
+        [class.text-blue-900]="currentDetailTab() === 'scoring_shap'"
+        [class.dark:border-blue-400]="currentDetailTab() === 'scoring_shap'"
+        [class.dark:text-blue-400]="currentDetailTab() === 'scoring_shap'"
+        [class.border-transparent]="currentDetailTab() !== 'scoring_shap'"
+        [class.text-slate-500]="currentDetailTab() !== 'scoring_shap'"
       >
-        2. Enquête Terrain & Garanties
+        <span>2. Analyse & Scoring (/100)</span>
+        <span *ngIf="scoringResult()" class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-blue-100 text-blue-900">
+          {{ scoringResult()!.score }}/100
+        </span>
       </button>
+
       <button
-        (click)="setDetailTab('scoring')"
-        [class.bg-white]="currentDetailTab() === 'scoring'"
-        [class.dark:bg-slate-900]="currentDetailTab() === 'scoring'"
-        [class.font-bold]="currentDetailTab() === 'scoring'"
-        [class.border-b-2]="currentDetailTab() === 'scoring'"
-        [class.border-blue-900]="currentDetailTab() === 'scoring'"
-        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all whitespace-nowrap"
+        (click)="setDetailTab('decision_method')"
+        class="py-3 px-3 border-b-2 transition-colors cursor-pointer whitespace-nowrap"
+        [class.border-blue-900]="currentDetailTab() === 'decision_method'"
+        [class.text-blue-900]="currentDetailTab() === 'decision_method'"
+        [class.dark:border-blue-400]="currentDetailTab() === 'decision_method'"
+        [class.dark:text-blue-400]="currentDetailTab() === 'decision_method'"
+        [class.border-transparent]="currentDetailTab() !== 'decision_method'"
+        [class.text-slate-500]="currentDetailTab() !== 'decision_method'"
       >
-        3. Score Prédictif IA & Décision
+        <span>3. Décision & Méthode d'Octroi</span>
       </button>
+
       <button
         (click)="setDetailTab('audit_logs')"
-        [class.bg-white]="currentDetailTab() === 'audit_logs'"
-        [class.dark:bg-slate-900]="currentDetailTab() === 'audit_logs'"
-        [class.font-bold]="currentDetailTab() === 'audit_logs'"
-        [class.border-b-2]="currentDetailTab() === 'audit_logs'"
-        [class.border-blue-900]="currentDetailTab() === 'audit_logs'"
-        class="px-4 py-2.5 text-slate-700 dark:text-slate-300 cursor-pointer transition-all whitespace-nowrap"
+        class="py-3 px-3 border-b-2 transition-colors cursor-pointer whitespace-nowrap text-slate-400 hover:text-slate-600 text-[11px]"
+        [class.border-slate-400]="currentDetailTab() === 'audit_logs'"
+        [class.text-slate-800]="currentDetailTab() === 'audit_logs'"
+        [class.border-transparent]="currentDetailTab() !== 'audit_logs'"
       >
-        4. Piste d'Audit & Historique
+        <span>Historique d'audit</span>
       </button>
     </div>
 
-    <!-- Scrollable Modal Body -->
-    <div class="overflow-y-auto flex-1 p-6 space-y-6 text-xs">
-      <!-- ═══════════════════════════════════════════════════════════ -->
-      <!-- TAB 1 : DONNÉES & CERTIFICATION                             -->
-      <!-- ═══════════════════════════════════════════════════════════ -->
-      <div *ngIf="currentDetailTab() === 'certification'" class="space-y-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label class="form-label text-xs">Nom & Prénom Emprunteur</label>
-            <input
-              type="text"
-              [ngModel]="verifiedFields().full_name"
-              (ngModelChange)="updateField('full_name', $event)"
-              class="form-input text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="form-label text-xs">Numéro de Pièce (NINA / CNI)</label>
-            <input
-              type="text"
-              [ngModel]="verifiedFields().id_number"
-              (ngModelChange)="updateField('id_number', $event)"
-              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="form-label text-xs">Type de Pièce d'Identité</label>
-            <select
-              [ngModel]="verifiedFields().id_type"
-              (ngModelChange)="updateField('id_type', $event)"
-              class="form-select text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            >
-              <option value="NINA">Fiche NINA</option>
-              <option value="CNI">Carte Nationale d'Identité (CNI)</option>
-              <option value="Passeport">Passeport CEDEAO</option>
-              <option value="Permis">Permis de Conduire</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label text-xs">Revenu Mensuel Vérifié (FCFA)</label>
-            <input
-              type="number"
-              step="25000"
-              [ngModel]="verifiedFields().monthly_revenue"
-              (ngModelChange)="updateField('monthly_revenue', +$event)"
-              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="form-label text-xs">Charges Mensuelles Vérifiées (FCFA)</label>
-            <input
-              type="number"
-              step="10000"
-              [ngModel]="verifiedFields().monthly_expenses"
-              (ngModelChange)="updateField('monthly_expenses', +$event)"
-              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="form-label text-xs">Dettes Actuelles Déclarées (FCFA)</label>
-            <input
-              type="number"
-              step="25000"
-              [ngModel]="verifiedFields().existing_debt"
-              (ngModelChange)="updateField('existing_debt', +$event)"
-              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="form-label text-xs">Ancienneté d'Activité (Années)</label>
-            <input
-              type="number"
-              step="0.5"
-              [ngModel]="verifiedFields().years_in_business"
-              (ngModelChange)="updateField('years_in_business', +$event)"
-              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="form-label text-xs">Régularité des Revenus (Mois consécutifs)</label>
-            <input
-              type="number"
-              step="1"
-              [ngModel]="verifiedFields().revenue_regularity_months"
-              (ngModelChange)="updateField('revenue_regularity_months', +$event)"
-              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="form-label text-xs">N° Registre Commerce / RCCM</label>
-            <input
-              type="text"
-              [ngModel]="verifiedFields().business_registration_number"
-              (ngModelChange)="updateField('business_registration_number', $event)"
-              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-              placeholder="Ex: MA.BKO.2022.A.1234"
-            />
-          </div>
-        </div>
+    <!-- Modal Scrollable Body -->
+    <div class="p-6 overflow-y-auto flex-1 space-y-6">
 
-        <div>
-          <label class="form-label text-xs">Observations & Notes de Certification de l'Agent</label>
-          <textarea
-            [ngModel]="verificationNotes()"
-            (ngModelChange)="verificationNotes.set($event)"
-            class="form-input text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            rows="2"
-            placeholder="Constatations relatives aux justificatifs, registre ou carnet informel..."
-          ></textarea>
-        </div>
-
-        <div class="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-slate-800">
-          <button (click)="submitVerification()" class="btn-secondary text-xs cursor-pointer" [disabled]="verifying()">
-            <app-spinner *ngIf="verifying()" size="sm" [inline]="true"></app-spinner>
-            <app-svg-icon *ngIf="!verifying()" name="check-circle" [size]="14"></app-svg-icon>
-            <span>1. Enregistrer la Certification</span>
-          </button>
-          <button (click)="evaluateApplication()" class="btn-primary text-xs cursor-pointer shadow-xs" [disabled]="scoringLoading()">
-            <app-spinner *ngIf="scoringLoading()" size="sm" [inline]="true" variant="white"></app-spinner>
-            <app-svg-icon *ngIf="!scoringLoading()" name="bar-chart" [size]="14"></app-svg-icon>
-            <span>2. Calculer le Score Prédictif IA</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════════════════ -->
-      <!-- TAB 2 : ENQUÊTE TERRAIN & GARANTIES                         -->
-      <!-- ═══════════════════════════════════════════════════════════ -->
-      <div *ngIf="currentDetailTab() === 'field_survey'" class="space-y-4">
-        <div class="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-md p-3 text-xs text-blue-900 dark:text-blue-300">
-          <strong>Enquête de Proximité IMF :</strong> Évaluez les garanties physiques, le stock et la notoriété auprès des tontines et du chef de marché.
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="form-label text-xs">Type de Sûreté / Garantie</label>
-            <select
-              [ngModel]="fieldGuaranteeType()"
-              (ngModelChange)="fieldGuaranteeType.set($event)"
-              class="form-select text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            >
-              <option value="Caution solidaire de groupe (Tontine)">Caution solidaire de groupe (Tontine)</option>
-              <option value="Nantissement de stock marchandise">Nantissement de stock marchandise</option>
-              <option value="Gage matériel / véhicule / moto">Gage matériel / véhicule / moto</option>
-              <option value="Gage bijoux / métaux précieux">Gage bijoux / métaux précieux</option>
-              <option value="Caution morale d'un tiers notoire">Caution morale d'un tiers notoire</option>
-            </select>
+      <!-- ================================================================= -->
+      <!-- PARTIE 1: DONNÉES FINANCIÈRES, DETTES & GARANTIES (ÉDITABLE)      -->
+      <!-- ================================================================= -->
+      <div *ngIf="currentDetailTab() === 'financials_guarantees'" class="space-y-6 animate-fade-in">
+        <!-- 1.1 Financial Data Form -->
+        <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/30">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+              Revenus, Dépenses & Ancienneté d'Activité (Certifiables)
+            </h4>
+            <span class="text-[10px] text-slate-500 font-mono">Modifiez et enregistrez pour recalculer</span>
           </div>
-          <div>
-            <label class="form-label text-xs">Valeur Estimée de la Garantie (FCFA)</label>
-            <input
-              type="number"
-              step="50000"
-              [ngModel]="fieldGuaranteeValue()"
-              (ngModelChange)="fieldGuaranteeValue.set(+$event)"
-              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="form-label text-xs">Avis Moralité & Réputation sur le Marché</label>
-            <select
-              [ngModel]="fieldMarketReputation()"
-              (ngModelChange)="fieldMarketReputation.set($event)"
-              class="form-select text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            >
-              <option value="Très favorable (Recommandé par le chef de marché)">Très favorable (Recommandé par le chef de marché)</option>
-              <option value="Favorable (Commerçant régulier sans litige)">Favorable (Commerçant régulier sans litige)</option>
-              <option value="Réservé (Activité récente, surveillance requise)">Réservé (Activité récente, surveillance requise)</option>
-              <option value="Défavorable (Retards tontines ou litiges passés)">Défavorable (Retards tontines ou litiges passés)</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label text-xs">Flux de Trésorerie Journalier Constaté (FCFA/j)</label>
-            <input
-              type="number"
-              step="5000"
-              [ngModel]="fieldDailyCashFlow()"
-              (ngModelChange)="fieldDailyCashFlow.set(+$event)"
-              class="form-input text-xs font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            />
-          </div>
-        </div>
 
-        <div>
-          <label class="form-label text-xs">Compte-rendu de visite terrain de l'agent</label>
-          <textarea
-            [ngModel]="fieldSurveyNotes()"
-            (ngModelChange)="fieldSurveyNotes.set($event)"
-            class="form-input text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-            rows="3"
-            placeholder="Ex : Visite physique effectuée au Grand Marché. Stock de bazin bien fourni, client installé depuis 5 ans à la même place. Caution solidaire confirmée par la présidente de la tontine."
-          ></textarea>
-        </div>
-
-        <div class="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
-          <button (click)="saveFieldSurvey()" class="btn-primary text-xs shadow-xs cursor-pointer" [disabled]="savingFieldSurvey()">
-            <app-spinner *ngIf="savingFieldSurvey()" size="sm" [inline]="true" variant="white"></app-spinner>
-            <app-svg-icon *ngIf="!savingFieldSurvey()" name="check-circle" [size]="14"></app-svg-icon>
-            <span>Enregistrer l'Enquête Terrain</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════════════════ -->
-      <!-- TAB 3 : SCORING ALGORITHMIQUE IA & DÉCISION                 -->
-      <!-- ═══════════════════════════════════════════════════════════ -->
-      <div *ngIf="currentDetailTab() === 'scoring'" class="space-y-4">
-        <div *ngIf="scoringResult()" class="space-y-4">
-          <!-- Score Card & Status Reminder -->
-          <div class="p-5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-            [class]="getScoreBgColor(scoringResult()!.score)"
-          >
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div>
-              <span class="text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400">Score Algorithmique Solvabilité</span>
-              <div class="flex items-baseline gap-2">
-                <span class="text-3xl font-bold font-mono" [class]="getScoreColor(scoringResult()!.score)">
-                  {{ scoringResult()!.score }}
-                </span>
-                <span class="text-xs text-slate-400 font-mono">/ 1000</span>
-              </div>
-              <p class="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mt-1">
-                Niveau de risque estimé : <strong>{{ getRiskLabel(scoringResult()!.risk_level) }}</strong>
-              </p>
+              <label class="form-label">Revenu Mensuel Principal (FCFA)</label>
+              <input type="number" step="10000" [ngModel]="verifiedFields().monthly_revenue" (ngModelChange)="updateField('monthly_revenue', $event)" class="form-input font-mono font-bold" />
             </div>
 
-            <div class="text-left sm:text-right">
-              <span class="text-[10px] font-mono text-slate-500 uppercase block">Avis Recommandé par l'IA :</span>
-              <span class="inline-block font-mono font-bold text-xs uppercase px-2.5 py-1 rounded mt-1"
-                [class.bg-emerald-100]="scoringResult()!.decision === 'approved'"
-                [class.text-emerald-900]="scoringResult()!.decision === 'approved'"
-                [class.bg-amber-100]="scoringResult()!.decision === 'adjusted'"
-                [class.text-amber-900]="scoringResult()!.decision === 'adjusted'"
-                [class.bg-rose-100]="scoringResult()!.decision === 'rejected'"
-                [class.text-rose-900]="scoringResult()!.decision === 'rejected'"
-              >
-                {{ getDecisionLabel(scoringResult()!.decision) }}
-              </span>
-              <p class="text-[10px] text-purple-800 dark:text-purple-300 font-mono mt-1 font-bold">
-                ⚠️ Avis purement consultatif — Décision d'arbitrage de l'agent requise
-              </p>
+            <div>
+              <label class="form-label">Revenu Secondaire Mensuel (FCFA)</label>
+              <input type="number" step="10000" [ngModel]="verifiedFields().secondary_revenue" (ngModelChange)="updateField('secondary_revenue', $event)" class="form-input font-mono" />
             </div>
-          </div>
 
-          <!-- Financial Ratios -->
-          <div class="grid grid-cols-2 gap-3 font-mono text-xs">
-            <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
-              <span class="text-[10px] text-slate-500 block">RATIO D'ENDETTEMENT</span>
-              <strong class="text-sm text-slate-900 dark:text-white">{{ ((scoringResult()?.debt_ratio || 0) * 100).toFixed(1) }}%</strong>
-              <span class="text-[10px] text-slate-400 block font-sans">Plafond prudentiel BCEAO : 40%</span>
+            <div>
+              <label class="form-label">Charges & Dépenses Mensuelles (FCFA)</label>
+              <input type="number" step="10000" [ngModel]="verifiedFields().monthly_expenses" (ngModelChange)="updateField('monthly_expenses', $event)" class="form-input font-mono font-bold text-rose-700" />
             </div>
-            <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded border border-slate-200 dark:border-slate-700">
-              <span class="text-[10px] text-slate-500 block">RESTE À VIVRE MENSUEL</span>
-              <strong class="text-sm text-emerald-700 dark:text-emerald-400">{{ formatAmount(scoringResult()?.disposable_income || 0) }}</strong>
-              <span class="text-[10px] text-slate-400 block font-sans">Minimum vital respecté</span>
+
+            <div>
+              <label class="form-label">Autres Charges Récurrentes (FCFA)</label>
+              <input type="number" step="5000" [ngModel]="verifiedFields().other_recurring_expenses" (ngModelChange)="updateField('other_recurring_expenses', $event)" class="form-input font-mono text-rose-700" />
+            </div>
+
+            <div>
+              <label class="form-label">Régularité des Revenus (Mois consécutifs)</label>
+              <input type="number" min="1" max="12" [ngModel]="verifiedFields().revenue_regularity_months" (ngModelChange)="updateField('revenue_regularity_months', $event)" class="form-input font-mono" />
+            </div>
+
+            <div>
+              <label class="form-label">Ancienneté d'Activité (Années)</label>
+              <input type="number" step="0.5" min="0.5" [ngModel]="verifiedFields().years_in_business" (ngModelChange)="updateField('years_in_business', $event)" class="form-input font-mono" />
             </div>
           </div>
 
-          <!-- SHAP Explainability List -->
-          <div class="space-y-2">
-            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">Facteurs explicatifs algorithmiques de l'Intelligence Artificielle (Attributions SHAP) :</h4>
-            <div *ngFor="let item of scoringResult()!.explainability" class="p-2.5 rounded border border-slate-200 dark:border-slate-800 text-xs bg-slate-50 dark:bg-slate-800/60">
-              <div class="flex items-center justify-between font-mono">
-                <span class="font-sans font-semibold text-slate-900 dark:text-slate-100">{{ item.label }} ({{ item.value }})</span>
-                <span class="font-bold" [class.text-emerald-700]="item.impact === 'positive'" [class.text-rose-700]="item.impact !== 'positive'">
-                  {{ item.contribution > 0 ? '+' : '' }}{{ item.contribution }} pts
-                </span>
-              </div>
-              <p class="text-[11px] text-slate-600 dark:text-slate-400 mt-1">{{ item.detail }}</p>
-            </div>
-          </div>
-
-          <!-- Decision Box (Arbitrage Humain Explicite) -->
-          <div class="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-3">
-            <div class="flex items-center justify-between">
-              <div>
-                <h4 class="text-xs font-bold text-slate-900 dark:text-white">Arbitrage Officiel de l'Agent</h4>
-                <p class="text-[11px] text-slate-500 font-mono">
-                  Statut actuel : <strong>{{ getStatusLabel(selectedApp()!.status) }}</strong>
-                </p>
-              </div>
-              <span *ngIf="selectedApp()!.status !== 'approved'" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                En attente de validation
-              </span>
-              <span *ngIf="selectedApp()!.status === 'approved'" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                Crédit Accordé
-              </span>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-              <!-- Approve Button (Opens Modal) -->
-              <button
-                *ngIf="selectedApp()!.status !== 'approved'"
-                (click)="openApproveModal()"
-                class="btn-primary text-xs py-2 px-4 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer shadow-xs font-bold"
-              >
-                <app-svg-icon name="check-circle" [size]="14"></app-svg-icon>
-                <span>✅ Valider & Accorder le Crédit</span>
-              </button>
-
-              <!-- Counter-proposal button -->
-              <button
-                (click)="viewScoringAudit(selectedApp()!.id)"
-                class="btn-secondary text-xs py-2 px-3 text-blue-900 dark:text-blue-300 cursor-pointer"
-              >
-                <app-svg-icon name="eye" [size]="14"></app-svg-icon>
-                <span>Simuler Contre-Proposition</span>
-              </button>
-
-              <!-- Receipt Button (Only if approved or adjusted) -->
-              <button
-                *ngIf="selectedApp()!.status === 'approved' || selectedApp()!.status === 'adjusted'"
-                (click)="viewReceipt(selectedApp()!.id)"
-                class="btn-secondary text-xs py-2 px-3 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 cursor-pointer"
-              >
-                <app-svg-icon name="printer" [size]="14"></app-svg-icon>
-                <span>Imprimer Récépissé A4</span>
-              </button>
-
-              <!-- Reject Button -->
-              <button
-                *ngIf="selectedApp()!.status !== 'rejected'"
-                (click)="openRejectModal()"
-                class="btn-secondary text-xs py-2 px-3 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
-              >
-                <app-svg-icon name="x-circle" [size]="14"></app-svg-icon>
-                <span>Refuser le Dossier</span>
-              </button>
-            </div>
+          <div class="mt-3 flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
+            <input type="text" [(ngModel)]="verificationNotes" placeholder="Notes de certification terrain..." class="form-input text-xs flex-1 mr-3" />
+            <button (click)="saveFinancials()" [disabled]="savingFinancials()" class="btn-primary text-xs cursor-pointer whitespace-nowrap">
+              {{ savingFinancials() ? 'Enregistrement...' : 'Enregistrer les Données Financières' }}
+            </button>
           </div>
         </div>
 
-        <div *ngIf="!scoringResult()" class="py-10 text-center text-slate-400 space-y-3">
-          <app-svg-icon name="bar-chart" [size]="32" class="mx-auto opacity-40"></app-svg-icon>
-          <p>Le scoring algorithmique n'a pas encore été calculé pour ce dossier.</p>
-          <button (click)="evaluateApplication()" class="btn-primary text-xs" [disabled]="scoringLoading()">
-            <app-spinner *ngIf="scoringLoading()" size="sm" [inline]="true" variant="white"></app-spinner>
-            <span *ngIf="!scoringLoading()">Calculer le Score Maintenant</span>
-          </button>
+        <!-- 1.2 Multi-Guarantees Section -->
+        <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-white dark:bg-slate-900 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                <span>Garanties & Biens Donnés en Gage</span>
+                <span class="px-2 py-0.5 rounded text-[10px] bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-300 font-bold">
+                  {{ guarantees().length }} garantie(s)
+                </span>
+              </h4>
+              <p class="text-[11px] text-slate-500 font-mono">
+                Valeur Estimée : <strong>{{ formatAmount(totalGuaranteesEstimated()) }}</strong> • Retenue : <strong>{{ formatAmount(totalGuaranteesRetained()) }}</strong> • Couverture : <strong [class.text-emerald-700]="guaranteeCoverageRatio() >= 100">{{ guaranteeCoverageRatio() }}% du prêt</strong>
+              </p>
+            </div>
+
+            <button (click)="openAddGuaranteeModal()" class="btn-secondary text-xs cursor-pointer">
+              <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+              <span>Ajouter une Garantie</span>
+            </button>
+          </div>
+
+          <div *ngIf="guarantees().length === 0" class="p-6 text-center text-slate-400 text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+            Aucune garantie enregistrée. Cliquez sur "Ajouter une Garantie" pour inscrire un bien (terrain, maison, équipement, véhicule, caution).
+          </div>
+
+          <div *ngIf="guarantees().length > 0" class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-mono uppercase text-[10px]">
+                  <th class="py-2 px-2">Type</th>
+                  <th class="py-2 px-2">Description</th>
+                  <th class="py-2 px-2 text-right">Valeur Estimée</th>
+                  <th class="py-2 px-2 text-right">Valeur Retenue (Décote)</th>
+                  <th class="py-2 px-2">Réf. Titre / Preuve</th>
+                  <th class="py-2 px-2 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                <tr *ngFor="let g of guarantees()">
+                  <td class="py-2.5 px-2 font-mono font-bold capitalize text-blue-900 dark:text-blue-400">{{ g.guarantee_type }}</td>
+                  <td class="py-2.5 px-2 font-semibold text-slate-800 dark:text-slate-200">{{ g.description }}</td>
+                  <td class="py-2.5 px-2 text-right font-mono">{{ formatAmount(g.estimated_value) }}</td>
+                  <td class="py-2.5 px-2 text-right font-mono font-bold text-emerald-700 dark:text-emerald-400">{{ formatAmount(g.retained_value) }}</td>
+                  <td class="py-2.5 px-2 font-mono text-slate-500 text-[11px]">{{ g.proof_reference || '—' }}</td>
+                  <td class="py-2.5 px-2 text-right">
+                    <button (click)="deleteGuarantee(g.id!)" class="text-rose-600 hover:text-rose-800 p-1 cursor-pointer" title="Supprimer">
+                      <app-svg-icon name="trash" [size]="14"></app-svg-icon>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 1.3 Multi-Debts Section -->
+        <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-white dark:bg-slate-900 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                <span>Engagements & Dettes Antérieures (Internes & Externes)</span>
+                <span class="px-2 py-0.5 rounded text-[10px] bg-rose-100 text-rose-900 dark:bg-rose-950 dark:text-rose-300 font-bold">
+                  {{ debts().length }} dette(s)
+                </span>
+              </h4>
+              <p class="text-[11px] text-slate-500 font-mono">
+                Mensualités Consolidées : <strong class="text-rose-700">{{ formatAmount(totalDebtsMonthly()) }} / mois</strong> • Restant dû total : <strong>{{ formatAmount(totalDebtsRemaining()) }}</strong>
+              </p>
+            </div>
+
+            <button (click)="openAddDebtModal()" class="btn-secondary text-xs cursor-pointer">
+              <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+              <span>Ajouter une Dette</span>
+            </button>
+          </div>
+
+          <div *ngIf="debts().length === 0" class="p-4 text-center text-slate-400 text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+            Aucun engagement de dette déclaré.
+          </div>
+
+          <div *ngIf="debts().length > 0" class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-mono uppercase text-[10px]">
+                  <th class="py-2 px-2">Créancier</th>
+                  <th class="py-2 px-2">Type</th>
+                  <th class="py-2 px-2 text-right">Montant Restant</th>
+                  <th class="py-2 px-2 text-right">Mensualité Prélevée</th>
+                  <th class="py-2 px-2 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                <tr *ngFor="let d of debts()">
+                  <td class="py-2.5 px-2 font-semibold text-slate-800 dark:text-slate-200">{{ d.creditor_name }}</td>
+                  <td class="py-2.5 px-2 font-mono">
+                    <span class="px-2 py-0.5 rounded text-[10px]" [class.bg-blue-100]="d.is_internal" [class.text-blue-900]="d.is_internal" [class.bg-slate-100]="!d.is_internal" [class.text-slate-700]="!d.is_internal">
+                      {{ d.is_internal ? 'Interne (Notre IMF)' : 'Externe (Banque/Tontine)' }}
+                    </span>
+                  </td>
+                  <td class="py-2.5 px-2 text-right font-mono">{{ formatAmount(d.remaining_amount) }}</td>
+                  <td class="py-2.5 px-2 text-right font-mono font-bold text-rose-700">{{ formatAmount(d.monthly_payment) }}</td>
+                  <td class="py-2.5 px-2 text-right">
+                    <button (click)="deleteDebt(d.id!)" class="text-rose-600 hover:text-rose-800 p-1 cursor-pointer" title="Supprimer">
+                      <app-svg-icon name="trash" [size]="14"></app-svg-icon>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════════════ -->
-      <!-- TAB 4 : PISTE D'AUDIT DU DOSSIER                            -->
-      <!-- ═══════════════════════════════════════════════════════════ -->
-      <div *ngIf="currentDetailTab() === 'audit_logs'" class="space-y-3 font-mono text-xs">
-        <div *ngIf="auditLoading()" class="py-8 text-center">
-          <app-spinner size="sm" label="Chargement de l'audit..."></app-spinner>
+      <!-- ================================================================= -->
+      <!-- PARTIE 2: ANALYSE & SCORING (/100, RECALCULABLE À VOLONTÉ)       -->
+      <!-- ================================================================= -->
+      <div *ngIf="currentDetailTab() === 'scoring_shap'" class="space-y-6 animate-fade-in">
+        <!-- Recalculate Trigger Bar -->
+        <div class="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-lg">
+          <div>
+            <h4 class="text-xs font-bold text-blue-950 dark:text-blue-200 uppercase font-mono">Moteur de Scoring ML & Heuristique</h4>
+            <p class="text-[11px] text-blue-800 dark:text-blue-300">Évaluation normalisée sur base 100 tenant compte des garanties et des dettes actuelles</p>
+          </div>
+          <button (click)="recalculateScore()" [disabled]="scoringLoading()" class="btn-primary text-xs shadow-sm cursor-pointer">
+            <app-svg-icon name="refresh-cw" [size]="14" [class.animate-spin]="scoringLoading()"></app-svg-icon>
+            <span>{{ scoringLoading() ? 'Calcul en cours...' : 'Recalculer le Scoring (/100)' }}</span>
+          </button>
         </div>
 
-        <div *ngIf="!auditLoading() && auditLogs().length > 0" class="space-y-2 max-h-80 overflow-y-auto">
-          <div *ngFor="let log of auditLogs()" class="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded">
-            <div class="flex items-center justify-between text-slate-500 text-[11px]">
-              <span class="font-bold text-blue-900 dark:text-blue-400 uppercase font-sans">{{ log.action.replace('_', ' ') }}</span>
-              <span>{{ log.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+        <!-- Scoring Result Display -->
+        <div *ngIf="scoringResult()" class="space-y-4">
+          <div class="card p-6 border rounded-xl" [class]="getScoreBgColor(scoringResult()!.score)">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-500">Score de Solvabilité Attribué</span>
+                <div class="flex items-baseline gap-2 mt-1">
+                  <span class="text-5xl font-mono font-bold" [class]="getScoreColor(scoringResult()!.score)">
+                    {{ scoringResult()!.score }}
+                  </span>
+                  <span class="text-xl font-mono text-slate-400 font-bold">/ 100</span>
+                </div>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="px-2.5 py-0.5 rounded text-xs font-bold font-mono"
+                    [class.bg-emerald-100]="scoringResult()!.decision === 'approved'"
+                    [class.text-emerald-900]="scoringResult()!.decision === 'approved'"
+                    [class.bg-amber-100]="scoringResult()!.decision === 'adjusted'"
+                    [class.text-amber-900]="scoringResult()!.decision === 'adjusted'"
+                    [class.bg-rose-100]="scoringResult()!.decision === 'rejected'"
+                    [class.text-rose-900]="scoringResult()!.decision === 'rejected'"
+                  >
+                    Avis Recommandé : {{ getDecisionLabel(scoringResult()!.decision) }}
+                  </span>
+                  <span class="text-xs font-mono text-slate-600 dark:text-slate-300">
+                    Risque : {{ getRiskLabel(scoringResult()!.risk_level) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Financial Ratios -->
+              <div class="grid grid-cols-2 gap-3 text-xs font-mono bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div>
+                  <span class="text-slate-400 block text-[10px] uppercase">Reste à Vivre</span>
+                  <span class="font-bold text-slate-900 dark:text-white">{{ formatAmount(scoringResult()!.disposable_income || 0) }}</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-[10px] uppercase">Ratio d'Endettement</span>
+                  <span class="font-bold" [class.text-rose-600]="(scoringResult()!.debt_ratio || 0) > 0.40">
+                    {{ ((scoringResult()!.debt_ratio || 0) * 100).toFixed(1) }}%
+                  </span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-[10px] uppercase">Couverture Garanties</span>
+                  <span class="font-bold text-emerald-700">
+                    {{ (((scoringResult()!.guarantee_coverage_ratio || 0)) * 100).toFixed(0) }}%
+                  </span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block text-[10px] uppercase">Version Politique</span>
+                  <span class="font-bold text-slate-600">{{ scoringResult()!.policy_version || 'v1.0' }}</span>
+                </div>
+              </div>
             </div>
-            <p *ngIf="log.user_name" class="text-slate-700 dark:text-slate-300 font-sans mt-0.5">Intervenant : <strong>{{ log.user_name }}</strong></p>
-            <pre *ngIf="log.details" class="text-[10px] text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 p-1.5 rounded border border-slate-100 dark:border-slate-800 mt-1 overflow-x-auto">{{ log.details | json }}</pre>
+          </div>
+
+          <!-- SHAP Variables Breakdown Table -->
+          <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-white dark:bg-slate-900 shadow-sm">
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono mb-3">
+              Décomposition des Facteurs d'Explicabilité (SHAP / Base 100)
+            </h4>
+            <div class="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+              <div *ngFor="let item of scoringResult()!.explainability" class="py-2.5 flex items-center justify-between">
+                <div>
+                  <p class="font-semibold text-slate-900 dark:text-white">{{ item.label }}</p>
+                  <p class="text-[11px] text-slate-500 font-mono">{{ item.detail }} (Valeur constatée : {{ item.value }})</p>
+                </div>
+                <div class="flex items-center gap-3 font-mono">
+                  <span class="text-slate-400 text-[11px]">Poids : {{ (item.weight * 100).toFixed(0) }}%</span>
+                  <span class="px-2 py-0.5 rounded text-xs font-bold font-mono"
+                    [class.bg-emerald-100]="item.contribution > 0"
+                    [class.text-emerald-800]="item.contribution > 0"
+                    [class.bg-rose-100]="item.contribution < 0"
+                    [class.text-rose-800]="item.contribution < 0"
+                    [class.bg-slate-100]="item.contribution === 0"
+                    [class.text-slate-600]="item.contribution === 0"
+                  >
+                    {{ item.contribution > 0 ? '+' : '' }}{{ item.contribution }} pts
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div *ngIf="!auditLoading() && auditLogs().length === 0" class="text-center text-slate-400 py-6">
+        <div *ngIf="!scoringResult()" class="p-8 text-center text-slate-400 text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+          Ce dossier n'a pas encore été évalué. Cliquez sur le bouton <strong>"Recalculer le Scoring (/100)"</strong> ci-dessus.
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- PARTIE 3: DÉCISION & MÉTHODE D'OCTROI (SOUMISSION AU COMITÉ)      -->
+      <!-- ================================================================= -->
+      <div *ngIf="currentDetailTab() === 'decision_method'" class="space-y-6 animate-fade-in">
+        <!-- 3.1 Applicable Granting Method Card -->
+        <div class="card p-5 border rounded-xl bg-purple-50/40 dark:bg-purple-950/20 border-purple-200 dark:border-purple-900">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <span class="text-[10px] text-purple-800 dark:text-purple-300 font-mono uppercase font-bold">Méthode d'Octroi Réglementaire</span>
+              <h4 class="text-base font-bold text-purple-950 dark:text-purple-200">
+                {{ applicableGrantingMethod()?.procedure_name || "Procédure d'Octroi Agence" }}
+              </h4>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-purple-200 text-purple-900 dark:bg-purple-900 dark:text-purple-200">
+              Niveau : {{ applicableGrantingMethod()?.approval_level || "Comité de Crédit" }}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs mt-3 bg-white dark:bg-slate-900 p-4 rounded-lg border border-purple-100 dark:border-purple-900/50">
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Justificatifs Obligatoires</span>
+              <p class="text-slate-700 dark:text-slate-300 font-medium mt-0.5">
+                {{ applicableGrantingMethod()?.required_documents || "CNI/NINA, Registre d'activité, Justificatifs de garanties" }}
+              </p>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Exigence de Garantie</span>
+              <p class="text-slate-700 dark:text-slate-300 font-medium mt-0.5">
+                Minimum requis : <strong>{{ ((applicableGrantingMethod()?.min_guarantee_ratio || 0) * 100).toFixed(0) }}%</strong>
+                (Actuel : <strong [class.text-emerald-700]="guaranteeCoverageRatio() >= ((applicableGrantingMethod()?.min_guarantee_ratio || 0) * 100)">{{ guaranteeCoverageRatio() }}%</strong>)
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3.2 Action Zone: Submission to Committee or Decision -->
+        <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-5 bg-white dark:bg-slate-900 shadow-sm space-y-4">
+          <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono">
+            Circuit d'Approbation Hiérarchique
+          </h4>
+
+          <div *ngIf="selectedApp()!.status === 'pending_committee_approval'" class="p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg text-xs text-amber-900 dark:text-amber-200 flex items-center gap-3">
+            <app-svg-icon name="clock" [size]="20" class="shrink-0 text-amber-600"></app-svg-icon>
+            <div>
+              <p class="font-bold">Dossier Transmis au Comité de Crédit</p>
+              <p class="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">Ce dossier est actuellement en file d'attente d'approbation par le Super Admin / Comité d'Agence. Vous serez notifié de la décision finale.</p>
+            </div>
+          </div>
+
+          <div *ngIf="selectedApp()!.status !== 'pending_committee_approval' && selectedApp()!.status !== 'approved'" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <button
+              (click)="submitToCommittee()"
+              [disabled]="submittingToCommittee() || !scoringResult()"
+              class="btn-primary text-xs py-2.5 px-4 shadow-sm cursor-pointer flex items-center justify-center gap-2 flex-1"
+            >
+              <app-svg-icon name="check-circle" [size]="16"></app-svg-icon>
+              <span>{{ submittingToCommittee() ? 'Transmission en cours...' : 'Transmettre au Comité de Crédit' }}</span>
+            </button>
+
+            <button
+              (click)="openRejectModal()"
+              class="btn-secondary text-xs py-2.5 px-3 text-rose-600 hover:text-rose-800 border-rose-200 cursor-pointer"
+            >
+              <app-svg-icon name="x-circle" [size]="14"></app-svg-icon>
+              <span>Rejeter</span>
+            </button>
+          </div>
+
+          <!-- Official Receipt Quick Action -->
+          <div *ngIf="['approved', 'adjusted', 'scored', 'pending_committee_approval'].includes(selectedApp()!.status)" class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <span class="text-xs text-slate-500 font-mono">Bordereau officiel d'archivage & fiche client</span>
+            <button (click)="viewReceipt(selectedApp()!.id)" class="btn-secondary text-xs cursor-pointer">
+              <app-svg-icon name="printer" [size]="14"></app-svg-icon>
+              <span>Générer / Imprimer Récépissé Officiel (A4)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 4: HISTORIQUE & AUDIT LOGS                                    -->
+      <!-- ================================================================= -->
+      <div *ngIf="currentDetailTab() === 'audit_logs'" class="space-y-3 font-mono text-xs animate-fade-in">
+        <div *ngIf="auditLoading()" class="py-6">
+          <app-spinner size="sm" label="Chargement de la piste d'audit..."></app-spinner>
+        </div>
+        <div *ngIf="!auditLoading() && auditLogs().length === 0" class="text-slate-400 py-6 text-center">
           Aucun événement d'audit enregistré pour ce dossier.
         </div>
+        <div *ngFor="let log of auditLogs()" class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="font-bold text-slate-800 dark:text-slate-200">{{ log.action }}</p>
+            <p class="text-[11px] text-slate-500">Par : {{ log.user_name || 'Système' }}</p>
+          </div>
+          <span class="text-[10px] text-slate-400">{{ log.timestamp | date:'short' }}</span>
+        </div>
       </div>
-    </div>
 
-    <!-- Modal Footer -->
-    <div class="px-6 py-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs">
-      <span class="text-slate-400 font-mono text-[11px]">Dossier {{ selectedApp()?.reference }}</span>
-      <button (click)="closeDetail()" class="btn-secondary text-xs py-1 px-4 cursor-pointer">
-        Fermer la Fiche
-      </button>
     </div>
   </div>
 </div>
 
-<!-- ═════════════════════════════════════════════════════════════════ -->
-<!-- SOUS-MODAL : CONTACT DIRECT & RELANCE CLIENT                      -->
-<!-- ═════════════════════════════════════════════════════════════════ -->
-<div *ngIf="showContactModal()" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4">
-  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
-    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-blue-50 dark:bg-blue-950/40">
+<!-- ========================================================================= -->
+<!-- MODAL: QUICK INIT PAR NUMÉRO DE COMPTE UNIQUEMENT                         -->
+<!-- ========================================================================= -->
+<div *ngIf="showQuickInitModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div class="bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
       <div>
-        <h3 class="text-sm font-bold text-blue-950 dark:text-blue-200">Contacter Directement le Client</h3>
-        <p class="text-[11px] text-blue-700 dark:text-blue-300 font-mono">
-          {{ selectedApp()?.applicant_name }} ({{ selectedApp()?.applicant_phone || 'Sans tél' }})
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Nouveau Dossier Rapide (Agent)</h3>
+        <p class="text-xs text-slate-500 font-mono">Initialisation par N° de compte client microfinance</p>
+      </div>
+      <button (click)="closeQuickInitModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-4 text-xs">
+      <!-- Account Number Input & Lookup -->
+      <div>
+        <label class="form-label font-bold">Numéro de Compte Microfinance</label>
+        <div class="flex items-center gap-2">
+          <input
+            type="text"
+            [(ngModel)]="quickAccountNumber"
+            placeholder="ex: CMF-2026-001245"
+            class="form-input font-mono uppercase font-bold flex-1"
+          />
+          <button (click)="searchAccount()" [disabled]="searchingAccount()" class="btn-secondary text-xs cursor-pointer">
+            <app-svg-icon name="search" [size]="14"></app-svg-icon>
+            <span>{{ searchingAccount() ? 'Recherche...' : 'Vérifier' }}</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-1 font-mono">Exemples disponibles : CMF-2026-001245, CMF-2026-007890, CMF-2026-003421</p>
+      </div>
+
+      <!-- Account Info Preview -->
+      <div *ngIf="quickAccountInfo()" class="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg text-xs space-y-1 animate-fade-in">
+        <p class="font-bold text-blue-950 dark:text-blue-200">{{ quickAccountInfo()!.full_name }}</p>
+        <p class="text-slate-600 dark:text-slate-300">
+          Secteur : <strong>{{ quickAccountInfo()!.activity_sector }}</strong> • Revenu : <strong>{{ formatAmount(quickAccountInfo()!.monthly_revenue) }}</strong>
         </p>
+        <p class="text-[11px] text-slate-500 font-mono">Pièce ID : {{ quickAccountInfo()!.id_number || 'NINA' }} • Tel : {{ quickAccountInfo()!.phone }}</p>
       </div>
-      <button (click)="closeContactModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
-        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
-      </button>
+
+      <!-- Loan Conditions -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Montant Demandé (FCFA)</label>
+          <input type="number" step="50000" min="50000" [(ngModel)]="quickRequestedAmount" class="form-input font-mono font-bold" />
+        </div>
+        <div>
+          <label class="form-label">Durée (Mois)</label>
+          <input type="number" min="3" max="36" [(ngModel)]="quickRequestedDuration" class="form-input font-mono font-bold" />
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">Objet / Description de l'activité</label>
+        <input type="text" [(ngModel)]="quickBusinessDesc" placeholder="ex: Achat de stock céréales & réapprovisionnement" class="form-input" />
+      </div>
     </div>
 
-    <div class="p-5 space-y-4 text-xs">
-      <!-- Channel Selection -->
-      <div>
-        <label class="form-label text-xs">Canal de Communication</label>
-        <div class="grid grid-cols-3 gap-2 font-medium">
-          <button
-            type="button"
-            (click)="contactChannel.set('whatsapp')"
-            [class.bg-emerald-600]="contactChannel() === 'whatsapp'"
-            [class.text-white]="contactChannel() === 'whatsapp'"
-            [class.border-emerald-700]="contactChannel() === 'whatsapp'"
-            class="py-1.5 px-2 rounded border border-slate-300 dark:border-slate-700 text-center cursor-pointer"
-          >
-            💬 WhatsApp
-          </button>
-          <button
-            type="button"
-            (click)="contactChannel.set('phone')"
-            [class.bg-blue-700]="contactChannel() === 'phone'"
-            [class.text-white]="contactChannel() === 'phone'"
-            [class.border-blue-800]="contactChannel() === 'phone'"
-            class="py-1.5 px-2 rounded border border-slate-300 dark:border-slate-700 text-center cursor-pointer"
-          >
-            📞 Appel / SMS
-          </button>
-          <button
-            type="button"
-            (click)="contactChannel.set('email')"
-            [class.bg-purple-700]="contactChannel() === 'email'"
-            [class.text-white]="contactChannel() === 'email'"
-            [class.border-purple-800]="contactChannel() === 'email'"
-            class="py-1.5 px-2 rounded border border-slate-300 dark:border-slate-700 text-center cursor-pointer"
-          >
-            ✉️ Courriel Pro
-          </button>
-        </div>
-      </div>
-
-      <!-- Quick Templates -->
-      <div>
-        <label class="form-label text-xs">Modèles Pré-remplis en 1 Clic :</label>
-        <div class="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            (click)="applyTemplate('missing_docs')"
-            class="btn-secondary text-[10px] py-1 px-2 cursor-pointer"
-          >
-            📄 Pièces manquantes
-          </button>
-          <button
-            type="button"
-            (click)="applyTemplate('field_visit')"
-            class="btn-secondary text-[10px] py-1 px-2 cursor-pointer"
-          >
-            📍 Visite de terrain
-          </button>
-          <button
-            type="button"
-            (click)="applyTemplate('decision_info')"
-            class="btn-secondary text-[10px] py-1 px-2 cursor-pointer"
-          >
-            ✅ Point décision prêt
-          </button>
-        </div>
-      </div>
-
-      <!-- Subject -->
-      <div>
-        <label class="form-label text-xs">Objet du Message</label>
-        <input
-          type="text"
-          [ngModel]="contactSubject()"
-          (ngModelChange)="contactSubject.set($event)"
-          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-        />
-      </div>
-
-      <!-- Message Content -->
-      <div>
-        <label class="form-label text-xs">Corps du Message / Notes d'Échange</label>
-        <textarea
-          [ngModel]="contactMessage()"
-          (ngModelChange)="contactMessage.set($event)"
-          rows="4"
-          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-white font-mono"
-        ></textarea>
-        <p class="text-[10px] text-slate-400 mt-1">L'échange sera tracé et archivé dans la piste d'audit du dossier.</p>
-      </div>
-
-      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
-        <button type="button" (click)="closeContactModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
-        <button
-          (click)="sendClientCommunication()"
-          class="btn-primary text-xs cursor-pointer"
-          [disabled]="contactingClient() || !contactMessage()"
-        >
-          <app-spinner *ngIf="contactingClient()" size="sm" [inline]="true" variant="white"></app-spinner>
-          <span *ngIf="!contactingClient()">Enregistrer & Envoyer</span>
-        </button>
-      </div>
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="closeQuickInitModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button
+        (click)="createQuickApplication()"
+        [disabled]="creatingQuickApp() || !quickAccountNumber()"
+        class="btn-primary text-xs shadow-sm cursor-pointer"
+      >
+        <app-svg-icon name="check" [size]="14"></app-svg-icon>
+        <span>{{ creatingQuickApp() ? 'Création...' : 'Créer le Dossier & Ouvrir' }}</span>
+      </button>
     </div>
   </div>
 </div>
 
-<!-- ═════════════════════════════════════════════════════════════════ -->
-<!-- SOUS-MODAL : VALIDATION EXPLICITE & OCTROI DE CRÉDIT              -->
-<!-- ═════════════════════════════════════════════════════════════════ -->
-<div *ngIf="showApproveModal()" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4">
-  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
-    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40">
-      <div>
-        <h3 class="text-sm font-bold text-emerald-950 dark:text-emerald-200">Validation & Octroi du Crédit</h3>
-        <p class="text-[11px] text-emerald-700 dark:text-emerald-300 font-mono">Arbitrage formel de l'agent</p>
-      </div>
-      <button (click)="closeApproveModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
-        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
-      </button>
+<!-- ========================================================================= -->
+<!-- MODAL: AJOUT DE GARANTIE                                                  -->
+<!-- ========================================================================= -->
+<div *ngIf="showAddGuaranteeModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div class="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <h3 class="text-sm font-bold text-slate-900 dark:text-white">Inscrire une Garantie / Bien en Gage</h3>
+      <button (click)="showAddGuaranteeModal.set(false)" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
     </div>
 
-    <div class="p-5 space-y-4 text-xs">
-      <div class="p-3 bg-emerald-50/60 dark:bg-emerald-950/30 rounded border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300">
-        <p>Bénéficiaire : <strong>{{ selectedApp()?.applicant_name }}</strong></p>
-        <p class="text-[11px] font-mono mt-0.5">Montant initial sollicité : <strong>{{ formatAmount(selectedApp()!.requested_amount) }}</strong></p>
-      </div>
-
+    <div class="space-y-3 text-xs">
       <div>
-        <label class="form-label text-xs">Montant Accordé Validé (FCFA)</label>
-        <input
-          type="number"
-          step="50000"
-          [ngModel]="approveAmount()"
-          (ngModelChange)="approveAmount.set(+$event)"
-          class="form-input text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 dark:bg-slate-900 dark:border-slate-700"
-        />
-      </div>
-
-      <div>
-        <label class="form-label text-xs">Notes d'Arbitrage Agent (Justification d'accord)</label>
-        <textarea
-          [ngModel]="approveNotes()"
-          (ngModelChange)="approveNotes.set($event)"
-          rows="3"
-          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-          placeholder="Ex : Examen favorable. Les garanties physiques et la réputation marché ont été vérifiées."
-        ></textarea>
-      </div>
-
-      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
-        <button type="button" (click)="closeApproveModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
-        <button
-          (click)="confirmApprove()"
-          class="btn-primary text-xs bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer shadow-xs font-bold"
-          [disabled]="approvingApp() || !approveAmount()"
-        >
-          <app-spinner *ngIf="approvingApp()" size="sm" [inline]="true" variant="white"></app-spinner>
-          <span *ngIf="!approvingApp()">Confirmer l'Accord du Crédit</span>
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═════════════════════════════════════════════════════════════════ -->
-<!-- SOUS-MODAL : MOTIF OFFICIEL DE REFUS BCEAO                        -->
-<!-- ═════════════════════════════════════════════════════════════════ -->
-<div *ngIf="showRejectModal()" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4">
-  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
-    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-rose-50 dark:bg-rose-950/40">
-      <div>
-        <h3 class="text-sm font-bold text-rose-950 dark:text-rose-200">Motif Réglementaire de Refus (BCEAO)</h3>
-        <p class="text-[11px] text-rose-700 dark:text-rose-300 font-mono">Dossier {{ selectedApp()?.reference }}</p>
-      </div>
-      <button (click)="closeRejectModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
-        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
-      </button>
-    </div>
-
-    <div class="p-5 space-y-4 text-xs">
-      <div>
-        <label class="form-label text-xs">Motif Réglementaire Prudentiel</label>
-        <select
-          [ngModel]="rejectReason()"
-          (ngModelChange)="rejectReason.set($event)"
-          class="form-select text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-        >
-          <option value="Ratio d'endettement supérieur au plafond prudentiel BCEAO (40%)">Ratio d'endettement supérieur au plafond prudentiel BCEAO (40%)</option>
-          <option value="Reste à vivre mensuel inférieur au minimum vital">Reste à vivre mensuel inférieur au minimum vital</option>
-          <option value="Insuffisance de garanties ou absence de caution solidaire">Insuffisance de garanties ou absence de caution solidaire</option>
-          <option value="Score prédictif insuffisant (Risque de défaut très élevé)">Score prédictif insuffisant (Risque de défaut très élevé)</option>
-          <option value="Ancienneté d'activité ou flux journaliers insuffisants">Ancienneté d'activité ou flux journaliers insuffisants</option>
+        <label class="form-label">Nature du Bien</label>
+        <select [(ngModel)]="newGuaranteeType" class="form-input">
+          <option value="terrain">Terrain (Titre foncier / Lettre d'attribution)</option>
+          <option value="maison">Maison / Bâtiment d'habitation</option>
+          <option value="vehicule">Véhicule (Carte grise)</option>
+          <option value="equipement">Équipement professionnel / Matériel</option>
+          <option value="stock">Stock de marchandises (Nantissement)</option>
+          <option value="caution">Caution solidaire / Tontine</option>
+          <option value="autre">Autre actif</option>
         </select>
       </div>
 
       <div>
-        <label class="form-label text-xs">Notes explicatives complémentaires</label>
-        <textarea
-          [ngModel]="rejectNotes()"
-          (ngModelChange)="rejectNotes.set($event)"
-          rows="3"
-          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-white"
-          placeholder="Détails notifiés à l'emprunteur et archivés légalement..."
-        ></textarea>
+        <label class="form-label">Description Détaillée</label>
+        <input type="text" [(ngModel)]="newGuaranteeDesc" placeholder="ex: Parcelle 400m² Kalaban-Coro Titre N° 451" class="form-input" />
       </div>
 
-      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
-        <button type="button" (click)="closeRejectModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
-        <button
-          (click)="confirmReject()"
-          class="btn-danger text-xs cursor-pointer"
-          [disabled]="rejectingApp()"
-        >
-          <app-spinner *ngIf="rejectingApp()" size="sm" [inline]="true" variant="white"></app-spinner>
-          <span *ngIf="!rejectingApp()">Confirmer le Refus</span>
-        </button>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Valeur Estimée (FCFA)</label>
+          <input type="number" step="50000" [ngModel]="newGuaranteeEst()" (ngModelChange)="onEstValChange($event)" class="form-input font-mono font-bold" />
+        </div>
+        <div>
+          <label class="form-label">Valeur Retenue (Décote)</label>
+          <input type="number" step="50000" [(ngModel)]="newGuaranteeRet" class="form-input font-mono font-bold text-emerald-700" />
+        </div>
       </div>
+
+      <div>
+        <label class="form-label">N° de Preuve / Pièce Justificative</label>
+        <input type="text" [(ngModel)]="newGuaranteeProof" placeholder="ex: TF-BKO-45192-2022" class="form-input font-mono" />
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="showAddGuaranteeModal.set(false)" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button (click)="addGuarantee()" [disabled]="savingGuarantee()" class="btn-primary text-xs cursor-pointer">
+        {{ savingGuarantee() ? 'Enregistrement...' : 'Enregistrer la garantie' }}
+      </button>
     </div>
   </div>
 </div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: AJOUT DE DETTE                                                     -->
+<!-- ========================================================================= -->
+<div *ngIf="showAddDebtModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div class="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <h3 class="text-sm font-bold text-slate-900 dark:text-white">Déclarer un Engagement / Dette</h3>
+      <button (click)="showAddDebtModal.set(false)" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="form-label">Créancier</label>
+        <input type="text" [(ngModel)]="newDebtCreditor" placeholder="ex: Banque BDM / Tontine des Commerçantes" class="form-input" />
+      </div>
+
+      <div>
+        <label class="form-label">Type d'engagement</label>
+        <div class="flex items-center gap-4 mt-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" [value]="false" [(ngModel)]="newDebtInternal" />
+            <span>Externe (Autre banque / tontine)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" [value]="true" [(ngModel)]="newDebtInternal" />
+            <span>Interne (Notre IMF)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Montant Restant Dû (FCFA)</label>
+          <input type="number" step="25000" [(ngModel)]="newDebtRemaining" class="form-input font-mono font-bold" />
+        </div>
+        <div>
+          <label class="form-label">Mensualité Prélevée (FCFA)</label>
+          <input type="number" step="5000" [(ngModel)]="newDebtMonthly" class="form-input font-mono font-bold text-rose-700" />
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="showAddDebtModal.set(false)" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button (click)="addDebt()" [disabled]="savingDebt()" class="btn-primary text-xs cursor-pointer">
+        {{ savingDebt() ? 'Enregistrement...' : 'Enregistrer l\'engagement' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: CONTACT CLIENT (WHATSAPP / APPEL / EMAIL)                          -->
+<!-- ========================================================================= -->
+<div *ngIf="showContactModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div class="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <h3 class="text-sm font-bold text-slate-900 dark:text-white">Échanger avec le Demandeur</h3>
+      <button (click)="closeContactModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="form-label">Canal de communication</label>
+        <select [(ngModel)]="contactChannel" class="form-input">
+          <option value="whatsapp">WhatsApp Direct</option>
+          <option value="phone">Appel Téléphonique</option>
+          <option value="email">Courrier Électronique (Email)</option>
+          <option value="in_app">Notification In-App</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Objet</label>
+        <input type="text" [(ngModel)]="contactSubject" class="form-input" />
+      </div>
+
+      <div>
+        <label class="form-label">Message</label>
+        <textarea [(ngModel)]="contactMessage" rows="4" class="form-input"></textarea>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="closeContactModal()" class="btn-secondary text-xs cursor-pointer">Fermer</button>
+      <button (click)="sendClientCommunication()" [disabled]="contactingClient()" class="btn-primary text-xs cursor-pointer">
+        <app-svg-icon name="send" [size]="14"></app-svg-icon>
+        <span>Envoyer</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: REJET DE DOSSIER                                                   -->
+<!-- ========================================================================= -->
+<div *ngIf="showRejectModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div class="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <h3 class="text-sm font-bold text-rose-700">Rejeter la demande de microcrédit</h3>
+      <button (click)="closeRejectModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="form-label">Motif Réglementaire de Rejet</label>
+        <select [(ngModel)]="rejectReason" class="form-input">
+          <option value="Ratio d'endettement supérieur au plafond prudentiel BCEAO (40%)">Ratio d'endettement supérieur au plafond prudentiel BCEAO (40%)</option>
+          <option value="Insuffisance du reste à vivre mensuel (inférieur au minimum vital)">Insuffisance du reste à vivre mensuel (inférieur au minimum vital)</option>
+          <option value="Garanties insuffisantes ou non justifiées">Garanties insuffisantes ou non justifiées</option>
+          <option value="Incohérence des justificatifs d'activité ou de revenus">Incohérence des justificatifs d'activité ou de revenus</option>
+          <option value="Autre motif d'incompatibilité prudentielle">Autre motif d'incompatibilité prudentielle</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Commentaires & Recommandations</label>
+        <textarea [(ngModel)]="rejectNotes" rows="3" placeholder="Précisez les observations pour l'archivage..." class="form-input"></textarea>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="closeRejectModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button (click)="confirmReject()" [disabled]="rejectingApp()" class="btn-primary text-xs bg-rose-700 hover:bg-rose-800 cursor-pointer">
+        {{ rejectingApp() ? 'Rejet en cours...' : 'Confirmer le Rejet' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: CONFIRMATION SUPPRESSION ÉLÉMENT (GARANTIE / DETTE)                -->
+<!-- ========================================================================= -->
+<div *ngIf="showDeleteConfirmModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in zoom-in-95 duration-150">
+  <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+      <div class="flex items-center gap-2 text-rose-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        <h3 class="font-bold text-slate-900 dark:text-white">Confirmer le retrait</h3>
+      </div>
+      <button (click)="showDeleteConfirmModal.set(false)" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="py-4 text-xs text-slate-600 dark:text-slate-300">
+      <p>Êtes-vous sûr de vouloir retirer définitivement <strong class="text-slate-900 dark:text-white">{{ itemToDelete()?.label }}</strong> de ce dossier de crédit ?</p>
+      <p class="mt-2 text-slate-400">Cette suppression recalculera immédiatement les ratios d'endettement et de couverture.</p>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+      <button (click)="showDeleteConfirmModal.set(false)" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button (click)="executeDeleteItem()" [disabled]="deletingItem()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium text-xs transition cursor-pointer">
+        {{ deletingItem() ? 'Suppression...' : 'Supprimer' }}
+      </button>
+    </div>
+  </div>
+</div>
+

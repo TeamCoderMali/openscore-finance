@@ -375,6 +375,136 @@ export class ApiService {
     return this.request<ReceiptData>(`/applications/${appId}/receipt`);
   }
 
+  // ── Microfinance Account & Quick Init ────────────────────────────
+  async lookupAccount(accountNumber: string): Promise<any> {
+    return this.request<any>(`/applications/accounts/${encodeURIComponent(accountNumber)}`);
+  }
+
+  async linkAccount(accountNumber: string): Promise<{ status: string; account_number: string; message: string }> {
+    return this.request<{ status: string; account_number: string; message: string }>('/applications/accounts/link', {
+      method: 'POST',
+      body: JSON.stringify({ account_number: accountNumber }),
+    });
+  }
+
+  async quickInitApplication(data: { account_number: string; requested_amount: number; requested_duration_months: number; business_description?: string }): Promise<CreditApplication> {
+    return this.request<CreditApplication>('/applications/quick-init', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async searchApplications(search: string): Promise<ApplicationListResponse> {
+    return this.request<ApplicationListResponse>(`/applications/search?q=${encodeURIComponent(search)}`);
+  }
+
+  // ── Multi-Guarantees ─────────────────────────────────────────────
+  async getGuarantees(appId: number): Promise<any[]> {
+    return this.request<any[]>(`/applications/${appId}/guarantees`);
+  }
+
+  async addGuarantee(appId: number, data: any): Promise<any> {
+    return this.request<any>(`/applications/${appId}/guarantees`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteGuarantee(appId: number, guaranteeId: number): Promise<any> {
+    return this.request<any>(`/applications/${appId}/guarantees/${guaranteeId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ── Multi-Debts ──────────────────────────────────────────────────
+  async getDebts(appId: number): Promise<any[]> {
+    return this.request<any[]>(`/applications/${appId}/debts`);
+  }
+
+  async addDebt(appId: number, data: any): Promise<any> {
+    return this.request<any>(`/applications/${appId}/debts`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDebt(appId: number, debtId: number): Promise<any> {
+    return this.request<any>(`/applications/${appId}/debts/${debtId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ── Committee Workflow ───────────────────────────────────────────
+  async submitToCommittee(appId: number): Promise<CreditApplication> {
+    return this.request<CreditApplication>(`/applications/${appId}/submit-to-committee`, {
+      method: 'POST',
+    });
+  }
+
+  async getPendingCommitteeApprovals(): Promise<any[]> {
+    const res = await this.request<any>('/admin/pending-approvals');
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.applications)) return res.applications;
+    return [];
+  }
+
+  async processCommitteeDecision(appId: number, data: { decision: string; approved_amount?: number; notes?: string }): Promise<any> {
+    return this.request<any>(`/admin/applications/${appId}/committee-decision`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ── Dynamic Scoring Policy & Granting Methods (Admin) ─────────────
+  async getAdminScoringPolicy(): Promise<any> {
+    return this.request<any>('/admin/scoring/policy');
+  }
+
+  async createAdminScoringPolicy(data: any): Promise<any> {
+    return this.request<any>('/admin/scoring/policy', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async addScoringVariable(data: any): Promise<any> {
+    return this.request<any>('/admin/scoring/variables', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateScoringVariable(varId: number, data: any): Promise<any> {
+    return this.request<any>(`/admin/scoring/variables/${varId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteScoringVariable(varId: number): Promise<any> {
+    return this.request<any>(`/admin/scoring/variables/${varId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getGrantingMethods(): Promise<any[]> {
+    return this.request<any[]>('/admin/granting-methods');
+  }
+
+  async createGrantingMethod(data: any): Promise<any> {
+    return this.request<any>('/admin/granting-methods', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateGrantingMethod(id: number, data: any): Promise<any> {
+    return this.request<any>(`/admin/granting-methods/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   // ── Voice Assist ─────────────────────────────────────────────────
   async voiceQuery(queryText: string, language: string = 'fr'): Promise<VoiceQueryResponse> {
     return this.request<VoiceQueryResponse>('/assist/voice-query', {

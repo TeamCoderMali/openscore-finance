@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "mysql+aiomysql://root:skypper19@localhost/openscore_finance"
 
     # Gemini AI
-    GEMINI_API_KEY: str = ""
+    GEMINI_API_KEY: str = "AQ.Ab8RN6KjvvWn98rzklXbhHFr10eRw1XfenM2P-Z3nMGqByJ80g"
     GEMINI_MODEL: str = "gemini-1.5-flash"
 
     # File upload

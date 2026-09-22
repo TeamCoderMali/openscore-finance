@@ -1,42 +1,104 @@
 <div class="space-y-4 animate-slide-up">
-  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-    <div class="flex items-center justify-between gap-3 w-full">
-      <!-- Search & Filter Controls (Single Row) -->
-      <div class="flex items-center gap-2.5 flex-1 min-w-0">
+  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+    <!-- Top Row: Search & Action Button -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
+      <div class="relative flex-1 max-w-lg">
+        <app-svg-icon name="search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></app-svg-icon>
         <input
           type="text"
           [ngModel]="clientSearchQuery()"
-          (ngModelChange)="clientSearchQuery.set($event)"
-          placeholder="Rechercher client (nom, email, tél)..."
-          class="form-input text-xs py-1.5 min-w-[200px] max-w-xs flex-1 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          (ngModelChange)="clientSearchQuery.set($event); clientsPage.set(1)"
+          placeholder="Recherche précise (nom, email, tél, CMF-..., NINA)..."
+          class="form-input text-xs pl-8.5 py-2 w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
         />
-        <select
-          [ngModel]="clientSectorFilter()"
-          (ngModelChange)="clientSectorFilter.set($event); loadClients()"
-          class="form-select text-xs py-1.5 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        <button
+          *ngIf="clientSearchQuery()"
+          (click)="clientSearchQuery.set(''); clientsPage.set(1)"
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
         >
-          <option value="all">Tous les secteurs</option>
-          <option value="Commerce">Commerce</option>
-          <option value="Agriculture">Agriculture</option>
-          <option value="Artisanat">Artisanat</option>
-          <option value="TPE">TPE</option>
-        </select>
-        <select
-          [ngModel]="clientKycFilter()"
-          (ngModelChange)="clientKycFilter.set($event); loadClients()"
-          class="form-select text-xs py-1.5 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
-        >
-          <option value="all">Tous statuts KYC</option>
-          <option value="complet">KYC Complet</option>
-          <option value="partiel">KYC Partiel</option>
-          <option value="non_verifie">Non Vérifié</option>
-        </select>
+          ✕
+        </button>
       </div>
 
       <!-- Add Client Button -->
-      <button (click)="openCreateClientModal()" class="btn-primary text-xs py-1.5 px-3 shadow-xs cursor-pointer shrink-0 font-medium whitespace-nowrap">
+      <button (click)="openCreateClientModal()" class="btn-primary text-xs py-2 px-3.5 shadow-xs cursor-pointer shrink-0 font-medium whitespace-nowrap flex items-center gap-1.5">
         <app-svg-icon name="plus" [size]="14"></app-svg-icon>
         <span>+ Enrôler un Client</span>
+      </button>
+    </div>
+
+    <!-- Second Row: Precise Multi-Filters -->
+    <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+      <span class="text-[11px] font-mono text-slate-400 font-semibold uppercase shrink-0">Filtres :</span>
+
+      <!-- Secteur -->
+      <select
+        [ngModel]="clientSectorFilter()"
+        (ngModelChange)="clientSectorFilter.set($event); clientsPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous les secteurs</option>
+        <option value="Commerce">Commerce</option>
+        <option value="Agriculture">Agriculture</option>
+        <option value="Artisanat">Artisanat</option>
+        <option value="TPE">TPE / PME</option>
+      </select>
+
+      <!-- Statut KYC -->
+      <select
+        [ngModel]="clientKycFilter()"
+        (ngModelChange)="clientKycFilter.set($event); clientsPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous statuts KYC</option>
+        <option value="complet">KYC Complet (Vérifié)</option>
+        <option value="partiel">KYC Partiel</option>
+        <option value="non_verifie">Non Vérifié</option>
+      </select>
+
+      <!-- Statut Compte -->
+      <select
+        [ngModel]="clientStatusFilter()"
+        (ngModelChange)="clientStatusFilter.set($event); clientsPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous statuts compte</option>
+        <option value="active">Comptes Actifs</option>
+        <option value="suspended">Comptes Suspendus</option>
+      </select>
+
+      <!-- Tranche Revenus -->
+      <select
+        [ngModel]="clientRevenueFilter()"
+        (ngModelChange)="clientRevenueFilter.set($event); clientsPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous revenus</option>
+        <option value="under_200k">&lt; 200 000 FCFA</option>
+        <option value="200k_500k">200k - 500k FCFA</option>
+        <option value="500k_1m">500k - 1M FCFA</option>
+        <option value="over_1m">&gt; 1M FCFA</option>
+      </select>
+
+      <!-- Encours / Dossiers -->
+      <select
+        [ngModel]="clientEncoursFilter()"
+        (ngModelChange)="clientEncoursFilter.set($event); clientsPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous encours</option>
+        <option value="with_apps">Avec dossiers en cours</option>
+        <option value="without_apps">Sans dossier actif</option>
+      </select>
+
+      <!-- Reset button -->
+      <button
+        *ngIf="activeFiltersCount() > 0"
+        (click)="resetFilters()"
+        class="text-xs text-purple-700 dark:text-purple-400 hover:underline flex items-center gap-1 ml-auto font-medium cursor-pointer"
+      >
+        <app-svg-icon name="x" [size]="12"></app-svg-icon>
+        <span>Réinitialiser ({{ activeFiltersCount() }} actif{{ activeFiltersCount() > 1 ? 's' : '' }})</span>
       </button>
     </div>
 
@@ -44,12 +106,22 @@
     <div class="mt-4 overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-md">
       <table class="data-table text-xs">
         <thead>
-          <tr>
-            <th>Nom & Prénom</th>
-            <th>Coordonnées</th>
+          <tr class="select-none">
+            <th class="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('name')">
+              <div class="flex items-center gap-1">
+                <span>Nom & Prénom</span>
+                <span *ngIf="clientSortBy() === 'name'">{{ clientSortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+            <th>Coordonnées & Compte</th>
             <th>Secteur</th>
             <th>Statut KYC</th>
-            <th>Dossiers / Encours</th>
+            <th class="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('apps')">
+              <div class="flex items-center gap-1">
+                <span>Dossiers / Encours</span>
+                <span *ngIf="clientSortBy() === 'apps'">{{ clientSortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
             <th>Score Moyen</th>
             <th>Compte</th>
             <th class="text-right">Actions Super Admin</th>
@@ -58,13 +130,18 @@
         <tbody>
           <tr *ngFor="let c of pagedClients()">
             <td class="font-bold text-slate-900 dark:text-white">
-              <button (click)="viewClientDetail(c)" class="hover:underline text-left cursor-pointer">
+              <button (click)="viewClientDetail(c)" class="hover:underline text-left cursor-pointer font-bold">
                 {{ c.full_name }}
               </button>
             </td>
             <td class="font-mono text-slate-600 dark:text-slate-300">
               <div>{{ c.email }}</div>
-              <div class="text-[10px] text-slate-400">{{ c.phone || '—' }}</div>
+              <div class="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                <span>{{ c.phone || '—' }}</span>
+                <span *ngIf="c.account_number" class="text-purple-700 dark:text-purple-300 font-bold bg-purple-50 dark:bg-purple-950/60 px-1 rounded">
+                  {{ c.account_number }}
+                </span>
+              </div>
             </td>
             <td>
               <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
@@ -99,8 +176,8 @@
               <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{{ formatAmount(c.total_approved) }}</div>
             </td>
             <td class="font-mono font-bold">
-              <span *ngIf="c.average_score" [class.text-emerald-600]="c.average_score >= 700" [class.text-amber-600]="c.average_score >= 550 && c.average_score < 700" [class.text-rose-600]="c.average_score < 550">
-                {{ c.average_score }}/1000
+              <span *ngIf="c.average_score" [class.text-emerald-600]="c.average_score >= 70" [class.text-amber-600]="c.average_score >= 55 && c.average_score < 70" [class.text-rose-600]="c.average_score < 55">
+                {{ c.average_score }}/100
               </span>
               <span *ngIf="!c.average_score" class="text-slate-400 text-[10px]">—</span>
             </td>
@@ -116,6 +193,14 @@
               </span>
             </td>
             <td class="text-right space-x-1 whitespace-nowrap">
+              <button
+                *ngIf="c.account_number"
+                (click)="openQuickInitForClient(c)"
+                class="btn-primary text-[10px] py-0.5 px-2 bg-purple-700 hover:bg-purple-800 text-white font-bold cursor-pointer"
+                title="Créer et scorer un dossier pour ce client en 1-clic"
+              >
+                + Dossier
+              </button>
               <button
                 (click)="viewClientDetail(c)"
                 class="btn-ghost text-[10px] py-0.5 px-2 text-purple-700 dark:text-purple-300"
@@ -278,7 +363,7 @@
                 <td class="font-mono font-bold text-emerald-700 dark:text-emerald-400">
                   {{ app.approved_amount ? formatAmount(app.approved_amount) : '—' }}
                 </td>
-                <td class="font-mono font-bold">{{ app.score ? app.score + '/1000' : '—' }}</td>
+                <td class="font-mono font-bold">{{ app.score ? app.score + '/100' : '—' }}</td>
                 <td class="text-slate-600 dark:text-slate-400">{{ app.agent_name || 'En attente' }}</td>
                 <td>
                   <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase"
@@ -289,7 +374,7 @@
                     [class.bg-blue-100]="app.status.includes('pending') || app.status.includes('data')"
                     [class.text-blue-900]="app.status.includes('pending') || app.status.includes('data')"
                   >
-                    {{ app.status }}
+                    {{ getStatusLabel(app.status) }}
                   </span>
                 </td>
               </tr>
@@ -447,5 +532,71 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL : INITIALISATION RAPIDE DE DOSSIER (1-CLIC CLIENT)          -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showQuickInitModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold">⚡</div>
+        <div>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">Initialiser un Dossier (1-Clic)</h3>
+          <p class="text-[11px] text-slate-500 font-mono">Pour {{ quickClientName() }} ({{ quickAccountNumber() }})</p>
+        </div>
+      </div>
+      <button (click)="closeQuickInitModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Montant Sollicité (FCFA) *</label>
+        <input
+          type="number"
+          step="50000"
+          [ngModel]="quickRequestedAmount()"
+          (ngModelChange)="quickRequestedAmount.set($event)"
+          class="form-input text-xs w-full font-mono font-bold dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Durée Prêt (Mois) *</label>
+        <select
+          [ngModel]="quickRequestedDuration()"
+          (ngModelChange)="quickRequestedDuration.set($event)"
+          class="form-select text-xs w-full font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        >
+          <option [ngValue]="6">6 mois</option>
+          <option [ngValue]="12">12 mois</option>
+          <option [ngValue]="18">18 mois</option>
+          <option [ngValue]="24">24 mois</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Objet du Crédit</label>
+      <input
+        type="text"
+        [ngModel]="quickBusinessDesc()"
+        (ngModelChange)="quickBusinessDesc.set($event)"
+        class="form-input text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      />
+    </div>
+
+    <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+      <button (click)="closeQuickInitModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button
+        (click)="executeQuickInit()"
+        [disabled]="creatingQuickApp() || !quickAccountNumber()"
+        class="btn-primary text-xs py-1.5 px-4 bg-purple-700 hover:bg-purple-800 text-white font-bold cursor-pointer"
+      >
+        {{ creatingQuickApp() ? 'Génération...' : '⚡ Initialiser et Scorer' }}
+      </button>
+    </div>
   </div>
 </div>

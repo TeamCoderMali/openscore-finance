@@ -181,6 +181,16 @@
             <span *ngIf="!isSidebarCollapsed()" class="truncate">Cockpit & KPIs</span>
           </a>
           <a
+            [routerLink]="['/admin/committee']"
+            [class.active]="isActive('/admin', 'committee')"
+            class="sidebar-link"
+            [title]="'Comité de Crédit (Approbation Finale)'"
+            [class.justify-center]="isSidebarCollapsed()"
+          >
+            <app-svg-icon name="check-circle" [size]="18" class="text-purple-600 shrink-0"></app-svg-icon>
+            <span *ngIf="!isSidebarCollapsed()" class="truncate">Comité de Crédit</span>
+          </a>
+          <a
             [routerLink]="['/admin/clients']"
             [class.active]="isActive('/admin', 'clients')"
             class="sidebar-link"

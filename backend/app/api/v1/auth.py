@@ -14,6 +14,12 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt, JWTError
+import bcrypt
+
+# Compatibility fix: passlib 1.7.4 expects bcrypt.__about__.__version__ which was removed in bcrypt >= 4.1
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("About", (), {"__version__": getattr(bcrypt, "__version__", "4.0.1")})
+
 from passlib.context import CryptContext
 
 from app.core.config import get_settings
@@ -72,6 +78,31 @@ async def get_current_user(
     if user is None or not bool(user.is_active):
         raise credentials_exception
     return user
+
+
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+
+async def get_current_user_optional(
+    token: Optional[str] = Depends(oauth2_scheme_optional),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """Dependency: optionally extract current user from JWT token without raising 401."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        sub = payload.get("sub")
+        if sub is None:
+            return None
+        user_id = int(sub)
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        if user and bool(user.is_active):
+            return user
+    except Exception:
+        return None
+    return None
 
 
 def require_role(*roles: str):

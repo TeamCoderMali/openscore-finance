@@ -14,6 +14,7 @@ export class AdminShellComponent implements OnInit {
 
   currentTitle = computed(() => {
     const url = this.currentUrl();
+    if (url.includes('/admin/committee')) return 'Comité de Crédit & Arbitrage Direction';
     if (url.includes('/admin/clients')) return 'Gestion Complète des Clients Emprunteurs';
     if (url.includes('/admin/agents')) return 'Pilotage & Performance des Agents de Crédit';
     if (url.includes('/admin/branches')) return 'Réseau des Antennes Régionales & Guichets';

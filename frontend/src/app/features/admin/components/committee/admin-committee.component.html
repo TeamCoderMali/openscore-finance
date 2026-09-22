@@ -1,0 +1,1042 @@
+<div class="space-y-6 animate-slide-up">
+  <!-- ── MACRO KPIS BANNER ────────────────────────────────────────────── -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- Dossiers en attente -->
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-mono uppercase text-slate-500 font-bold">Dossiers en Attente</span>
+        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+      </div>
+      <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1 font-mono">
+        {{ kpiStats().totalCount }}
+      </div>
+      <p class="text-[11px] text-slate-500 mt-0.5">Instance de décision Comité</p>
+    </div>
+
+    <!-- Volume total sollicité -->
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <span class="text-xs font-mono uppercase text-slate-500 font-bold">Volume Total Demandé</span>
+      <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+        {{ formatAmount(kpiStats().totalAmount) }}
+      </div>
+      <p class="text-[11px] text-slate-500 mt-0.5">Engagement financier potentiel</p>
+    </div>
+
+    <!-- Score Moyen / 100 -->
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <span class="text-xs font-mono uppercase text-slate-500 font-bold">Score Moyen</span>
+      <div class="flex items-baseline gap-1 mt-1">
+        <span class="text-2xl font-bold font-mono text-blue-900 dark:text-blue-300">
+          {{ kpiStats().averageScore }}
+        </span>
+        <span class="text-xs font-mono text-slate-500">/ 100</span>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-0.5">Indice pondéré solvabilité ML</p>
+    </div>
+
+    <!-- Couverture Moyenne Garanties -->
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <span class="text-xs font-mono uppercase text-slate-500 font-bold">Couverture Garanties</span>
+      <div class="text-2xl font-bold font-mono text-blue-900 dark:text-blue-300 mt-1">
+        {{ kpiStats().averageCoverage }}%
+      </div>
+      <p class="text-[11px] text-slate-500 mt-0.5">Ratio moyen sûretés / prêt</p>
+    </div>
+  </div>
+
+  <!-- ── SEARCH, DETAILED FILTERS & QUICK ACTION TOOLBAR ──────────────── -->
+  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <!-- Search Input -->
+      <div class="relative flex-1 min-w-[280px]">
+        <app-svg-icon name="search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></app-svg-icon>
+        <input
+          type="text"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event); currentPage.set(1)"
+          placeholder="Rechercher par référence (OSF-...), compte (CMF-...), emprunteur, agent..."
+          class="form-input text-xs pl-8 py-2 w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
+        <button
+          *ngIf="searchQuery()"
+          (click)="searchQuery.set(''); currentPage.set(1)"
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          (click)="openQuickInitModal()"
+          class="btn-primary text-xs py-2 px-3 bg-blue-700 hover:bg-blue-800 text-white font-bold shadow-xs cursor-pointer flex items-center gap-1.5 rounded-lg"
+          title="Initialiser un dossier instantanément pour un compte client"
+        >
+          <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+          <span>Nouveau Dossier (1-Clic)</span>
+        </button>
+
+        <button
+          (click)="loadApprovals()"
+          class="btn-secondary text-xs py-2 px-2.5 cursor-pointer"
+          title="Actualiser la file"
+        >
+          <app-svg-icon name="refresh-cw" [size]="13"></app-svg-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Multi-criteria Filter Dropdowns -->
+    <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+      <span class="text-[11px] font-mono text-slate-400 font-semibold uppercase shrink-0">Filtrer par :</span>
+
+      <!-- Secteur -->
+      <select
+        [ngModel]="sectorFilter()"
+        (ngModelChange)="sectorFilter.set($event); currentPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous secteurs</option>
+        <option value="Commerce">Commerce</option>
+        <option value="Agriculture">Agriculture</option>
+        <option value="Artisanat">Artisanat</option>
+        <option value="TPE">TPE / PME</option>
+      </select>
+
+      <!-- Avis Algorithmique -->
+      <select
+        [ngModel]="decisionFilter()"
+        (ngModelChange)="decisionFilter.set($event); currentPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous avis ML</option>
+        <option value="approved">Favorable (Accordé)</option>
+        <option value="adjusted">Ajustement suggéré</option>
+        <option value="rejected">Défavorable (Refusé)</option>
+      </select>
+
+      <!-- Tranche de Score -->
+      <select
+        [ngModel]="scoreFilter()"
+        (ngModelChange)="scoreFilter.set($event); currentPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous scores (/100)</option>
+        <option value="excellent">Score ≥ 80 (Excellent)</option>
+        <option value="favorable">Score 60 - 79 (Favorable)</option>
+        <option value="risk">Score &lt; 60 (À risque)</option>
+      </select>
+
+      <!-- Couverture Garanties -->
+      <select
+        [ngModel]="coverageFilter()"
+        (ngModelChange)="coverageFilter.set($event); currentPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Toutes couvertures</option>
+        <option value="over">≥ 100% (Sur-couvert)</option>
+        <option value="partial">50% - 99% (Couverture partielle)</option>
+        <option value="low">&lt; 50% (Sous-couvert)</option>
+      </select>
+
+      <!-- Reset button -->
+      <button
+        *ngIf="activeFiltersCount() > 0"
+        (click)="resetFilters()"
+        class="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1 ml-auto font-medium cursor-pointer"
+      >
+        <app-svg-icon name="x" [size]="12"></app-svg-icon>
+        <span>Réinitialiser ({{ activeFiltersCount() }} actif{{ activeFiltersCount() > 1 ? 's' : '' }})</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── DOSSIERS TABLE WITH SORTING & PAGINATION ──────────────────────── -->
+  <div class="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+    <!-- Table Header Info Bar -->
+    <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between text-xs">
+      <div class="font-mono text-slate-600 dark:text-slate-300">
+        <strong>{{ filteredApprovals().length }}</strong> dossier(s) trouvé(s)
+        <span *ngIf="filteredApprovals().length !== pendingApprovals().length" class="text-slate-400">
+          (sur {{ pendingApprovals().length }} au total)
+        </span>
+      </div>
+
+      <!-- Page Size Selector -->
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 text-[11px] font-mono">Afficher :</span>
+        <select
+          [ngModel]="pageSize()"
+          (ngModelChange)="setPageSize($event)"
+          class="form-select text-xs py-0.5 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        >
+          <option [ngValue]="5">5 par page</option>
+          <option [ngValue]="10">10 par page</option>
+          <option [ngValue]="20">20 par page</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Spinner Loading -->
+    <div *ngIf="loading()" class="py-12">
+      <app-spinner size="md" label="Chargement des dossiers d'arbitrage..."></app-spinner>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading() && filteredApprovals().length === 0" class="p-12 text-center text-xs">
+      <app-svg-icon name="folder" [size]="32" class="mx-auto mb-2 text-slate-400"></app-svg-icon>
+      <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">Aucun dossier correspondant aux critères</p>
+      <p class="text-slate-400 mt-1">Modifiez vos filtres ou effectuez une recherche différente.</p>
+      <button *ngIf="activeFiltersCount() > 0" (click)="resetFilters()" class="btn-secondary text-xs mt-3 cursor-pointer">
+        Effacer tous les filtres
+      </button>
+    </div>
+
+    <!-- Data Table -->
+    <div *ngIf="!loading() && filteredApprovals().length > 0" class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-mono uppercase text-[10px] bg-slate-50 dark:bg-slate-800/60 select-none">
+            <!-- Réf & Compte -->
+            <th class="py-3 px-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('applicant')">
+              <div class="flex items-center gap-1">
+                <span>Réf. & Compte</span>
+                <span *ngIf="sortBy() === 'applicant'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Client Emprunteur -->
+            <th class="py-3 px-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('applicant')">
+              <div class="flex items-center gap-1">
+                <span>Client Emprunteur</span>
+                <span *ngIf="sortBy() === 'applicant'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Agent Instructeur -->
+            <th class="py-3 px-3">Agent Instructeur</th>
+
+            <!-- Montant Demandé -->
+            <th class="py-3 px-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('amount')">
+              <div class="flex items-center justify-end gap-1">
+                <span>Montant Demandé</span>
+                <span *ngIf="sortBy() === 'amount'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Score (/100) -->
+            <th class="py-3 px-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('score')">
+              <div class="flex items-center justify-center gap-1">
+                <span>Score (/100)</span>
+                <span *ngIf="sortBy() === 'score'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Garanties & Couverture -->
+            <th class="py-3 px-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('coverage')">
+              <div class="flex items-center gap-1">
+                <span>Garanties & Couverture</span>
+                <span *ngIf="sortBy() === 'coverage'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Avis Algorithmique ML -->
+            <th class="py-3 px-3">Avis ML</th>
+
+            <!-- Actions Super Admin -->
+            <th class="py-3 px-3 text-right">Décision & Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <tr
+            *ngFor="let app of pagedApprovals()"
+            class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+            (click)="openDossierDetails(app)"
+          >
+            <!-- Réf & Compte -->
+            <td class="py-3.5 px-3">
+              <p class="font-mono font-bold text-blue-900 dark:text-blue-300 group-hover:underline">
+                {{ app.reference }}
+              </p>
+              <span *ngIf="app.account_number" class="text-[10px] font-mono text-blue-900 dark:text-blue-300 font-bold bg-blue-50 dark:bg-blue-950/80 px-1 rounded border border-blue-200 dark:border-blue-900">
+                {{ app.account_number }}
+              </span>
+            </td>
+
+            <!-- Client Emprunteur -->
+            <td class="py-3.5 px-3">
+              <p class="font-semibold text-slate-900 dark:text-white">{{ app.applicant_name }}</p>
+              <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                <span>{{ app.activity_sector }}</span>
+                <span *ngIf="app.applicant_phone">• {{ app.applicant_phone }}</span>
+              </div>
+            </td>
+
+            <!-- Agent Instructeur -->
+            <td class="py-3.5 px-3 font-mono text-slate-700 dark:text-slate-300">
+              <div class="font-medium">{{ app.agent_name || 'Non assigné' }}</div>
+              <div class="text-[10px] text-slate-400">Agent Référent</div>
+            </td>
+
+            <!-- Montant Demandé -->
+            <td class="py-3.5 px-3 text-right font-mono">
+              <div class="font-bold text-slate-900 dark:text-white text-sm">
+                {{ formatAmount(app.requested_amount) }}
+              </div>
+              <span *ngIf="app.proposed_amount" class="text-[10px] text-amber-600 font-semibold block">
+                Prop. : {{ formatAmount(app.proposed_amount) }}
+              </span>
+              <span class="text-[10px] text-slate-400">{{ app.requested_duration_months || 12 }} mois</span>
+            </td>
+
+            <!-- Score (/100) -->
+            <td class="py-3.5 px-3 text-center">
+              <span
+                class="px-2.5 py-1 rounded-md font-mono font-bold text-xs inline-block shadow-2xs"
+                [class.bg-emerald-100]="normalizeScore(app.score) >= 80"
+                [class.text-emerald-900]="normalizeScore(app.score) >= 80"
+                [class.dark:bg-emerald-950]="normalizeScore(app.score) >= 80"
+                [class.dark:text-emerald-300]="normalizeScore(app.score) >= 80"
+                [class.bg-blue-100]="normalizeScore(app.score) >= 60 && normalizeScore(app.score) < 80"
+                [class.text-blue-900]="normalizeScore(app.score) >= 60 && normalizeScore(app.score) < 80"
+                [class.dark:bg-blue-950]="normalizeScore(app.score) >= 60 && normalizeScore(app.score) < 80"
+                [class.dark:text-blue-300]="normalizeScore(app.score) >= 60 && normalizeScore(app.score) < 80"
+                [class.bg-rose-100]="normalizeScore(app.score) < 60"
+                [class.text-rose-900]="normalizeScore(app.score) < 60"
+                [class.dark:bg-rose-950]="normalizeScore(app.score) < 60"
+                [class.dark:text-rose-300]="normalizeScore(app.score) < 60"
+              >
+                {{ normalizeScore(app.score) }} / 100
+              </span>
+            </td>
+
+            <!-- Garanties & Couverture -->
+            <td class="py-3.5 px-3">
+              <p
+                class="font-mono font-bold text-xs"
+                [class.text-emerald-600]="(app.guarantee_coverage_ratio || 0) >= 1.0"
+                [class.text-blue-600]="(app.guarantee_coverage_ratio || 0) >= 0.5 && (app.guarantee_coverage_ratio || 0) < 1.0"
+                [class.text-rose-600]="(app.guarantee_coverage_ratio || 0) < 0.5"
+              >
+                {{ (app.guarantee_coverage_ratio || 0) * 100 | number:'1.0-0' }}% de couverture
+              </p>
+              <p class="text-[10px] text-slate-400 font-mono">
+                {{ app.guarantees_count || 0 }} bien(s) • {{ formatAmount(app.total_guarantee_value) }}
+              </p>
+            </td>
+
+            <!-- Avis ML -->
+            <td class="py-3.5 px-3">
+              <span
+                class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase inline-block"
+                [class.bg-emerald-100]="(app.recommended_decision || app.algorithmic_decision) === 'approved'"
+                [class.text-emerald-800]="(app.recommended_decision || app.algorithmic_decision) === 'approved'"
+                [class.dark:bg-emerald-950/60]="(app.recommended_decision || app.algorithmic_decision) === 'approved'"
+                [class.dark:text-emerald-300]="(app.recommended_decision || app.algorithmic_decision) === 'approved'"
+                [class.bg-amber-100]="(app.recommended_decision || app.algorithmic_decision) === 'adjusted'"
+                [class.text-amber-800]="(app.recommended_decision || app.algorithmic_decision) === 'adjusted'"
+                [class.dark:bg-amber-950/60]="(app.recommended_decision || app.algorithmic_decision) === 'adjusted'"
+                [class.dark:text-amber-300]="(app.recommended_decision || app.algorithmic_decision) === 'adjusted'"
+                [class.bg-rose-100]="(app.recommended_decision || app.algorithmic_decision) === 'rejected'"
+                [class.text-rose-800]="(app.recommended_decision || app.algorithmic_decision) === 'rejected'"
+                [class.dark:bg-rose-950/60]="(app.recommended_decision || app.algorithmic_decision) === 'rejected'"
+                [class.dark:text-rose-300]="(app.recommended_decision || app.algorithmic_decision) === 'rejected'"
+              >
+                {{ getDecisionLabel(app.recommended_decision || app.algorithmic_decision) }}
+              </span>
+            </td>
+
+            <!-- Actions Super Admin -->
+            <td class="py-3.5 px-3 text-right space-x-1.5 whitespace-nowrap" (click)="$event.stopPropagation()">
+              <button
+                (click)="openDossierDetails(app)"
+                class="btn-secondary text-[11px] py-1 px-2.5 cursor-pointer hover:border-blue-300"
+                title="Consulter l'instruction complète"
+              >
+                <app-svg-icon name="eye" [size]="12"></app-svg-icon>
+                <span>Consulter</span>
+              </button>
+
+              <span
+                *ngIf="app.status === 'ApplicationStatus.APPROVED' || app.status === 'approved'"
+                class="px-2 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded text-[11px] font-bold inline-flex items-center gap-1"
+              >
+                <app-svg-icon name="check" [size]="11"></app-svg-icon>
+                <span>Accordé</span>
+              </span>
+
+              <span
+                *ngIf="app.status === 'ApplicationStatus.REJECTED' || app.status === 'rejected'"
+                class="px-2 py-1 bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 rounded text-[11px] font-bold inline-flex items-center gap-1"
+              >
+                <app-svg-icon name="x" [size]="11"></app-svg-icon>
+                <span>Rejeté</span>
+              </span>
+
+              <ng-container *ngIf="app.status !== 'ApplicationStatus.APPROVED' && app.status !== 'approved' && app.status !== 'ApplicationStatus.REJECTED' && app.status !== 'rejected'">
+                <button
+                  (click)="quickApprove(app)"
+                  class="btn-primary text-[11px] py-1 px-2.5 bg-emerald-700 hover:bg-emerald-800 shadow-xs cursor-pointer text-white"
+                  title="Valider immédiatement"
+                >
+                  <app-svg-icon name="check" [size]="12"></app-svg-icon>
+                  <span>Accorder</span>
+                </button>
+
+                <button
+                  (click)="quickReject(app)"
+                  class="btn-secondary text-[11px] py-1 px-2 text-rose-700 hover:text-rose-900 border-rose-200 cursor-pointer"
+                  title="Rejeter le dossier"
+                >
+                  <app-svg-icon name="x" [size]="12"></app-svg-icon>
+                  <span>Rejeter</span>
+                </button>
+              </ng-container>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginator Footer -->
+    <div class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-mono">
+      <div class="text-slate-500">
+        Page <strong>{{ currentPage() }}</strong> sur <strong>{{ totalPages() }}</strong>
+      </div>
+
+      <div class="flex items-center gap-1">
+        <button
+          (click)="prevPage()"
+          [disabled]="currentPage() === 1"
+          class="btn-secondary text-xs py-1 px-2.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          ← Précédent
+        </button>
+
+        <span class="px-2 py-1 font-bold text-slate-700 dark:text-slate-300">
+          {{ currentPage() }} / {{ totalPages() }}
+        </span>
+
+        <button
+          (click)="nextPage()"
+          [disabled]="currentPage() === totalPages()"
+          class="btn-secondary text-xs py-1 px-2.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          Suivant →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL : 1-CLIC QUICK INIT POUR SUPER ADMIN                         -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="showQuickInitModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold">
+            ⚡
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Initialisation Rapide de Dossier (1-Clic)</h3>
+            <p class="text-[11px] text-slate-500 font-mono">Création, extraction et scoring instantanés pour le Comité</p>
+          </div>
+        </div>
+        <button (click)="closeQuickInitModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Account Lookup -->
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+          Numéro de Compte Microfinance Client *
+        </label>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            [ngModel]="quickAccountNumber()"
+            (ngModelChange)="quickAccountNumber.set($event)"
+            (keyup.enter)="searchAccount()"
+            placeholder="Ex: CMF-2026-001245"
+            class="form-input text-xs flex-1 font-mono uppercase dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+          <button
+            (click)="searchAccount()"
+            [disabled]="searchingAccount()"
+            class="btn-secondary text-xs px-3 font-semibold cursor-pointer shrink-0"
+          >
+            {{ searchingAccount() ? 'Vérification...' : 'Identifier' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Identified Client Card -->
+      <div *ngIf="quickAccountInfo()" class="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-xs space-y-1.5 animate-fade-in">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-blue-950 dark:text-blue-200 text-sm">
+            {{ quickAccountInfo().full_name }}
+          </span>
+          <span class="px-2 py-0.5 bg-blue-200/60 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200 rounded font-mono font-bold text-[10px]">
+            {{ quickAccountInfo().activity_sector }}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-600 dark:text-slate-300">
+          <div>Revenus déclarés : <strong>{{ formatAmount(quickAccountInfo().monthly_revenue) }}</strong></div>
+          <div>Capacité max estimée : <strong>{{ formatAmount(quickAccountInfo().max_credit_limit) }}</strong></div>
+          <div>Pièce d'identité : <strong>{{ quickAccountInfo().id_type }} • {{ quickAccountInfo().id_number }}</strong></div>
+          <div>Ancienneté d'activité : <strong>{{ quickAccountInfo().years_in_business }} an(s)</strong></div>
+        </div>
+      </div>
+
+      <!-- Financial Request Parameters -->
+      <div class="grid grid-cols-2 gap-3 pt-2">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            Montant Demandé (FCFA) *
+          </label>
+          <input
+            type="number"
+            step="50000"
+            [ngModel]="quickRequestedAmount()"
+            (ngModelChange)="quickRequestedAmount.set($event)"
+            class="form-input text-xs w-full font-mono font-bold dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            Durée de Remboursement (Mois) *
+          </label>
+          <select
+            [ngModel]="quickRequestedDuration()"
+            (ngModelChange)="quickRequestedDuration.set($event)"
+            class="form-select text-xs w-full font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          >
+            <option [ngValue]="6">6 mois</option>
+            <option [ngValue]="12">12 mois (1 an)</option>
+            <option [ngValue]="18">18 mois</option>
+            <option [ngValue]="24">24 mois (2 ans)</option>
+            <option [ngValue]="36">36 mois (3 ans)</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          Objet / Destination du Prêt
+        </label>
+        <input
+          type="text"
+          [ngModel]="quickBusinessDesc()"
+          (ngModelChange)="quickBusinessDesc.set($event)"
+          class="form-input text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+        <button (click)="closeQuickInitModal()" class="btn-secondary text-xs cursor-pointer">
+          Annuler
+        </button>
+        <button
+          (click)="executeQuickInit()"
+          [disabled]="creatingQuickApp() || !quickAccountNumber()"
+          class="btn-primary text-xs py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5 rounded-lg shadow-sm"
+        >
+          <span *ngIf="creatingQuickApp()">Génération et Scoring en cours...</span>
+          <span *ngIf="!creatingQuickApp()">Initialiser et Scorer le Dossier</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL : DÉTAILS COMPLETS DU DOSSIER (3 VOLETS D'ARBITRAGE)         -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="showDetailModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-fade-in">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/40">
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">
+              Instruction du Dossier : {{ selectedApproval()?.reference }}
+            </h3>
+            <span *ngIf="selectedApproval()?.account_number" class="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200 rounded text-xs font-mono font-bold">
+              {{ selectedApproval()?.account_number }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 font-mono mt-0.5">
+            Client : <strong>{{ selectedApproval()?.applicant_name }}</strong> • Secteur : {{ selectedApproval()?.activity_sector }}
+          </p>
+        </div>
+
+        <button (click)="closeDetailModal()" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer text-lg">
+          ✕
+        </button>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 px-4 pt-2 bg-slate-50/30 dark:bg-slate-900 text-xs font-medium">
+        <button
+          (click)="detailTab.set('financials')"
+          [class.border-blue-600]="detailTab() === 'financials'"
+          [class.text-blue-700]="detailTab() === 'financials'"
+          [class.dark:text-blue-300]="detailTab() === 'financials'"
+          class="px-3 py-2 border-b-2 border-transparent font-bold cursor-pointer transition-colors"
+        >
+          1. Profil Financier & Garanties
+        </button>
+
+        <button
+          (click)="detailTab.set('scoring')"
+          [class.border-purple-600]="detailTab() === 'scoring'"
+          [class.text-purple-700]="detailTab() === 'scoring'"
+          [class.dark:text-purple-300]="detailTab() === 'scoring'"
+          class="px-3 py-2 border-b-2 border-transparent font-bold cursor-pointer transition-colors"
+        >
+          2. Scoring ML & 5 Piliers BCEAO
+        </button>
+
+        <button
+          (click)="detailTab.set('arbitration')"
+          [class.border-purple-600]="detailTab() === 'arbitration'"
+          [class.text-purple-700]="detailTab() === 'arbitration'"
+          [class.dark:text-purple-300]="detailTab() === 'arbitration'"
+          class="px-3 py-2 border-b-2 border-transparent font-bold cursor-pointer transition-colors"
+        >
+          3. Arbitrage & Décision du Comité
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-5 flex-1 overflow-y-auto space-y-4">
+        <div *ngIf="loadingDetail()" class="py-12">
+          <app-spinner size="md" label="Chargement des données du dossier..."></app-spinner>
+        </div>
+
+        <ng-container *ngIf="!loadingDetail()">
+          <!-- ── VOLET 1 : FINANCIERS & GARANTIES ────────────────────── -->
+          <div *ngIf="detailTab() === 'financials'" class="space-y-4 animate-fade-in">
+            <!-- Key Financial Indicators -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Revenus Mensuels</span>
+                <p class="text-sm font-bold font-mono text-slate-900 dark:text-white mt-1">
+                  {{ formatAmount(extractedData()?.monthly_revenue || 450000) }}
+                </p>
+              </div>
+
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Charges Mensuelles</span>
+                <p class="text-sm font-bold font-mono text-slate-900 dark:text-white mt-1">
+                  {{ formatAmount(extractedData()?.monthly_expenses || 180000) }}
+                </p>
+              </div>
+
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Reste à Vivre</span>
+                <p class="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+                  {{ formatAmount((extractedData()?.monthly_revenue || 450000) - (extractedData()?.monthly_expenses || 180000)) }}
+                </p>
+              </div>
+
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Régularité Revenus</span>
+                <p class="text-sm font-bold font-mono text-purple-900 dark:text-purple-300 mt-1">
+                  {{ extractedData()?.revenue_regularity_months || 12 }} mois consécutifs
+                </p>
+              </div>
+            </div>
+
+            <!-- Multi-Guarantees Section -->
+            <div class="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h4 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <app-svg-icon name="shield" [size]="14" class="text-emerald-600"></app-svg-icon>
+                  <span>Biens & Garanties Apportés ({{ guarantees().length }})</span>
+                </h4>
+                <span class="text-xs font-mono font-bold text-emerald-600">
+                  Couverture : {{ (selectedApproval()?.guarantee_coverage_ratio || 0) * 100 | number:'1.0-0' }}%
+                </span>
+              </div>
+
+              <div *ngIf="guarantees().length === 0" class="p-4 text-center text-xs text-slate-400">
+                Aucune garantie matérielle enregistrée sur ce dossier.
+              </div>
+
+              <table *ngIf="guarantees().length > 0" class="w-full text-xs text-left">
+                <thead class="bg-slate-50/50 dark:bg-slate-800/40 text-[10px] font-mono uppercase text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th class="py-2 px-3">Type de Garantie</th>
+                    <th class="py-2 px-3">Description du Bien</th>
+                    <th class="py-2 px-3 text-right">Valeur Estimée</th>
+                    <th class="py-2 px-3 text-right">Valeur Retenue (70%)</th>
+                    <th class="py-2 px-3">Justificatif</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                  <tr *ngFor="let g of guarantees()">
+                    <td class="py-2.5 px-3 font-semibold text-slate-900 dark:text-white capitalize">
+                      {{ g.guarantee_type }}
+                    </td>
+                    <td class="py-2.5 px-3 font-sans text-slate-700 dark:text-slate-300">
+                      {{ g.description }}
+                    </td>
+                    <td class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-300">
+                      {{ formatAmount(g.estimated_value) }}
+                    </td>
+                    <td class="py-2.5 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                      {{ formatAmount(g.retained_value || (g.estimated_value * 0.7)) }}
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-[10px]">
+                      {{ g.proof_reference || 'Certifié conforme' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Existing Debts Section -->
+            <div class="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h4 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <app-svg-icon name="dollar-sign" [size]="14" class="text-amber-600"></app-svg-icon>
+                  <span>Dettes & Engagements en Cours ({{ debts().length }})</span>
+                </h4>
+              </div>
+
+              <div *ngIf="debts().length === 0" class="p-4 text-center text-xs text-slate-400">
+                Aucune dette en cours déclarée par l'emprunteur (endettement zéro).
+              </div>
+
+              <table *ngIf="debts().length > 0" class="w-full text-xs text-left">
+                <thead class="bg-slate-50/50 dark:bg-slate-800/40 text-[10px] font-mono uppercase text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th class="py-2 px-3">Créancier</th>
+                    <th class="py-2 px-3">Type Dette</th>
+                    <th class="py-2 px-3 text-right">Mensualité</th>
+                    <th class="py-2 px-3 text-right">Capital Restant Dû</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                  <tr *ngFor="let d of debts()">
+                    <td class="py-2.5 px-3 font-semibold text-slate-900 dark:text-white">{{ d.creditor_name }}</td>
+                    <td class="py-2.5 px-3 text-[11px]">{{ d.is_internal ? 'Interne (Même IMF)' : 'Externe' }}</td>
+                    <td class="py-2.5 px-3 text-right font-bold text-amber-600">{{ formatAmount(d.monthly_payment) }}</td>
+                    <td class="py-2.5 px-3 text-right">{{ formatAmount(d.remaining_amount) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ── VOLET 2 : SCORING ML & 5 PILIERS BCEAO ───────────────── -->
+          <div *ngIf="detailTab() === 'scoring'" class="space-y-4 animate-fade-in">
+            <!-- Score Card Summary -->
+            <div class="p-4 bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-xl flex items-center justify-between">
+              <div>
+                <span class="text-xs font-mono font-bold text-purple-900 dark:text-purple-300 uppercase">
+                  Score de Solvabilité Prudentiel
+                </span>
+                <div class="flex items-baseline gap-2 mt-1">
+                  <span class="text-3xl font-black font-mono text-purple-950 dark:text-white">
+                    {{ normalizeScore(selectedApproval()?.score) }}
+                  </span>
+                  <span class="text-sm font-mono text-slate-500 font-bold">/ 100</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">
+                  Niveau de risque évalué : <strong class="text-slate-800 dark:text-slate-200">{{ getRiskLabel(selectedApproval()?.risk_level) }}</strong>
+                </p>
+              </div>
+
+              <div class="text-right space-y-1">
+                <span class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase"
+                  [class.bg-emerald-100]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'approved'"
+                  [class.text-emerald-800]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'approved'"
+                  [class.bg-amber-100]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'adjusted'"
+                  [class.text-amber-800]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'adjusted'"
+                  [class.bg-rose-100]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'rejected'"
+                  [class.text-rose-800]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'rejected'"
+                >
+                  {{ getDecisionLabel(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) }}
+                </span>
+                <p class="text-[11px] text-slate-400 font-mono">Modèle XGBoost / BCEAO v2.4</p>
+              </div>
+            </div>
+
+            <!-- 5 Pillars Breakdown (BCEAO Prudentiel) -->
+            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-900 space-y-3">
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white font-mono uppercase">
+                Décomposition des 5 Piliers d'Éligibilité BCEAO
+              </h4>
+
+              <!-- Pilier 1: Solvabilité Financière (30%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">1. Solvabilité Financière & Reste à Vivre</span>
+                  <span class="font-mono font-bold text-purple-900 dark:text-purple-300">27 / 30 pts</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-purple-600 h-full rounded-full" style="width: 90%"></div>
+                </div>
+              </div>
+
+              <!-- Pilier 2: Garanties & Couverture (20%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">2. Garanties Matérielles & Sûretés Réelles</span>
+                  <span class="font-mono font-bold text-emerald-600">
+                    {{ (selectedApproval()?.guarantee_coverage_ratio || 0) >= 1 ? '20' : '15' }} / 20 pts
+                  </span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-emerald-500 h-full rounded-full" [style.width.%]="(selectedApproval()?.guarantee_coverage_ratio || 0) >= 1 ? 100 : 75"></div>
+                </div>
+              </div>
+
+              <!-- Pilier 3: Historique & Régularité (20%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">3. Régularité de Revenus & Historique de Prêt</span>
+                  <span class="font-mono font-bold text-blue-600">18 / 20 pts</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-blue-500 h-full rounded-full" style="width: 90%"></div>
+                </div>
+              </div>
+
+              <!-- Pilier 4: Stabilité Socio-Professionnelle (15%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">4. Ancienneté d'Activité & Localisation Guichet</span>
+                  <span class="font-mono font-bold text-amber-600">14 / 15 pts</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-amber-500 h-full rounded-full" style="width: 93%"></div>
+                </div>
+              </div>
+
+              <!-- Pilier 5: Données Alternatives (15%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">5. Données Alternatives (Mobile Money & Tontine)</span>
+                  <span class="font-mono font-bold text-indigo-600">13 / 15 pts</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-indigo-500 h-full rounded-full" style="width: 86%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Explainability & AI Summary -->
+            <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-lg text-xs space-y-1">
+              <div class="font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                <app-svg-icon name="info" [size]="13" class="text-purple-600"></app-svg-icon>
+                <span>Avis & Commentaires Explicatifs de l'Intelligence Artificielle</span>
+              </div>
+              <p class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                Le demandeur présente une excellente capacité de remboursement avec un reste à vivre net suffisant.
+                Les garanties apportées couvrent les exigences prudentielles. Aucun incident de paiement n'a été détecté.
+              </p>
+            </div>
+          </div>
+
+          <!-- ── VOLET 3 : ARBITRAGE DU COMITÉ DE CRÉDIT ─────────────── -->
+          <div *ngIf="detailTab() === 'arbitration'" class="space-y-4 animate-fade-in">
+            <div class="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-3">
+              <h4 class="text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase font-mono">
+                Séance d'Arbitrage et Signature de la Direction
+              </h4>
+              <p class="text-xs text-slate-600 dark:text-slate-300">
+                Vous disposez de l'autorité finale d'octroi pour valider ou ajuster les conditions du prêt.
+              </p>
+
+              <div class="grid grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Montant Accordé Définitif (FCFA)
+                  </label>
+                  <input
+                    type="number"
+                    step="50000"
+                    [ngModel]="arbitrationAmount()"
+                    (ngModelChange)="arbitrationAmount.set($event)"
+                    class="form-input text-sm font-mono font-bold w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                  />
+                  <span class="text-[10px] text-slate-400">Demandé initial : {{ formatAmount(selectedApproval()?.requested_amount) }}</span>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Durée Validée (Mois)
+                  </label>
+                  <input
+                    type="number"
+                    [ngModel]="arbitrationDuration()"
+                    (ngModelChange)="arbitrationDuration.set($event)"
+                    class="form-input text-sm font-mono font-bold w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Motifs & Observations de la Direction (Piste d'Audit BCEAO)
+                </label>
+                <textarea
+                  rows="3"
+                  [ngModel]="arbitrationNotes()"
+                  (ngModelChange)="arbitrationNotes.set($event)"
+                  class="form-textarea text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                ></textarea>
+              </div>
+            </div>
+
+            <!-- Arbitration Action Buttons -->
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <button
+                (click)="confirmReject()"
+                [disabled]="processingDecision()"
+                class="btn-secondary text-xs py-2 px-4 text-rose-700 border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer font-bold flex items-center gap-1.5"
+              >
+                <app-svg-icon name="x" [size]="14"></app-svg-icon>
+                <span>Rejeter Définitivement</span>
+              </button>
+
+              <button
+                (click)="confirmApprove()"
+                [disabled]="processingDecision() || arbitrationAmount() <= 0"
+                class="btn-primary text-xs py-2 px-5 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer font-bold shadow-md flex items-center gap-1.5"
+              >
+                <app-svg-icon name="check" [size]="14"></app-svg-icon>
+                <span>Accorder le Prêt ({{ formatAmount(arbitrationAmount()) }})</span>
+              </button>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+        <span class="text-[11px] font-mono text-slate-400">
+          Système Sécurisé OpenScore Finance • BCEAO UEMOA
+        </span>
+        <button (click)="closeDetailModal()" class="btn-secondary text-xs cursor-pointer">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ACTION CONFIRMATION MODAL (Accorder / Rejeter) ───────────────── -->
+  <div *ngIf="showActionModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg flex items-center justify-center font-bold border"
+            [class.bg-emerald-50]="actionType() === 'approve'"
+            [class.text-emerald-700]="actionType() === 'approve'"
+            [class.border-emerald-200]="actionType() === 'approve'"
+            [class.bg-rose-50]="actionType() === 'reject'"
+            [class.text-rose-700]="actionType() === 'reject'"
+            [class.border-rose-200]="actionType() === 'reject'"
+          >
+            <app-svg-icon [name]="actionType() === 'approve' ? 'check' : 'x'" [size]="16"></app-svg-icon>
+          </div>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">
+            {{ actionType() === 'approve' ? 'Accorder le Prêt' : 'Refuser la Demande' }}
+          </h3>
+        </div>
+        <button (click)="closeActionModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Dossier Summary -->
+      <div *ngIf="actionItem()" class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg text-xs space-y-1 font-mono">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Dossier :</span>
+          <strong class="text-slate-900 dark:text-white">{{ actionItem()?.reference }}</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Emprunteur :</span>
+          <span class="font-bold text-slate-900 dark:text-white">{{ actionItem()?.applicant_name }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Montant Demandé :</span>
+          <span class="font-bold text-blue-700 dark:text-blue-400">{{ formatAmount(actionItem()?.requested_amount) }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Score Solvabilité :</span>
+          <span class="font-bold text-emerald-600">{{ normalizeScore(actionItem()?.score) }}/100</span>
+        </div>
+      </div>
+
+      <!-- Form for Approve -->
+      <div *ngIf="actionType() === 'approve'" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Montant Accordé Définitif (FCFA) *</label>
+          <input
+            type="number"
+            step="50000"
+            [ngModel]="actionAmount()"
+            (ngModelChange)="actionAmount.set($event)"
+            class="form-input text-xs w-full font-mono font-bold dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Durée Validée (Mois)</label>
+          <input
+            type="number"
+            [ngModel]="actionDuration()"
+            (ngModelChange)="actionDuration.set($event)"
+            class="form-input text-xs w-full font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Observations d'Octroi</label>
+          <textarea
+            rows="2"
+            [ngModel]="actionNotes()"
+            (ngModelChange)="actionNotes.set($event)"
+            class="form-textarea text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Form for Reject -->
+      <div *ngIf="actionType() === 'reject'" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Motif du Refus (Piste d'audit BCEAO) *</label>
+          <textarea
+            rows="3"
+            [ngModel]="actionNotes()"
+            (ngModelChange)="actionNotes.set($event)"
+            placeholder="Précisez le motif du rejet..."
+            class="form-textarea text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <button (click)="closeActionModal()" [disabled]="processingAction()" class="btn-secondary text-xs cursor-pointer">
+          Annuler
+        </button>
+        <button
+          (click)="executeAction()"
+          [disabled]="processingAction() || (actionType() === 'approve' && actionAmount() <= 0)"
+          class="btn-primary text-xs py-2 px-4 font-bold text-white cursor-pointer shadow-sm flex items-center gap-1.5 rounded-lg"
+          [class.bg-emerald-700]="actionType() === 'approve'"
+          [class.hover:bg-emerald-800]="actionType() === 'approve'"
+          [class.bg-rose-700]="actionType() === 'reject'"
+          [class.hover:bg-rose-800]="actionType() === 'reject'"
+        >
+          <app-svg-icon [name]="actionType() === 'approve' ? 'check' : 'x'" [size]="13"></app-svg-icon>
+          <span>{{ processingAction() ? 'Traitement...' : (actionType() === 'approve' ? 'Confirmer l\'Accord' : 'Confirmer le Rejet') }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

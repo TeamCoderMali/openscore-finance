@@ -16,12 +16,12 @@
       <div class="card-body p-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <p class="text-xs text-zinc-500 uppercase tracking-wider font-mono">Score de solvabilité OpenScore ML (0 - 1000)</p>
+            <p class="text-xs text-zinc-500 uppercase tracking-wider font-mono">Score de solvabilité OpenScore ML (0 - 100)</p>
             <div class="flex items-baseline gap-3 mt-1">
               <span class="font-mono text-5xl font-bold" [class]="getScoreColor(scoring()!.score)">
                 {{ scoring()!.score }}
               </span>
-              <span class="font-mono text-lg text-zinc-400 font-semibold">/ 1000</span>
+              <span class="font-mono text-lg text-zinc-400 font-semibold">/ 100</span>
             </div>
             <div class="flex items-center gap-3 mt-3">
               <span [class]="getRiskBadgeClass(scoring()!.risk_level)">
@@ -43,10 +43,10 @@
         <div class="mt-6">
           <div class="flex items-center justify-between text-xs text-zinc-400 font-mono mb-1.5">
             <span>0</span>
-            <span>400 (Rejet)</span>
-            <span>600 (Ajustement)</span>
-            <span>750 (Accord direct)</span>
-            <span>1000</span>
+            <span>40 (Rejet)</span>
+            <span>60 (Ajustement)</span>
+            <span>75 (Accord direct)</span>
+            <span>100</span>
           </div>
           <div class="h-3 bg-zinc-100 rounded-full overflow-hidden relative border border-zinc-200">
             <div class="h-full rounded-full transition-all duration-700 ease-out"
@@ -224,7 +224,7 @@
               <span class="font-mono text-3xl font-bold ml-3" [class]="getScoreColor(recalcResult()!.score)">
                 {{ recalcResult()!.score }}
               </span>
-              <span class="font-mono text-xs text-zinc-400 font-semibold"> / 1000</span>
+              <span class="font-mono text-xs text-zinc-400 font-semibold"> / 100</span>
             </div>
             <span [class]="getDecisionBadgeClass(recalcResult()!.decision)">
               {{ getDecisionLabel(recalcResult()!.decision) }}

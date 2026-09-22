@@ -9,10 +9,11 @@ import { SvgIconComponent } from '../../../../shared/components/svg-icon/svg-ico
 import { SpinnerComponent } from '../../../../shared/components/spinner/spinner.component';
 import {
   CreditApplication, ExtractedData, VerifyDataRequest, AuditLog,
-  ScoringResult, FieldSurveyRequest, ContactClientRequest, ApproveDecisionRequest
+  ScoringResult, ContactClientRequest, ApproveDecisionRequest,
+  Guarantee, Debt, GrantingMethod
 } from '../../../../shared/models/application.model';
 
-type DetailTab = 'certification' | 'field_survey' | 'scoring' | 'audit_logs';
+export type DetailTab = 'financials_guarantees' | 'scoring_shap' | 'decision_method' | 'audit_logs';
 
 @Component({
   selector: 'app-agent-pipeline',
@@ -26,9 +27,15 @@ export class AgentPipelineComponent implements OnInit {
   selectedApp = signal<CreditApplication | null>(null);
   extractedData = signal<ExtractedData | null>(null);
   scoringResult = signal<ScoringResult | null>(null);
-  currentDetailTab = signal<DetailTab>('certification');
+  currentDetailTab = signal<DetailTab>('financials_guarantees');
 
-  // Filters & Search
+  // Guarantees & Debts for Selected Application
+  guarantees = signal<Guarantee[]>([]);
+  debts = signal<Debt[]>([]);
+  applicableGrantingMethod = signal<GrantingMethod | null>(null);
+  allGrantingMethods = signal<GrantingMethod[]>([]);
+
+  // Filters & Multi-Search (Reference OSF-... or Account CMF-...)
   searchQuery = signal<string>('');
   selectedStatusFilter = signal<string>('all');
   selectedSectorFilter = signal<string>('all');
@@ -38,18 +45,41 @@ export class AgentPipelineComponent implements OnInit {
   pipelinePage = signal<number>(1);
   pipelinePageSize = signal<number>(6);
 
-  // Editable verified fields
+  // Editable Financial & Personal Fields (Part 1)
   verifiedFields = signal<VerifyDataRequest>({});
   verificationNotes = signal<string>('');
-  verifying = signal<boolean>(false);
+  savingFinancials = signal<boolean>(false);
 
-  // Field Survey Fields
-  fieldGuaranteeType = signal<string>('Caution solidaire de groupe (Tontine)');
-  fieldGuaranteeValue = signal<number>(500000);
-  fieldMarketReputation = signal<string>('Très favorable');
-  fieldDailyCashFlow = signal<number>(35000);
-  fieldSurveyNotes = signal<string>('');
-  savingFieldSurvey = signal<boolean>(false);
+  // Guarantee Management Modal
+  showAddGuaranteeModal = signal<boolean>(false);
+  newGuaranteeType = signal<string>('terrain');
+  newGuaranteeDesc = signal<string>('');
+  newGuaranteeEst = signal<number>(0);
+  newGuaranteeRet = signal<number>(0);
+  newGuaranteeProof = signal<string>('');
+  savingGuarantee = signal<boolean>(false);
+
+  // Debt Management Modal
+  showAddDebtModal = signal<boolean>(false);
+  newDebtCreditor = signal<string>('');
+  newDebtInternal = signal<boolean>(false);
+  newDebtInitial = signal<number>(0);
+  newDebtRemaining = signal<number>(0);
+  newDebtMonthly = signal<number>(0);
+  savingDebt = signal<boolean>(false);
+
+  // Quick Init Application Modal (By Account Number Only)
+  showQuickInitModal = signal<boolean>(false);
+  quickAccountNumber = signal<string>('');
+  quickAccountInfo = signal<any | null>(null);
+  quickRequestedAmount = signal<number>(1000000);
+  quickRequestedDuration = signal<number>(12);
+  quickBusinessDesc = signal<string>('Renforcement de trésorerie & approvisionnement');
+  searchingAccount = signal<boolean>(false);
+  creatingQuickApp = signal<boolean>(false);
+
+  // Committee Submission (Part 3)
+  submittingToCommittee = signal<boolean>(false);
 
   // Reject Modal
   showRejectModal = signal<boolean>(false);
@@ -57,11 +87,16 @@ export class AgentPipelineComponent implements OnInit {
   rejectNotes = signal<string>('');
   rejectingApp = signal<boolean>(false);
 
-  // Approve Modal (Explicit Human Validation)
+  // Approve Modal
   showApproveModal = signal<boolean>(false);
   approveAmount = signal<number>(1000000);
   approveNotes = signal<string>('');
   approvingApp = signal<boolean>(false);
+
+  // Delete Guarantee/Debt Modal
+  showDeleteConfirmModal = signal<boolean>(false);
+  itemToDelete = signal<{ type: 'guarantee' | 'debt'; id: number; label: string } | null>(null);
+  deletingItem = signal<boolean>(false);
 
   // Direct Contact Modal
   showContactModal = signal<boolean>(false);
@@ -74,12 +109,35 @@ export class AgentPipelineComponent implements OnInit {
   auditLogs = signal<AuditLog[]>([]);
   auditLoading = signal<boolean>(false);
 
-  // Global Loading & Status
+  // Global Loading
   loading = signal<boolean>(false);
   detailLoading = signal<boolean>(false);
   scoringLoading = signal<boolean>(false);
 
-  // Filtered applications list
+  // Computed Totals & Coverage
+  totalGuaranteesEstimated = computed(() =>
+    this.guarantees().reduce((sum, g) => sum + (g.estimated_value || 0), 0)
+  );
+
+  totalGuaranteesRetained = computed(() =>
+    this.guarantees().reduce((sum, g) => sum + (g.retained_value || 0), 0)
+  );
+
+  totalDebtsMonthly = computed(() =>
+    this.debts().reduce((sum, d) => sum + (d.monthly_payment || 0), 0)
+  );
+
+  totalDebtsRemaining = computed(() =>
+    this.debts().reduce((sum, d) => sum + (d.remaining_amount || 0), 0)
+  );
+
+  guaranteeCoverageRatio = computed(() => {
+    const app = this.selectedApp();
+    if (!app || app.requested_amount <= 0) return 0;
+    return Math.round((this.totalGuaranteesRetained() / app.requested_amount) * 100);
+  });
+
+  // Filtered applications list (Multi-Search by reference or account)
   filteredApplications = computed(() => {
     let list = this.applications();
     const query = this.searchQuery().toLowerCase().trim();
@@ -89,6 +147,7 @@ export class AgentPipelineComponent implements OnInit {
     if (query) {
       list = list.filter(a =>
         a.reference.toLowerCase().includes(query) ||
+        (a.account_number && a.account_number.toLowerCase().includes(query)) ||
         (a.applicant_name && a.applicant_name.toLowerCase().includes(query)) ||
         (a.applicant_phone && a.applicant_phone.includes(query)) ||
         (a.applicant_email && a.applicant_email.toLowerCase().includes(query)) ||
@@ -99,9 +158,9 @@ export class AgentPipelineComponent implements OnInit {
 
     if (status !== 'all') {
       if (status === 'pending') {
-        list = list.filter(a => a.status === 'pending_verification');
-      } else if (status === 'verified') {
-        list = list.filter(a => a.status === 'data_verified');
+        list = list.filter(a => a.status === 'pending_verification' || a.status === 'data_verified');
+      } else if (status === 'committee') {
+        list = list.filter(a => a.status === 'pending_committee_approval');
       } else if (status === 'scored') {
         list = list.filter(a => a.status === 'scored');
       } else if (status === 'decided') {
@@ -131,8 +190,8 @@ export class AgentPipelineComponent implements OnInit {
   totalPages = computed(() => Math.max(1, Math.ceil(this.filteredApplications().length / this.pipelinePageSize())));
 
   // KPI summaries
-  pendingCount = computed(() => this.applications().filter(a => a.status === 'pending_verification').length);
-  verifiedCount = computed(() => this.applications().filter(a => a.status === 'data_verified').length);
+  pendingCount = computed(() => this.applications().filter(a => ['pending_verification', 'data_verified'].includes(a.status)).length);
+  committeeCount = computed(() => this.applications().filter(a => a.status === 'pending_committee_approval').length);
   scoredCount = computed(() => this.applications().filter(a => a.status === 'scored').length);
   approvedCount = computed(() => this.applications().filter(a => a.status === 'approved' || a.status === 'adjusted').length);
 
@@ -145,6 +204,7 @@ export class AgentPipelineComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadApplications();
+    this.loadGrantingMethods();
   }
 
   async loadApplications(): Promise<void> {
@@ -152,38 +212,52 @@ export class AgentPipelineComponent implements OnInit {
     try {
       const result = await this.api.getApplications();
       this.applications.set(result.applications);
-    } catch (e: any) {
+    } catch {
       this.toast.error('Erreur chargement', 'Impossible de récupérer la liste des dossiers.');
     } finally {
       this.loading.set(false);
     }
   }
 
+  async loadGrantingMethods(): Promise<void> {
+    try {
+      const methods = await this.api.getGrantingMethods();
+      this.allGrantingMethods.set(methods);
+    } catch {
+      this.allGrantingMethods.set([]);
+    }
+  }
+
   async selectApplication(app: CreditApplication): Promise<void> {
     this.selectedApp.set(app);
     this.detailLoading.set(true);
-    this.currentDetailTab.set('certification');
+    this.currentDetailTab.set('financials_guarantees');
 
     try {
-      const [data, sc] = await Promise.allSettled([
+      const [dataRes, scRes, guarRes, debtsRes] = await Promise.allSettled([
         this.api.getExtractedData(app.id),
         this.api.getScoringResult(app.id),
+        this.api.getGuarantees(app.id),
+        this.api.getDebts(app.id),
       ]);
 
-      if (data.status === 'fulfilled') {
-        const d = data.value;
+      // 1. Extracted Financials
+      if (dataRes.status === 'fulfilled') {
+        const d = dataRes.value;
         this.extractedData.set(d);
         this.verifiedFields.set({
           full_name: d.full_name || app.applicant_name,
           date_of_birth: d.date_of_birth || '',
           id_number: d.id_number || '',
-          id_type: d.id_type || '',
+          id_type: d.id_type || 'NINA',
           monthly_revenue: d.monthly_revenue || 0,
+          secondary_revenue: d.secondary_revenue || 0,
           monthly_expenses: d.monthly_expenses || 0,
+          other_recurring_expenses: d.other_recurring_expenses || 0,
           existing_debt: d.existing_debt || 0,
           business_registration_number: d.business_registration_number || '',
           business_start_date: d.business_start_date || '',
-          years_in_business: d.years_in_business || 0,
+          years_in_business: d.years_in_business || 3,
           revenue_regularity_months: d.revenue_regularity_months || 12,
         });
         this.verificationNotes.set(d.verification_notes || '');
@@ -192,27 +266,47 @@ export class AgentPipelineComponent implements OnInit {
         this.verifiedFields.set({
           full_name: app.applicant_name || 'Demandeur',
           date_of_birth: '1988-06-12',
-          id_number: 'NINA-BKO-8821',
+          id_number: 'ML-NINA-2026',
           id_type: 'NINA',
-          monthly_revenue: Math.round(Math.max(350000, app.requested_amount * 0.6)),
-          monthly_expenses: Math.round(Math.max(120000, app.requested_amount * 0.25)),
+          monthly_revenue: 450000,
+          secondary_revenue: 0,
+          monthly_expenses: 180000,
+          other_recurring_expenses: 0,
           existing_debt: 0,
           business_registration_number: '',
           business_start_date: '2021-01-15',
           years_in_business: 3,
           revenue_regularity_months: 12,
         });
-        this.verificationNotes.set('Évaluation directe et vérification de terrain par l\'agent.');
+        this.verificationNotes.set('Données saisies et certifiées par l\'agent.');
       }
 
-      if (sc.status === 'fulfilled') {
-        this.scoringResult.set(sc.value);
+      // 2. Scoring Result
+      if (scRes.status === 'fulfilled') {
+        this.scoringResult.set(scRes.value);
       } else {
         this.scoringResult.set(null);
       }
 
+      // 3. Guarantees
+      if (guarRes.status === 'fulfilled') {
+        this.guarantees.set(guarRes.value);
+      } else {
+        this.guarantees.set([]);
+      }
+
+      // 4. Debts
+      if (debtsRes.status === 'fulfilled') {
+        this.debts.set(debtsRes.value);
+      } else {
+        this.debts.set([]);
+      }
+
+      // 5. Granting method resolution
+      this.resolveGrantingMethod(app.requested_amount);
+
       this.approveAmount.set(app.requested_amount);
-      this.toast.info('Dossier sélectionné', `Dossier ${app.reference} (${app.applicant_name || 'Client'}) ouvert.`);
+      this.toast.info('Dossier ouvert', `Dossier ${app.reference} (${app.applicant_name || 'Client'}) chargé.`);
     } catch {
       this.extractedData.set(null);
       this.scoringResult.set(null);
@@ -221,10 +315,19 @@ export class AgentPipelineComponent implements OnInit {
     }
   }
 
+  resolveGrantingMethod(amount: number): void {
+    const match = this.allGrantingMethods().find(
+      m => m.is_active && m.min_amount <= amount && m.max_amount >= amount
+    );
+    this.applicableGrantingMethod.set(match || null);
+  }
+
   closeDetail(): void {
     this.selectedApp.set(null);
     this.extractedData.set(null);
     this.scoringResult.set(null);
+    this.guarantees.set([]);
+    this.debts.set([]);
   }
 
   setDetailTab(tab: DetailTab): void {
@@ -234,77 +337,184 @@ export class AgentPipelineComponent implements OnInit {
     }
   }
 
+  // ── PARTIE 1: DONNÉES FINANCIÈRES, DETTES & GARANTIES (ÉDITABLE) ─────
   updateField(field: string, value: any): void {
     this.verifiedFields.update(f => ({ ...f, [field]: value }));
   }
 
-  async submitVerification(): Promise<void> {
+  async saveFinancials(): Promise<void> {
     const app = this.selectedApp();
     if (!app) return;
 
-    this.verifying.set(true);
+    this.savingFinancials.set(true);
     try {
       const fields = this.verifiedFields();
       fields.verification_notes = this.verificationNotes();
       const updatedData = await this.api.verifyData(app.id, fields);
       this.extractedData.set(updatedData);
       this.toast.success(
-        'Données Certifiées',
-        `Le dossier ${app.reference} est certifié conforme. Vous pouvez désormais lancer le calcul du score ML.`
+        'Données Financières Enregistrées',
+        'Les revenus, charges et informations d\'activité ont été certifiés conformes.'
       );
 
       await this.loadApplications();
       const updated = this.applications().find(a => a.id === app.id);
       if (updated) this.selectedApp.set(updated);
     } catch (e: any) {
-      this.toast.error('Échec de validation', e.message);
+      this.toast.error('Erreur enregistrement', e.message);
     } finally {
-      this.verifying.set(false);
+      this.savingFinancials.set(false);
     }
   }
 
-  async saveFieldSurvey(): Promise<void> {
+  // Guarantee Operations
+  openAddGuaranteeModal(): void {
+    this.newGuaranteeType.set('terrain');
+    this.newGuaranteeDesc.set('');
+    this.newGuaranteeEst.set(1000000);
+    this.newGuaranteeRet.set(700000);
+    this.newGuaranteeProof.set('');
+    this.showAddGuaranteeModal.set(true);
+  }
+
+  onEstValChange(est: number): void {
+    this.newGuaranteeEst.set(est);
+    // Suggest standard 70% retained value haircut
+    this.newGuaranteeRet.set(Math.round(est * 0.7));
+  }
+
+  async addGuarantee(): Promise<void> {
     const app = this.selectedApp();
     if (!app) return;
 
-    this.savingFieldSurvey.set(true);
+    if (!this.newGuaranteeDesc() || this.newGuaranteeEst() <= 0) {
+      this.toast.error('Champs requis', 'Veuillez saisir une description et une valeur estimée.');
+      return;
+    }
+
+    this.savingGuarantee.set(true);
     try {
-      const req: FieldSurveyRequest = {
-        guarantee_type: this.fieldGuaranteeType(),
-        guarantee_value: this.fieldGuaranteeValue(),
-        market_reputation: this.fieldMarketReputation(),
-        daily_cash_flow_observed: this.fieldDailyCashFlow(),
-        field_agent_notes: this.fieldSurveyNotes(),
-      };
-      const updated = await this.api.updateFieldSurvey(app.id, req);
-      this.extractedData.set(updated);
-      this.toast.success('Enquête enregistrée', 'Observations terrain et garanties intégrées au dossier.');
+      const g = await this.api.addGuarantee(app.id, {
+        guarantee_type: this.newGuaranteeType(),
+        description: this.newGuaranteeDesc(),
+        estimated_value: this.newGuaranteeEst(),
+        retained_value: this.newGuaranteeRet() || Math.round(this.newGuaranteeEst() * 0.7),
+        proof_reference: this.newGuaranteeProof() || undefined,
+      });
+
+      this.guarantees.update(list => [...list, g]);
+      this.showAddGuaranteeModal.set(false);
+      this.toast.success('Garantie enregistrée', `Garantie "${g.description}" ajoutée au dossier.`);
     } catch (e: any) {
-      this.toast.error('Erreur enregistrement', e.message);
+      this.toast.error('Erreur garantie', e.message);
     } finally {
-      this.savingFieldSurvey.set(false);
+      this.savingGuarantee.set(false);
     }
   }
 
-  // ── Scoring Calculation (Never Auto-Approve) ─────────────────────
-  async evaluateApplication(): Promise<void> {
+  deleteGuarantee(guaranteeId: number): void {
+    const g = this.guarantees().find(item => item.id === guaranteeId);
+    this.itemToDelete.set({
+      type: 'guarantee',
+      id: guaranteeId,
+      label: g ? `${g.guarantee_type} (${g.description || ''})` : 'cette garantie'
+    });
+    this.showDeleteConfirmModal.set(true);
+  }
+
+  // Debt Operations
+  openAddDebtModal(): void {
+    this.newDebtCreditor.set('');
+    this.newDebtInternal.set(false);
+    this.newDebtInitial.set(500000);
+    this.newDebtRemaining.set(300000);
+    this.newDebtMonthly.set(50000);
+    this.showAddDebtModal.set(true);
+  }
+
+  async addDebt(): Promise<void> {
+    const app = this.selectedApp();
+    if (!app) return;
+
+    if (!this.newDebtCreditor() || this.newDebtMonthly() <= 0) {
+      this.toast.error('Champs requis', 'Veuillez préciser le nom du créancier et la mensualité.');
+      return;
+    }
+
+    this.savingDebt.set(true);
+    try {
+      const d = await this.api.addDebt(app.id, {
+        creditor_name: this.newDebtCreditor(),
+        is_internal: this.newDebtInternal(),
+        initial_amount: this.newDebtInitial(),
+        remaining_amount: this.newDebtRemaining(),
+        monthly_payment: this.newDebtMonthly(),
+      });
+
+      this.debts.update(list => [...list, d]);
+      this.showAddDebtModal.set(false);
+      this.toast.success('Dette enregistrée', `Engagement envers ${d.creditor_name} consolidé.`);
+    } catch (e: any) {
+      this.toast.error('Erreur dette', e.message);
+    } finally {
+      this.savingDebt.set(false);
+    }
+  }
+
+  deleteDebt(debtId: number): void {
+    const d = this.debts().find(item => item.id === debtId);
+    this.itemToDelete.set({
+      type: 'debt',
+      id: debtId,
+      label: d ? `dette envers ${d.creditor_name}` : 'cet engagement financier'
+    });
+    this.showDeleteConfirmModal.set(true);
+  }
+
+  async executeDeleteItem(): Promise<void> {
+    const item = this.itemToDelete();
+    const app = this.selectedApp();
+    if (!item || !app) return;
+
+    this.deletingItem.set(true);
+    try {
+      if (item.type === 'guarantee') {
+        await this.api.deleteGuarantee(app.id, item.id);
+        this.guarantees.update(list => list.filter(g => g.id !== item.id));
+        this.toast.info('Garantie retirée', 'La garantie a été supprimée.');
+      } else {
+        await this.api.deleteDebt(app.id, item.id);
+        this.debts.update(list => list.filter(d => d.id !== item.id));
+        this.toast.info('Dette retirée', 'L\'engagement financier a été supprimé.');
+      }
+      this.showDeleteConfirmModal.set(false);
+      this.itemToDelete.set(null);
+    } catch (e: any) {
+      this.toast.error('Erreur suppression', e.message);
+    } finally {
+      this.deletingItem.set(false);
+    }
+  }
+
+  // ── PARTIE 2: ANALYSE & SCORING /100 (RECALCULABLE À VOLONTÉ) ────────
+  async recalculateScore(): Promise<void> {
     const app = this.selectedApp();
     if (!app) return;
 
     this.scoringLoading.set(true);
-    this.toast.info('Calcul ML & SHAP', `Calcul de l'évaluation du risque pour ${app.reference}...`);
+    this.toast.info('Calcul ML & SHAP', `Calcul de l'évaluation sur base 100 pour ${app.reference}...`);
 
     try {
       const scoreRes = await this.api.evaluateApplication(app.id);
       this.scoringResult.set(scoreRes);
       this.toast.success(
-        'Score Calculé (En attente d\'arbitrage)',
-        `Score : ${scoreRes.score}/1000 — Avis Recommandé : ${scoreRes.decision.toUpperCase()}. Le dossier n'est PAS validé directement : votre décision finale d'agent est requise.`
+        'Score Calculé avec Succès',
+        `Score : ${scoreRes.score} / 100 — Recommandation : ${scoreRes.decision.toUpperCase()}.`
       );
       await this.loadApplications();
       const updated = this.applications().find(a => a.id === app.id);
       if (updated) this.selectedApp.set(updated);
-      this.currentDetailTab.set('scoring');
+      this.currentDetailTab.set('scoring_shap');
     } catch (e: any) {
       this.toast.error('Erreur scoring', e.message);
     } finally {
@@ -312,49 +522,94 @@ export class AgentPipelineComponent implements OnInit {
     }
   }
 
-  // ── Human Agent Decision Actions ─────────────────────────────────
-  openApproveModal(): void {
-    const app = this.selectedApp();
-    if (app) {
-      const proposed = this.scoringResult()?.proposed_amount;
-      this.approveAmount.set(proposed || app.requested_amount);
-      this.approveNotes.set('Dossier conforme aux critères d\'éligibilité et validé après examen agent.');
-    }
-    this.showApproveModal.set(true);
-  }
-
-  closeApproveModal(): void {
-    this.showApproveModal.set(false);
-  }
-
-  async confirmApprove(): Promise<void> {
+  // ── PARTIE 3: DÉCISION & TRANSMISSION AU COMITÉ ──────────────────────
+  async submitToCommittee(): Promise<void> {
     const app = this.selectedApp();
     if (!app) return;
 
-    this.approvingApp.set(true);
+    if (!this.scoringResult()) {
+      this.toast.error('Scoring requis', 'Veuillez évaluer et calculer le score avant de soumettre au comité.');
+      return;
+    }
+
+    this.submittingToCommittee.set(true);
     try {
-      const payload: ApproveDecisionRequest = {
-        approved_amount: this.approveAmount(),
-        notes: this.approveNotes(),
-      };
-      const res = await this.api.approveCreditDecision(app.id, payload);
-      this.scoringResult.set(res);
+      const updatedApp = await this.api.submitToCommittee(app.id);
+      this.selectedApp.set(updatedApp);
       this.toast.success(
-        'Dossier Formellement Validé & Accordé !',
-        `Le microcrédit de ${this.formatAmount(this.approveAmount())} pour ${app.applicant_name} a été officiellement validé.`
+        'Dossier Transmis au Comité de Crédit !',
+        `Le dossier ${app.reference} est désormais en file d'attente d'approbation finale par la Direction.`
       );
-      this.closeApproveModal();
       await this.loadApplications();
-      const updated = this.applications().find(a => a.id === app.id);
-      if (updated) this.selectedApp.set(updated);
-      this.currentDetailTab.set('scoring');
     } catch (e: any) {
-      this.toast.error('Erreur validation', e.message);
+      this.toast.error('Erreur transmission', e.message);
     } finally {
-      this.approvingApp.set(false);
+      this.submittingToCommittee.set(false);
     }
   }
 
+  // Quick Init by Account Number
+  openQuickInitModal(): void {
+    this.quickAccountNumber.set('');
+    this.quickAccountInfo.set(null);
+    this.quickRequestedAmount.set(1000000);
+    this.quickRequestedDuration.set(12);
+    this.quickBusinessDesc.set('Renforcement de trésorerie & fonds de roulement');
+    this.showQuickInitModal.set(true);
+  }
+
+  closeQuickInitModal(): void {
+    this.showQuickInitModal.set(false);
+    this.quickAccountInfo.set(null);
+  }
+
+  async searchAccount(): Promise<void> {
+    const accNum = this.quickAccountNumber().trim();
+    if (!accNum) {
+      this.toast.error('Numéro requis', 'Veuillez saisir un numéro de compte (ex: CMF-2026-001245)');
+      return;
+    }
+
+    this.searchingAccount.set(true);
+    try {
+      const info = await this.api.lookupAccount(accNum);
+      this.quickAccountInfo.set(info);
+      this.toast.success('Compte identifié', `Client : ${info.full_name} (${info.activity_sector})`);
+    } catch (e: any) {
+      this.quickAccountInfo.set(null);
+      this.toast.error('Compte introuvable', e.message || 'Numéro de compte non reconnu.');
+    } finally {
+      this.searchingAccount.set(false);
+    }
+  }
+
+  async createQuickApplication(): Promise<void> {
+    if (!this.quickAccountNumber()) {
+      this.toast.error('Compte requis', 'Veuillez renseigner le compte client.');
+      return;
+    }
+
+    this.creatingQuickApp.set(true);
+    try {
+      const newApp = await this.api.quickInitApplication({
+        account_number: this.quickAccountNumber().trim(),
+        requested_amount: this.quickRequestedAmount(),
+        requested_duration_months: this.quickRequestedDuration(),
+        business_description: this.quickBusinessDesc(),
+      });
+
+      this.toast.success('Dossier créé', `Nouveau dossier rapide généré : ${newApp.reference}`);
+      this.closeQuickInitModal();
+      await this.loadApplications();
+      this.selectApplication(newApp);
+    } catch (e: any) {
+      this.toast.error('Erreur création', e.message);
+    } finally {
+      this.creatingQuickApp.set(false);
+    }
+  }
+
+  // Reject / Contact modals
   openRejectModal(): void {
     this.showRejectModal.set(true);
   }
@@ -384,26 +639,6 @@ export class AgentPipelineComponent implements OnInit {
     }
   }
 
-  // ── Direct Client Communication ──────────────────────────────────
-  getCleanPhone(phone?: string): string {
-    if (!phone) return '';
-    return phone.replace(/[^0-9+]/g, '');
-  }
-
-  getWhatsAppUrl(app: CreditApplication): string {
-    const phone = this.getCleanPhone(app.applicant_phone);
-    // Prepend 223 if local Malian 8-digit number
-    let intlPhone = phone.replace('+', '');
-    if (intlPhone.length === 8) {
-      intlPhone = '223' + intlPhone;
-    }
-    const agentName = this.auth.userName() || 'votre agent de crédit';
-    const text = encodeURIComponent(
-      `Bonjour ${app.applicant_name || 'Madame/Monsieur'},\n\nJe suis ${agentName}, agent OpenScore Finance en charge de l'instruction de votre demande de microcrédit réf. ${app.reference}.\n\nJe vous contacte pour faire le point sur votre dossier.`
-    );
-    return `https://wa.me/${intlPhone}?text=${text}`;
-  }
-
   openContactModal(channel: 'whatsapp' | 'phone' | 'email' | 'in_app'): void {
     const app = this.selectedApp();
     if (!app) return;
@@ -420,29 +655,6 @@ export class AgentPipelineComponent implements OnInit {
     this.showContactModal.set(false);
   }
 
-  applyTemplate(templateType: 'missing_docs' | 'field_visit' | 'decision_info'): void {
-    const app = this.selectedApp();
-    if (!app) return;
-    const agentName = this.auth.userName() || 'Votre agent de crédit';
-
-    if (templateType === 'missing_docs') {
-      this.contactSubject.set(`Pièces justificatives requises — Dossier ${app.reference}`);
-      this.contactMessage.set(
-        `Bonjour ${app.applicant_name},\n\nAfin de finaliser l'évaluation de votre crédit (${app.reference}), merci de nous transmettre une copie lisible de votre pièce d'identité (NINA ou CNI) ainsi que le registre d'activité ou carnet de trésorerie.\n\nBien à vous,\n${agentName}`
-      );
-    } else if (templateType === 'field_visit') {
-      this.contactSubject.set(`Visite d'enquête terrain — Dossier ${app.reference}`);
-      this.contactMessage.set(
-        `Bonjour ${app.applicant_name},\n\nDans le cadre de l'instruction de votre prêt ${app.reference}, je prévois un passage à votre point de vente pour une brève visite de courtoisie et constatation d'activité.\nMerci de m'indiquer vos disponibilités.\n\nBien cordialement,\n${agentName}`
-      );
-    } else if (templateType === 'decision_info') {
-      this.contactSubject.set(`Point sur votre microcrédit OpenScore — ${app.reference}`);
-      this.contactMessage.set(
-        `Bonjour ${app.applicant_name},\n\nVotre dossier ${app.reference} a franchi l'étape d'évaluation avec succès. Je suis à votre disposition pour convenir des modalités de décaissement et de signature.\n\nBien à vous,\n${agentName}`
-      );
-    }
-  }
-
   async sendClientCommunication(): Promise<void> {
     const app = this.selectedApp();
     if (!app) return;
@@ -457,15 +669,11 @@ export class AgentPipelineComponent implements OnInit {
       const res = await this.api.contactClient(app.id, payload);
       this.toast.success('Communication Enregistrée', res.message);
 
-      // If WhatsApp selected, also open WhatsApp in new tab with message
       if (this.contactChannel() === 'whatsapp' && app.applicant_phone) {
-        let phone = this.getCleanPhone(app.applicant_phone).replace('+', '');
+        let phone = app.applicant_phone.replace(/[^0-9+]/g, '').replace('+', '');
         if (phone.length === 8) phone = '223' + phone;
         const encodedText = encodeURIComponent(this.contactMessage());
         window.open(`https://wa.me/${phone}?text=${encodedText}`, '_blank');
-      } else if (this.contactChannel() === 'email' && app.applicant_email) {
-        const mailto = `mailto:${app.applicant_email}?subject=${encodeURIComponent(this.contactSubject())}&body=${encodeURIComponent(this.contactMessage())}`;
-        window.open(mailto, '_blank');
       }
 
       this.closeContactModal();
@@ -504,7 +712,8 @@ export class AgentPipelineComponent implements OnInit {
       data_extracted: 'Extraction IA',
       pending_verification: 'À certifier',
       data_verified: 'Certifié conforme',
-      scored: 'Évalué (Arbitrage Requis)',
+      scored: 'Évalué (/100)',
+      pending_committee_approval: 'En attente Comité',
       approved: 'Accordé & Validé',
       adjusted: 'Contre-proposition',
       rejected: 'Refusé',
@@ -517,6 +726,7 @@ export class AgentPipelineComponent implements OnInit {
       case 'pending_verification': return 'badge-warning';
       case 'data_verified': return 'badge-info';
       case 'scored': return 'bg-purple-100 text-purple-900 border border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800';
+      case 'pending_committee_approval': return 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 font-bold';
       case 'approved': return 'badge-success';
       case 'adjusted': return 'badge-warning';
       case 'rejected': return 'badge-danger';
@@ -525,25 +735,17 @@ export class AgentPipelineComponent implements OnInit {
   }
 
   getScoreColor(score: number): string {
-    if (score >= 750) return 'text-emerald-700';
-    if (score >= 600) return 'text-blue-900';
-    if (score >= 400) return 'text-amber-700';
-    return 'text-rose-700';
+    if (score >= 75) return 'text-emerald-700 dark:text-emerald-400';
+    if (score >= 60) return 'text-blue-900 dark:text-blue-400';
+    if (score >= 40) return 'text-amber-700 dark:text-amber-400';
+    return 'text-rose-700 dark:text-rose-400';
   }
 
   getScoreBgColor(score: number): string {
-    if (score >= 750) return 'bg-emerald-50';
-    if (score >= 600) return 'bg-blue-50';
-    if (score >= 400) return 'bg-amber-50';
-    return 'bg-rose-50';
-  }
-
-  onQuickClientSelect(appIdStr: string): void {
-    if (!appIdStr) return;
-    const app = this.applications().find(a => a.id === +appIdStr);
-    if (app) {
-      this.selectApplication(app);
-    }
+    if (score >= 75) return 'bg-emerald-50 dark:bg-emerald-950/30';
+    if (score >= 60) return 'bg-blue-50 dark:bg-blue-950/30';
+    if (score >= 40) return 'bg-amber-50 dark:bg-amber-950/30';
+    return 'bg-rose-50 dark:bg-rose-950/30';
   }
 
   getRiskLabel(risk?: string): string {

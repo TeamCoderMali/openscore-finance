@@ -73,7 +73,7 @@ export class ScoreAuditComponent implements OnInit {
       this.recalcResult.set(result);
       this.toast.success(
         'Simulation mise à jour',
-        `Nouveau score : ${result.score}/1000 — Décision : ${result.decision.toUpperCase()}`
+        `Nouveau score : ${result.score}/100 — Décision : ${result.decision.toUpperCase()}`
       );
     } catch (e: any) {
       this.error.set(e.message);
@@ -105,27 +105,27 @@ export class ScoreAuditComponent implements OnInit {
   }
 
   getScoreColor(score: number): string {
-    if (score >= 750) return 'text-emerald-700';
-    if (score >= 600) return 'text-blue-900';
-    if (score >= 400) return 'text-amber-700';
+    if (score >= 75) return 'text-emerald-700';
+    if (score >= 60) return 'text-blue-900';
+    if (score >= 40) return 'text-amber-700';
     return 'text-rose-700';
   }
 
   getScoreBgColor(score: number): string {
-    if (score >= 750) return 'bg-emerald-50';
-    if (score >= 600) return 'bg-blue-50';
-    if (score >= 400) return 'bg-amber-50';
+    if (score >= 75) return 'bg-emerald-50';
+    if (score >= 60) return 'bg-blue-50';
+    if (score >= 40) return 'bg-amber-50';
     return 'bg-rose-50';
   }
 
   getGaugeWidth(score: number): number {
-    return Math.min(100, Math.max(0, score / 10));
+    return Math.min(100, Math.max(0, score));
   }
 
   getGaugeColor(score: number): string {
-    if (score >= 750) return 'bg-emerald-600';
-    if (score >= 600) return 'bg-blue-700';
-    if (score >= 400) return 'bg-amber-500';
+    if (score >= 75) return 'bg-emerald-600';
+    if (score >= 60) return 'bg-blue-700';
+    if (score >= 40) return 'bg-amber-500';
     return 'bg-rose-600';
   }
 

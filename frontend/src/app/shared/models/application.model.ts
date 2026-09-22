@@ -82,6 +82,8 @@ export interface AdminClientSummary {
   full_name: string;
   email: string;
   phone?: string;
+  account_number?: string;
+  id_number?: string;
   is_active: boolean;
   created_at: string;
   activity_sector?: ActivitySector;
@@ -101,6 +103,8 @@ export interface AdminClientDetail {
   full_name: string;
   email: string;
   phone?: string;
+  account_number?: string;
+  id_number?: string;
   is_active: boolean;
   created_at: string;
   activity_sector?: ActivitySector;
@@ -217,14 +221,131 @@ export type ApplicationStatus =
   | 'pending_verification'
   | 'data_verified'
   | 'scored'
+  | 'pending_committee_approval'
   | 'approved'
   | 'adjusted'
   | 'rejected';
+
+export interface Guarantee {
+  id?: number;
+  application_id?: number;
+  guarantee_type: string;
+  description: string;
+  estimated_value: number;
+  retained_value: number;
+  proof_reference?: string;
+  status?: string;
+  created_at?: string;
+}
+
+export interface Debt {
+  id?: number;
+  application_id?: number;
+  creditor_name: string;
+  is_internal: boolean;
+  initial_amount: number;
+  remaining_amount: number;
+  monthly_payment: number;
+  duration_months?: number;
+  remaining_installments?: number;
+  status?: string;
+  created_at?: string;
+}
+
+export interface MicrofinanceAccount {
+  id: number;
+  account_number: string;
+  full_name: string;
+  phone: string;
+  email?: string;
+  id_number?: string;
+  id_type: string;
+  activity_sector: string;
+  monthly_revenue: number;
+  monthly_expenses: number;
+  years_in_business: number;
+  revenue_regularity_months: number;
+  opened_at: string;
+  status: string;
+}
+
+export interface ScoringVariable {
+  id?: number;
+  policy_id?: number;
+  code: string;
+  name: string;
+  description?: string;
+  weight: number;
+  category: string;
+  impact_direction: string;
+  is_active: boolean;
+  min_val?: number;
+  max_val?: number;
+  calculation_rule?: string;
+}
+
+export interface ScoringPolicy {
+  id: number;
+  version: string;
+  is_active: boolean;
+  approval_threshold: number;
+  counter_proposal_threshold: number;
+  rejection_threshold: number;
+  max_debt_ratio: number;
+  min_disposable_income: number;
+  total_weight?: number;
+  is_weight_valid?: boolean;
+  variables: ScoringVariable[];
+  created_at: string;
+}
+
+export interface GrantingMethod {
+  id: number;
+  min_amount: number;
+  max_amount: number;
+  procedure_name: string;
+  approval_level: string;
+  required_documents: string;
+  min_guarantee_ratio: number;
+  is_active: boolean;
+}
+
+export interface PendingCommitteeApproval {
+  id: number;
+  reference: string;
+  account_number?: string;
+  applicant_name: string;
+  applicant_phone?: string;
+  activity_sector: string;
+  requested_amount: number;
+  requested_duration_months: number;
+  score: number;
+  risk_level: string;
+  recommended_decision: string;
+  algorithmic_decision?: string;
+  proposed_amount?: number;
+  guarantee_coverage_ratio?: number;
+  guarantees_count: number;
+  total_guarantee_value: number;
+  total_debt_monthly: number;
+  agent_name?: string;
+  status?: string;
+  submitted_at: string;
+  updated_at?: string;
+}
+
+export interface QuickApplicationInitRequest {
+  account_number: string;
+  requested_amount: number;
+  requested_duration_months: number;
+  business_description?: string;
+}
 
 export interface CreditApplication {
   id: number;
   reference: string;
   applicant_id: number;
+  account_number?: string;
   applicant_name?: string;
   applicant_phone?: string;
   applicant_email?: string;
@@ -234,6 +355,11 @@ export interface CreditApplication {
   business_description?: string;
   status: ApplicationStatus;
   agent_id?: number;
+  agent_name?: string;
+  guarantee_coverage_ratio?: number;
+  guarantees?: Guarantee[];
+  debts?: Debt[];
+  granting_method?: GrantingMethod;
   created_at: string;
   updated_at: string;
   is_offline_draft?: boolean;
@@ -310,7 +436,9 @@ export interface ExtractedData {
   id_number?: string;
   id_type?: string;
   monthly_revenue?: number;
+  secondary_revenue?: number;
   monthly_expenses?: number;
+  other_recurring_expenses?: number;
   existing_debt?: number;
   business_registration_number?: string;
   business_start_date?: string;
@@ -328,7 +456,9 @@ export interface VerifyDataRequest {
   id_number?: string;
   id_type?: string;
   monthly_revenue?: number;
+  secondary_revenue?: number;
   monthly_expenses?: number;
+  other_recurring_expenses?: number;
   existing_debt?: number;
   business_registration_number?: string;
   business_start_date?: string;
@@ -362,6 +492,8 @@ export interface ScoringResult {
   explainability: ExplainabilityItem[];
   debt_ratio?: number;
   disposable_income?: number;
+  guarantee_coverage_ratio?: number;
+  policy_version?: string;
   scored_at?: string;
 }
 
@@ -395,6 +527,7 @@ export interface AuditLogListResponse {
 // ── Receipt ──────────────────────────────────────────────────────────
 export interface ReceiptData {
   reference: string;
+  account_number?: string;
   applicant_name: string;
   applicant_email: string;
   applicant_phone?: string;
