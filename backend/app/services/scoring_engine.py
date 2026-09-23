@@ -35,10 +35,12 @@ SECTOR_MAP = {
     ActivitySector.AGRICULTURE: 2,
     ActivitySector.ARTISANAT: 3,
     ActivitySector.TPE: 4,
+    ActivitySector.AUTRE: 5,
     "Commerce": 1,
     "Agriculture": 2,
     "Artisanat": 3,
     "TPE": 4,
+    "Autre": 5,
 }
 
 # Default UEMOA scoring policy variables (sum of weights = 1.00 / 100%)

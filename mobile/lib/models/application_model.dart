@@ -12,6 +12,9 @@ class Application {
   final String? businessDescription;
   final String status;
   final int? agentId;
+  final double? approvedAmount;
+  final String? branchCode;
+  final String? applicationType;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -26,6 +29,9 @@ class Application {
     this.businessDescription,
     required this.status,
     this.agentId,
+    this.approvedAmount,
+    this.branchCode,
+    this.applicationType,
     this.createdAt,
     this.updatedAt,
   });
@@ -42,10 +48,18 @@ class Application {
       businessDescription: json['business_description'],
       status: json['status'] ?? 'draft',
       agentId: json['agent_id'],
+      approvedAmount: json['approved_amount'] != null ? (json['approved_amount'] as num).toDouble() : null,
+      branchCode: json['branch_code'],
+      applicationType: json['application_type'],
       createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
       updatedAt: json['updated_at'] != null ? DateTime.tryParse(json['updated_at']) : null,
     );
   }
+
+  bool get isAdjusted =>
+      approvedAmount != null && (approvedAmount! - requestedAmount).abs() > 1;
+
+  double get finalAmount => approvedAmount ?? requestedAmount;
 
   String get statusLabel {
     final s = status.toLowerCase().replaceAll('applicationstatus.', '').trim();
@@ -102,6 +116,7 @@ class Application {
       case 'agriculture': return Icons.agriculture_rounded;
       case 'artisanat': return Icons.handyman_rounded;
       case 'tpe': return Icons.business_center_rounded;
+      case 'autre': return Icons.category_rounded;
       default: return Icons.description_rounded;
     }
   }
@@ -112,7 +127,53 @@ class Application {
       case 'agriculture': return AppTheme.emerald;
       case 'artisanat': return AppTheme.amber;
       case 'tpe': return AppTheme.purple;
+      case 'autre': return const Color(0xFF0D9488);
       default: return AppTheme.slate500;
+    }
+  }
+  String get activitySectorLabel {
+    switch (activitySector.toLowerCase().trim()) {
+      case 'commerce':
+      case 'retail':
+        return 'Commerce';
+      case 'agriculture':
+      case 'farming':
+        return 'Agriculture';
+      case 'artisanat':
+      case 'craft':
+      case 'crafts':
+        return 'Artisanat';
+      case 'tpe':
+      case 'sme':
+      case 'small_business':
+        return 'Très Petite Entreprise (TPE)';
+      case 'autre':
+      case 'other':
+        return 'Autre';
+      default:
+        return activitySector.isNotEmpty ? activitySector : 'Activité Générale';
+    }
+  }
+
+  String get applicationTypeLabel {
+    final t = (applicationType ?? '').toUpperCase().trim();
+    switch (t) {
+      case 'BUSINESS':
+      case 'ENTREPRISE':
+      case 'PME':
+        return 'Entreprise / PME';
+      case 'INDIVIDUAL':
+      case 'PARTICULIER':
+        return 'Particulier / Activité individuelle';
+      case 'SALARIED':
+      case 'SALARIÉ':
+      case 'SALARIE':
+        return 'Salarié du secteur privé';
+      case 'CIVIL_SERVANT':
+      case 'FONCTIONNAIRE':
+        return 'Fonctionnaire d\'État';
+      default:
+        return 'Particulier / Salarié';
     }
   }
 }
@@ -148,5 +209,90 @@ class AuditLog {
     );
   }
 
-  String get actionLabel => action.replaceAll('_', ' ').toUpperCase();
+  String get actionLabel {
+    final a = action.toLowerCase().trim();
+    switch (a) {
+      case 'quick_init_created':
+        return 'Initialisation rapide du dossier';
+      case 'application_created':
+        return 'Création de la demande';
+      case 'documents_uploaded':
+        return 'Documents justificatifs déposés';
+      case 'document_extracted':
+      case 'data_extracted':
+        return 'Extraction automatique OCR';
+      case 'data_verified':
+        return 'Données financières vérifiées';
+      case 'guarantee_added':
+        return 'Garantie matérielle enregistrée';
+      case 'guarantee_deleted':
+        return 'Garantie retirée du dossier';
+      case 'debt_added':
+        return 'Engagement antérieur déclaré';
+      case 'debt_deleted':
+        return 'Engagement antérieur supprimé';
+      case 'scoring_completed':
+        return 'Évaluation & calcul du score';
+      case 'counter_proposal_applied':
+        return 'Proposition alternative appliquée';
+      case 'submitted_to_committee':
+        return 'Dossier transmis au comité de crédit';
+      case 'committee_decision_approved':
+        return 'Crédit accordé par le comité';
+      case 'committee_decision_rejected':
+        return 'Dossier refusé par le comité';
+      case 'committee_decision_adjusted':
+        return 'Ajustement proposé par le comité';
+      case 'committee_document_requested':
+        return 'Pièce complémentaire exigée';
+      case 'document_provided_by_agent':
+        return 'Pièce complémentaire fournie';
+      case 'client_contacted_phone':
+        return 'Contact client par téléphone';
+      case 'client_contacted_sms':
+        return 'Contact client par SMS';
+      case 'client_contacted_whatsapp':
+        return 'Contact client via WhatsApp';
+      case 'client_contacted_email':
+        return 'Contact client par email';
+      case 'client_contacted_in_person':
+        return 'Visite client sur le terrain';
+      case 'client_account_registered_with_profile':
+        return 'Compte client créé avec profil complet';
+      case 'user_created_by_admin':
+        return 'Utilisateur créé par l\'administrateur';
+      case 'user_deleted_by_admin':
+        return 'Utilisateur supprimé';
+      case 'scoring_policy_version_created':
+        return 'Politique de scoring actualisée';
+      case 'client_updated_by_admin':
+        return 'Fiche client mise à jour';
+      case 'application_reassigned_by_admin':
+        return 'Dossier réaffecté';
+      case 'password_reset_by_admin':
+        return 'Mot de passe réinitialisé';
+      case 'branch_created_by_admin':
+        return 'Nouvelle agence configurée';
+      case 'status_updated':
+        return 'Statut du dossier actualisé';
+      case 'application_rejected':
+        return 'Dossier refusé';
+      case 'application_approved':
+        return 'Crédit accordé';
+      default:
+        // French fallback
+        String label = action.replaceAll('_', ' ').trim();
+        final lower = label.toLowerCase();
+        if (lower.contains('init')) return 'Dossier initialisé';
+        if (lower.contains('guarantee')) return 'Garantie enregistrée';
+        if (lower.contains('debt')) return 'Engagement déclaré';
+        if (lower.contains('score') || lower.contains('scoring')) return 'Score calculé';
+        if (lower.contains('committee')) return 'Décision du comité';
+        if (lower.contains('approved')) return 'Crédit accordé';
+        if (lower.contains('rejected')) return 'Dossier refusé';
+        if (lower.contains('adjusted')) return 'Ajustement proposé';
+        if (lower.contains('document') || lower.contains('doc')) return 'Document mis à jour';
+        return label;
+    }
+  }
 }

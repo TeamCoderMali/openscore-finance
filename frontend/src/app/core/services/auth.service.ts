@@ -110,6 +110,7 @@ export class AuthService {
       full_name: data.full_name,
       role: data.role as 'client' | 'agent' | 'admin',
       phone,
+      branch_code: data.branch_code || '701',
     };
 
     this.currentUser.set(user);

@@ -165,6 +165,8 @@ async def register(request: UserRegisterRequest, db: AsyncSession = Depends(get_
             requested_amount=initial_amount,
             requested_duration_months=12,
             business_description=request.business_description or f"Activité {sector_str} déclarée à l'inscription",
+            branch_code=request.branch_code or "701",
+            application_type=request.application_type or "INDIVIDUAL",
             status=ApplicationStatus.PENDING_VERIFICATION,
         )
         db.add(app)
@@ -210,6 +212,7 @@ async def register(request: UserRegisterRequest, db: AsyncSession = Depends(get_
         role=new_user.role.value,
         full_name=new_user.full_name,
         user_id=new_user.id,
+        branch_code=getattr(new_user, "branch_code", "701") or "701",
     )
 
 
@@ -241,6 +244,7 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
         role=user.role.value,
         full_name=str(user.full_name),
         user_id=int(user.id),
+        branch_code=getattr(user, "branch_code", "701") or "701",
     )
 
 

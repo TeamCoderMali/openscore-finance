@@ -67,4 +67,8 @@ export class AdminRiskComponent implements OnInit {
       'Le rapport de conformité prudentielle UEMOA a été généré avec succès.'
     );
   }
+
+  formatAmount(amount?: number | null): string {
+    return (amount || 0).toLocaleString('fr-FR') + ' FCFA';
+  }
 }

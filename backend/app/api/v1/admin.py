@@ -11,16 +11,20 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, func
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.database import (
     User, UserRole, CreditApplication, ExtractedData, ScoringResult,
     ApplicationStatus, AuditLog, get_db, ActivitySector, RiskLevel,
-    ScoringPolicy, ScoringVariable, GrantingMethod
+    ScoringPolicy, ScoringVariable, GrantingMethod,
+    AgentEvaluation, CommitteeReport
 )
 from app.models.schemas import (
     UserOut, AuditLogOut, AuditLogListOut,
     ScoringPolicyCreate, ScoringVariableCreate, ScoringVariableUpdate,
-    GrantingMethodCreate, GrantingMethodUpdate, GrantingMethodOut, CommitteeDecisionRequest
+    GrantingMethodCreate, GrantingMethodUpdate, GrantingMethodOut,
+    CommitteeDecisionRequest, CommitteeDocumentRequest,
+    AgentEvaluationCreate, AgentEvaluationOut, CommitteeReportCreate, CommitteeReportOut
 )
 from app.api.v1.auth import get_current_user, require_role, hash_password
 
@@ -49,6 +53,8 @@ class AdminClientSummaryOut(BaseModel):
     full_name: str
     email: str
     phone: Optional[str] = None
+    account_number: Optional[str] = None
+    branch_code: Optional[str] = "701"
     is_active: bool
     created_at: datetime
     activity_sector: Optional[str] = None
@@ -68,6 +74,8 @@ class AdminClientDetailOut(BaseModel):
     full_name: str
     email: str
     phone: Optional[str] = None
+    account_number: Optional[str] = None
+    branch_code: Optional[str] = "701"
     is_active: bool
     created_at: datetime
     activity_sector: Optional[str] = None
@@ -138,6 +146,13 @@ class RiskMatrixOut(BaseModel):
     par_90: float
     npl_ratio: float
     guarantee_coverage_rate: float
+    in_progress_count: int = 0
+    in_progress_amount: float = 0.0
+    incomplete_count: int = 0
+    approved_count: int = 0
+    approved_amount: float = 0.0
+    rejected_count: int = 0
+    total_applications: int = 0
     sector_risk: Dict[str, Dict[str, Any]]
     branch_risk: Dict[str, Dict[str, Any]]
     stress_test_defaults: Dict[str, float]
@@ -261,6 +276,7 @@ async def get_super_admin_stats(
         "Agriculture": sum(float(a.requested_amount) for a in apps if a.activity_sector == ActivitySector.AGRICULTURE),
         "Artisanat": sum(float(a.requested_amount) for a in apps if a.activity_sector == ActivitySector.ARTISANAT),
         "TPE": sum(float(a.requested_amount) for a in apps if a.activity_sector == ActivitySector.TPE),
+        "Autre": sum(float(a.requested_amount) for a in apps if a.activity_sector == ActivitySector.AUTRE),
     }
 
     # Status summary
@@ -865,6 +881,7 @@ async def get_pending_committee_approvals(
     items = []
     for a in apps:
         scoring = a.scoring_result
+        clean_status = a.status.value if hasattr(a.status, "value") else str(a.status).lower().replace("applicationstatus.", "")
         items.append({
             "id": a.id,
             "reference": a.reference,
@@ -874,7 +891,7 @@ async def get_pending_committee_approvals(
             "activity_sector": a.activity_sector.value if hasattr(a.activity_sector, "value") else str(a.activity_sector),
             "requested_amount": float(a.requested_amount),
             "requested_duration_months": a.requested_duration_months,
-            "status": str(a.status),
+            "status": clean_status,
             "agent_id": a.agent_id,
             "agent_name": a.agent.full_name if a.agent else "Non assigné",
             "score": scoring.score if scoring else None,  # 0-100
@@ -882,6 +899,12 @@ async def get_pending_committee_approvals(
             "algorithmic_decision": scoring.decision if scoring else None,
             "recommended_decision": scoring.decision if scoring else None,
             "proposed_amount": scoring.proposed_amount if scoring else None,
+            "approved_amount": a.approved_amount or (scoring.approved_amount if scoring else None),
+            "approved_duration_months": a.requested_duration_months,
+            "branch_code": getattr(a, "branch_code", "701") or "701",
+            "application_type": getattr(a, "application_type", "INDIVIDUAL") or "INDIVIDUAL",
+            "committee_notes": a.committee_notes,
+            "form_data": a.form_data or {},
             "guarantee_coverage_ratio": float(scoring.guarantee_coverage_ratio) if scoring and scoring.guarantee_coverage_ratio else 0.0,
             "total_guarantee_value": sum(float(g.retained_value or g.estimated_value) for g in a.guarantees),
             "guarantees_count": len(a.guarantees),
@@ -914,21 +937,23 @@ async def process_committee_decision(
         raise HTTPException(status_code=404, detail="Dossier introuvable.")
 
     decision = payload.decision.lower().strip()
-    if decision == "approved":
-        app.status = ApplicationStatus.APPROVED
+    if decision in ["approved", "adjusted"]:
+        app.status = ApplicationStatus.APPROVED if decision == "approved" else ApplicationStatus.ADJUSTED
         grant_amt = payload.approved_amount or float(app.requested_amount)
+        app.approved_amount = grant_amt
+        app.committee_notes = payload.notes
+        if payload.approved_duration_months:
+            app.requested_duration_months = payload.approved_duration_months
         if app.scoring_result:
             app.scoring_result.approved_amount = grant_amt
-            app.scoring_result.decision = "approved"
+            app.scoring_result.decision = decision
+            if payload.approved_duration_months:
+                app.scoring_result.proposed_duration_months = payload.approved_duration_months
     elif decision == "rejected":
         app.status = ApplicationStatus.REJECTED
+        app.committee_notes = payload.notes
         if app.scoring_result:
             app.scoring_result.decision = "rejected"
-    elif decision == "adjusted":
-        app.status = ApplicationStatus.ADJUSTED
-        if app.scoring_result:
-            app.scoring_result.approved_amount = payload.approved_amount
-            app.scoring_result.decision = "adjusted"
     else:
         raise HTTPException(status_code=400, detail="Décision invalide. Valeurs permises: approved, rejected, adjusted")
 
@@ -939,16 +964,87 @@ async def process_committee_decision(
             application_id=app.id,
             user_id=current_user.id,
             action=f"committee_decision_{decision}",
-            details={"admin": current_user.full_name, "approved_amount": payload.approved_amount, "notes": payload.notes},
+            details={
+                "admin": current_user.full_name,
+                "approved_amount": app.approved_amount,
+                "approved_duration_months": app.requested_duration_months,
+                "notes": payload.notes,
+            },
+        )
+    )
+    await db.commit()
+
+    clean_status = app.status.value if hasattr(app.status, "value") else str(app.status).lower().replace("applicationstatus.", "")
+
+    return {
+        "status": "success",
+        "application_id": app.id,
+        "new_status": clean_status,
+        "approved_amount": app.approved_amount,
+        "approved_duration_months": app.requested_duration_months,
+    }
+
+
+@router.post("/applications/{app_id}/request-document")
+async def request_committee_document(
+    app_id: int,
+    payload: CommitteeDocumentRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """
+    Super Admin / Committee requests an additional document/piece from the agent.
+    Directly attaches a notification to the dossier on the agent side.
+    """
+    stmt = select(CreditApplication).where(CreditApplication.id == app_id)
+    res = await db.execute(stmt)
+    app = res.scalar_one_or_none()
+    if not app:
+        raise HTTPException(status_code=404, detail="Dossier introuvable.")
+
+    form_data = dict(app.form_data or {})
+    requests_list = list(form_data.get("document_requests", []))
+
+    new_req = {
+        "id": f"req_{int(datetime.now(timezone.utc).timestamp())}",
+        "document_name": payload.document_name.strip(),
+        "description": payload.description.strip() if payload.description else "",
+        "status": "PENDING",  # PENDING or PROVIDED
+        "requested_by": current_user.full_name,
+        "requested_at": datetime.now(timezone.utc).isoformat(),
+        "provided_file_name": None,
+        "provided_at": None,
+    }
+    requests_list.append(new_req)
+    form_data["document_requests"] = requests_list
+    form_data["has_pending_document_request"] = True
+    form_data["latest_document_request"] = new_req
+
+    app.form_data = form_data
+    flag_modified(app, "form_data")
+    app.updated_at = datetime.now(timezone.utc)
+
+    db.add(
+        AuditLog(
+            application_id=app.id,
+            user_id=current_user.id,
+            action="committee_document_requested",
+            details={
+                "admin": current_user.full_name,
+                "document_name": payload.document_name,
+                "description": payload.description,
+            },
         )
     )
     await db.commit()
 
     return {
         "status": "success",
-        "application_id": app.id,
-        "new_status": app.status.value if hasattr(app.status, "value") else str(app.status),
-        "approved_amount": app.scoring_result.approved_amount if app.scoring_result else None,
+        "message": f"Demande de pièce '{payload.document_name}' transmise à l'agent.",
+        "request": new_req,
+        "document_request": new_req,
+        "document_requests": requests_list,
+        "form_data": form_data,
     }
 
 
@@ -1090,12 +1186,16 @@ async def list_admin_clients(
             rev = latest_app.extracted_data.monthly_revenue
             exp = latest_app.extracted_data.monthly_expenses
 
+        c_branch = getattr(c, "branch_code", "701") or (latest_app.branch_code if latest_app else "701") or "701"
+
         out.append(
             AdminClientSummaryOut(
                 id=c.id,
                 full_name=c.full_name,
                 email=c.email,
                 phone=c.phone,
+                account_number=c.account_number,
+                branch_code=c_branch,
                 is_active=c.is_active,
                 created_at=c.created_at,
                 activity_sector=c_sector,
@@ -1463,31 +1563,267 @@ async def create_regional_branch(
 # ── RISK MATRIX & STRESS TESTING ──────────────────────────────────────
 @router.get("/risk-matrix", response_model=RiskMatrixOut)
 async def get_risk_matrix(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("admin")),
 ):
     """Super Admin systemic risk matrix, PAR index, and stress test baseline."""
-    return RiskMatrixOut(
-        par_30=2.4,
-        par_60=1.1,
-        par_90=0.4,
-        npl_ratio=1.8,
-        guarantee_coverage_rate=84.5,
-        sector_risk={
+    stmt = select(CreditApplication).options(selectinload(CreditApplication.scoring_result))
+    res = await db.execute(stmt)
+    apps = res.scalars().all()
+
+    total_applications = len(apps)
+    in_prog_statuses = [
+        ApplicationStatus.DOCUMENTS_UPLOADED,
+        ApplicationStatus.DATA_EXTRACTED,
+        ApplicationStatus.PENDING_VERIFICATION,
+        ApplicationStatus.DATA_VERIFIED,
+        ApplicationStatus.SCORED,
+        ApplicationStatus.PENDING_COMMITTEE_APPROVAL,
+    ]
+    in_progress_count = sum(1 for a in apps if a.status in in_prog_statuses)
+    in_progress_amount = sum(a.requested_amount for a in apps if a.status in in_prog_statuses)
+    incomplete_count = sum(1 for a in apps if a.status == ApplicationStatus.DRAFT)
+    approved_count = sum(1 for a in apps if a.status in [ApplicationStatus.APPROVED, ApplicationStatus.ADJUSTED])
+    approved_amount = sum((a.approved_amount or a.requested_amount) for a in apps if a.status in [ApplicationStatus.APPROVED, ApplicationStatus.ADJUSTED])
+    rejected_count = sum(1 for a in apps if a.status == ApplicationStatus.REJECTED)
+
+    # Sector breakdown
+    sector_counts: Dict[str, int] = {}
+    for a in apps:
+        raw_sec = getattr(a, "activity_sector", None) or getattr(a, "sector", None)
+        sec = raw_sec.value if hasattr(raw_sec, "value") else (str(raw_sec) if raw_sec else "Commerce")
+        sector_counts[sec] = sector_counts.get(sec, 0) + 1
+
+    total_sec = max(1, sum(sector_counts.values()))
+    sector_risk = {}
+    for sec, count in sector_counts.items():
+        exposure_pct = round((count / total_sec) * 100, 1)
+        sector_risk[sec] = {
+            "exposure_pct": exposure_pct,
+            "par_30": 2.1 if sec == "Commerce" else (3.5 if sec == "Agriculture" else (2.6 if sec == "Autre" else 2.3)),
+            "default_rate": 2.0 if sec == "Commerce" else (3.2 if sec == "Agriculture" else (2.8 if sec == "Autre" else 2.5)),
+            "risk_grade": "Surveillance" if sec in ["TPE", "Autre"] else ("Modéré" if sec == "Agriculture" else "Faible"),
+        }
+    if not sector_risk:
+        sector_risk = {
             "Commerce": {"exposure_pct": 58.0, "par_30": 1.9, "default_rate": 2.1, "risk_grade": "Faible"},
             "Agriculture": {"exposure_pct": 27.0, "par_30": 3.4, "default_rate": 3.8, "risk_grade": "Modéré"},
             "Artisanat": {"exposure_pct": 11.0, "par_30": 2.2, "default_rate": 2.5, "risk_grade": "Faible"},
             "TPE": {"exposure_pct": 4.0, "par_30": 4.1, "default_rate": 4.5, "risk_grade": "Surveillance"},
-        },
-        branch_risk={
-            "Bamako-District": {"active_loans": 28, "exposure": 18500000.0, "par_30": 1.8},
-            "Ségou": {"active_loans": 16, "exposure": 9200000.0, "par_30": 2.6},
-            "Sikasso": {"active_loans": 12, "exposure": 7800000.0, "par_30": 3.1},
-        },
+            "Autre": {"exposure_pct": 0.0, "par_30": 2.6, "default_rate": 2.8, "risk_grade": "Faible"},
+        }
+
+    branch_map = {
+        "701": "Bamako-District",
+        "801": "Sikasso",
+        "901": "Ségou",
+        "bko-central": "Bamako-District",
+        "sik-maraichage": "Sikasso",
+        "seg-region": "Ségou",
+    }
+    branch_stats = {
+        "Bamako-District": {"active_loans": 0, "exposure": 0.0, "par_30": 1.8},
+        "Ségou": {"active_loans": 0, "exposure": 0.0, "par_30": 2.6},
+        "Sikasso": {"active_loans": 0, "exposure": 0.0, "par_30": 3.1},
+    }
+    for a in apps:
+        b_name = branch_map.get(a.branch_code or "701", "Bamako-District")
+        if b_name in branch_stats:
+            branch_stats[b_name]["active_loans"] += 1
+            branch_stats[b_name]["exposure"] += float(a.approved_amount or a.requested_amount)
+
+    par_30 = 2.4
+    par_60 = 1.1
+    par_90 = 0.4
+    if total_applications > 0:
+        ratio_in_prog = in_progress_count / max(1, total_applications)
+        par_30 = round(1.8 + ratio_in_prog * 1.2, 1)
+
+    return RiskMatrixOut(
+        par_30=par_30,
+        par_60=par_60,
+        par_90=par_90,
+        npl_ratio=round(par_30 * 0.75, 1),
+        guarantee_coverage_rate=86.5,
+        in_progress_count=in_progress_count,
+        in_progress_amount=in_progress_amount,
+        incomplete_count=incomplete_count,
+        approved_count=approved_count,
+        approved_amount=approved_amount,
+        rejected_count=rejected_count,
+        total_applications=total_applications,
+        sector_risk=sector_risk,
+        branch_risk=branch_stats,
         stress_test_defaults={
             "income_shock_pct": 0.0,
             "inflation_shock_pct": 0.0,
-            "baseline_par_30": 2.4,
+            "baseline_par_30": par_30,
             "capital_adequacy_ratio": 16.2,
         },
     )
+
+
+# ── AGENT EVALUATIONS ────────────────────────────────────────────────
+@router.post("/agents/{agent_id}/evaluations", response_model=AgentEvaluationOut)
+async def evaluate_agent(
+    agent_id: int,
+    payload: AgentEvaluationCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Admin records a performance and compliance evaluation for a credit officer."""
+    agent_stmt = select(User).where(User.id == agent_id, User.role == UserRole.AGENT)
+    res = await db.execute(agent_stmt)
+    agent = res.scalar_one_or_none()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent non trouvé.")
+
+    eval_record = AgentEvaluation(
+        agent_id=agent_id,
+        admin_id=current_user.id,
+        rating=payload.rating,
+        criteria_scores=payload.criteria_scores or {},
+        comments=payload.comments,
+    )
+    db.add(eval_record)
+    await db.commit()
+    await db.refresh(eval_record)
+
+    return AgentEvaluationOut(
+        id=eval_record.id,
+        agent_id=eval_record.agent_id,
+        admin_id=eval_record.admin_id,
+        admin_name=current_user.full_name,
+        rating=eval_record.rating,
+        criteria_scores=eval_record.criteria_scores,
+        comments=eval_record.comments,
+        created_at=eval_record.created_at,
+    )
+
+
+@router.get("/agents/{agent_id}/evaluations", response_model=List[AgentEvaluationOut])
+async def get_agent_evaluations(
+    agent_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Fetch evaluations for a specific agent."""
+    stmt = (
+        select(AgentEvaluation)
+        .where(AgentEvaluation.agent_id == agent_id)
+        .options(selectinload(AgentEvaluation.admin))
+        .order_by(AgentEvaluation.created_at.desc())
+    )
+    res = await db.execute(stmt)
+    records = res.scalars().all()
+
+    return [
+        AgentEvaluationOut(
+            id=r.id,
+            agent_id=r.agent_id,
+            admin_id=r.admin_id,
+            admin_name=r.admin.full_name if r.admin else "Admin OpenScore",
+            rating=r.rating,
+            criteria_scores=r.criteria_scores,
+            comments=r.comments,
+            created_at=r.created_at,
+        )
+        for r in records
+    ]
+
+
+@router.get("/evaluations", response_model=List[AgentEvaluationOut])
+async def list_all_evaluations(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Fetch all agent evaluations across the institution."""
+    stmt = (
+        select(AgentEvaluation)
+        .options(selectinload(AgentEvaluation.admin))
+        .order_by(AgentEvaluation.created_at.desc())
+    )
+    res = await db.execute(stmt)
+    records = res.scalars().all()
+
+    return [
+        AgentEvaluationOut(
+            id=r.id,
+            agent_id=r.agent_id,
+            admin_id=r.admin_id,
+            admin_name=r.admin.full_name if r.admin else "Admin OpenScore",
+            rating=r.rating,
+            criteria_scores=r.criteria_scores,
+            comments=r.comments,
+            created_at=r.created_at,
+        )
+        for r in records
+    ]
+
+
+# ── COMMITTEE REPORTS ────────────────────────────────────────────────
+@router.post("/committee/reports", response_model=CommitteeReportOut)
+async def create_committee_report(
+    payload: CommitteeReportCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Upload or register a post-committee session report / minutes document."""
+    report = CommitteeReport(
+        title=payload.title,
+        meeting_date=payload.meeting_date,
+        file_name=payload.file_name,
+        file_url=payload.file_url,
+        file_size=payload.file_size or 0,
+        notes=payload.notes,
+        uploaded_by_user_id=current_user.id,
+    )
+    db.add(report)
+    await db.commit()
+    await db.refresh(report)
+
+    return CommitteeReportOut(
+        id=report.id,
+        title=report.title,
+        meeting_date=report.meeting_date,
+        file_name=report.file_name,
+        file_url=report.file_url,
+        file_size=report.file_size,
+        notes=report.notes,
+        uploaded_by_user_id=report.uploaded_by_user_id,
+        uploader_name=current_user.full_name,
+        created_at=report.created_at,
+    )
+
+
+@router.get("/committee/reports", response_model=List[CommitteeReportOut])
+async def list_committee_reports(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    """Retrieve all uploaded committee session reports."""
+    stmt = (
+        select(CommitteeReport)
+        .options(selectinload(CommitteeReport.uploader))
+        .order_by(CommitteeReport.created_at.desc())
+    )
+    res = await db.execute(stmt)
+    reports = res.scalars().all()
+
+    return [
+        CommitteeReportOut(
+            id=r.id,
+            title=r.title,
+            meeting_date=r.meeting_date,
+            file_name=r.file_name,
+            file_url=r.file_url,
+            file_size=r.file_size,
+            notes=r.notes,
+            uploaded_by_user_id=r.uploaded_by_user_id,
+            uploader_name=r.uploader.full_name if r.uploader else "Comité de Crédit",
+            created_at=r.created_at,
+        )
+        for r in reports
+    ]
+
 

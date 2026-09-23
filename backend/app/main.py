@@ -37,6 +37,8 @@ from app.api.v1.auth import router as auth_router, hash_password
 from app.api.v1.applications import router as applications_router
 from app.api.v1.scoring import router as scoring_router
 from app.api.v1.admin import router as admin_router
+from app.api.v1.accounts import router as accounts_router
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -421,7 +423,13 @@ async def lifespan(app: FastAPI):
         # Safe ALTER queries for new columns
         for alter_sql in [
             "ALTER TABLE users ADD COLUMN account_number VARCHAR(50) NULL;",
+            "ALTER TABLE users ADD COLUMN branch_code VARCHAR(50) DEFAULT '701';",
             "ALTER TABLE credit_applications ADD COLUMN account_number VARCHAR(50) NULL;",
+            "ALTER TABLE credit_applications ADD COLUMN branch_code VARCHAR(50) DEFAULT '701';",
+            "ALTER TABLE credit_applications ADD COLUMN application_type VARCHAR(50) DEFAULT 'INDIVIDUAL';",
+            "ALTER TABLE credit_applications ADD COLUMN approved_amount FLOAT NULL;",
+            "ALTER TABLE credit_applications ADD COLUMN committee_notes TEXT NULL;",
+            "ALTER TABLE credit_applications ADD COLUMN form_data JSON NULL;",
             "ALTER TABLE credit_applications MODIFY COLUMN status VARCHAR(50) NOT NULL;",
             "ALTER TABLE extracted_data ADD COLUMN secondary_revenue FLOAT DEFAULT 0.0;",
             "ALTER TABLE extracted_data ADD COLUMN other_recurring_expenses FLOAT DEFAULT 0.0;",
@@ -467,6 +475,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(applications_router, prefix="/api/v1")
 app.include_router(scoring_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
+app.include_router(accounts_router, prefix="/api/v1")
 
 
 @app.get("/api/health")

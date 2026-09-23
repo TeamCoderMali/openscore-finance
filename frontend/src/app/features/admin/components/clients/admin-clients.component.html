@@ -42,6 +42,23 @@
         <option value="Agriculture">Agriculture</option>
         <option value="Artisanat">Artisanat</option>
         <option value="TPE">TPE / PME</option>
+        <option value="Autre">Autre</option>
+      </select>
+
+      <!-- Antenne Régionale -->
+      <select
+        [ngModel]="clientBranchFilter()"
+        (ngModelChange)="clientBranchFilter.set($event); clientsPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono shrink-0 dark:bg-slate-950 dark:border-slate-700 dark:text-white border-blue-300"
+      >
+        <option value="all">Toutes les antennes</option>
+        <option value="701">701 - Bamako District</option>
+        <option value="702">702 - Médina-Coura</option>
+        <option value="801">801 - Sikasso</option>
+        <option value="802">802 - Koutiala</option>
+        <option value="901">901 - Ségou</option>
+        <option value="902">902 - Mopti</option>
+        <option value="903">903 - Kayes</option>
       </select>
 
       <!-- Statut KYC -->
@@ -465,6 +482,7 @@
             <option value="Agriculture">Agriculture</option>
             <option value="Artisanat">Artisanat</option>
             <option value="TPE">TPE</option>
+            <option value="Autre">Autre</option>
           </select>
         </div>
       </div>

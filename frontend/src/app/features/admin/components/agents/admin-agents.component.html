@@ -171,6 +171,13 @@
             </td>
             <td class="text-right space-x-1 whitespace-nowrap">
               <button
+                (click)="openEvalModal(a)"
+                class="btn-ghost text-[10px] py-0.5 px-2 text-amber-700 dark:text-amber-400 font-bold hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer"
+                title="Évaluer la performance et la conformité de cet agent"
+              >
+                ★ Évaluer
+              </button>
+              <button
                 (click)="openReassignModal(a)"
                 class="btn-ghost text-[10px] py-0.5 px-2 text-blue-900 dark:text-blue-400 cursor-pointer"
                 title="Transférer les dossiers de cet agent"
@@ -418,5 +425,167 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL : ÉVALUATION DE PERFORMANCE AGENT (ADMINISTRATEUR)          -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showEvalModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+    <!-- Header -->
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-amber-50/60 dark:bg-amber-950/30">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold text-base">
+          ★
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">Évaluation de Performance Agent</h3>
+          <p class="text-[11px] text-slate-500 font-mono">
+            {{ selectedAgentForEval()?.full_name }} • {{ selectedAgentForEval()?.branch }}
+          </p>
+        </div>
+      </div>
+      <button (click)="closeEvalModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        ✕
+      </button>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="p-5 overflow-y-auto space-y-4 text-xs">
+      <!-- Overall Rating Stars -->
+      <div class="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+        <span class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
+          Note Globale de Performance : <strong class="text-amber-600 font-bold text-sm">{{ evalRating() }} / 5 étoiles</strong>
+        </span>
+        <div class="flex items-center justify-center gap-2 mt-1">
+          <button
+            *ngFor="let star of [1, 2, 3, 4, 5]"
+            type="button"
+            (click)="evalRating.set(star)"
+            class="text-2xl cursor-pointer transition-transform hover:scale-110"
+            [class.text-amber-500]="star <= evalRating()"
+            [class.text-slate-300]="star > evalRating()"
+            [class.dark:text-slate-700]="star > evalRating()"
+          >
+            ★
+          </button>
+        </div>
+      </div>
+
+      <!-- Specific Criteria -->
+      <div class="space-y-3">
+        <h4 class="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-wider font-mono">
+          Critères Prudentiels & Opérationnels (BCEAO)
+        </h4>
+
+        <!-- 1. Diligence -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="font-medium text-slate-700 dark:text-slate-300">1. Diligence & Complétude des dossiers :</span>
+            <strong class="font-mono text-amber-700 dark:text-amber-400">{{ evalDiligence() }}/5</strong>
+          </div>
+          <input
+            type="range" min="1" max="5" step="1"
+            [ngModel]="evalDiligence()"
+            (ngModelChange)="evalDiligence.set(+$event)"
+            class="w-full accent-amber-600 cursor-pointer"
+          />
+        </div>
+
+        <!-- 2. Délai -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="font-medium text-slate-700 dark:text-slate-300">2. Respect des Délais d'instruction :</span>
+            <strong class="font-mono text-amber-700 dark:text-amber-400">{{ evalDelay() }}/5</strong>
+          </div>
+          <input
+            type="range" min="1" max="5" step="1"
+            [ngModel]="evalDelay()"
+            (ngModelChange)="evalDelay.set(+$event)"
+            class="w-full accent-amber-600 cursor-pointer"
+          />
+        </div>
+
+        <!-- 3. Conformité BCEAO -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="font-medium text-slate-700 dark:text-slate-300">3. Conformité aux normes prudentielles BCEAO :</span>
+            <strong class="font-mono text-amber-700 dark:text-amber-400">{{ evalCompliance() }}/5</strong>
+          </div>
+          <input
+            type="range" min="1" max="5" step="1"
+            [ngModel]="evalCompliance()"
+            (ngModelChange)="evalCompliance.set(+$event)"
+            class="w-full accent-amber-600 cursor-pointer"
+          />
+        </div>
+
+        <!-- 4. Qualité du Portefeuille -->
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <span class="font-medium text-slate-700 dark:text-slate-300">4. Qualité du Portefeuille (PAR & Recouvrement) :</span>
+            <strong class="font-mono text-amber-700 dark:text-amber-400">{{ evalPortfolioQuality() }}/5</strong>
+          </div>
+          <input
+            type="range" min="1" max="5" step="1"
+            [ngModel]="evalPortfolioQuality()"
+            (ngModelChange)="evalPortfolioQuality.set(+$event)"
+            class="w-full accent-amber-600 cursor-pointer"
+          />
+        </div>
+      </div>
+
+      <!-- Comments -->
+      <div>
+        <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Observations & Recommandations de l'Administrateur</label>
+        <textarea
+          rows="2"
+          [ngModel]="evalComments()"
+          (ngModelChange)="evalComments.set($event)"
+          placeholder="Commentaires sur la rigueur, les points forts et axes d'amélioration..."
+          class="form-textarea text-xs w-full dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+        ></textarea>
+      </div>
+
+      <!-- Past Evaluations History -->
+      <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
+        <h5 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono mb-2">Historique des Évaluations Récentes</h5>
+
+        <div *ngIf="loadingEvaluations()" class="py-4 flex justify-center">
+          <app-spinner size="sm"></app-spinner>
+        </div>
+
+        <div *ngIf="!loadingEvaluations() && agentEvaluationsList().length === 0" class="text-center py-3 text-slate-400 text-xs">
+          Aucune évaluation antérieure pour cet agent.
+        </div>
+
+        <div *ngIf="!loadingEvaluations() && agentEvaluationsList().length > 0" class="space-y-2 max-h-40 overflow-y-auto">
+          <div
+            *ngFor="let ev of agentEvaluationsList()"
+            class="p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60"
+          >
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-amber-600">★ {{ ev.rating }}/5 étoiles</span>
+              <span class="text-[10px] text-slate-400 font-mono">{{ ev.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <p *ngIf="ev.comments" class="text-[11px] text-slate-600 dark:text-slate-300 mt-1 italic">{{ ev.comments }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="p-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2 bg-slate-50 dark:bg-slate-900">
+      <button type="button" (click)="closeEvalModal()" class="btn-secondary text-xs cursor-pointer">Fermer</button>
+      <button
+        type="button"
+        (click)="submitEvaluation()"
+        [disabled]="submittingEvaluation()"
+        class="btn-primary text-xs py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold cursor-pointer rounded-lg flex items-center gap-1.5"
+      >
+        <span>{{ submittingEvaluation() ? 'Enregistrement...' : 'Valider l\'Évaluation' }}</span>
+      </button>
+    </div>
   </div>
 </div>

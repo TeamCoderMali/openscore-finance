@@ -33,6 +33,19 @@ export class AdminAgentsComponent implements OnInit {
   agentsPage = signal<number>(1);
   agentsPageSize = signal<number>(5);
 
+  // ── Évaluation des Agents (Admin Performance Cockpit) ───────────
+  showEvalModal = signal<boolean>(false);
+  selectedAgentForEval = signal<AdminAgentSummary | null>(null);
+  evalRating = signal<number>(5);
+  evalDiligence = signal<number>(5);
+  evalDelay = signal<number>(5);
+  evalCompliance = signal<number>(5);
+  evalPortfolioQuality = signal<number>(5);
+  evalComments = signal<string>('Diligence constatée dans le traitement des dossiers et respect des directives BCEAO.');
+  agentEvaluationsList = signal<any[]>([]);
+  loadingEvaluations = signal<boolean>(false);
+  submittingEvaluation = signal<boolean>(false);
+
   activeFiltersCount = computed(() => {
     let count = 0;
     if (this.agentSearchQuery().trim()) count++;
@@ -332,5 +345,63 @@ export class AdminAgentsComponent implements OnInit {
   formatDelay(hours: number | null | undefined): string {
     if (hours == null) return '—';
     return `~${hours.toFixed(1)}h`;
+  }
+
+  // ── Évaluation des Agents ───────────────────────────────────────
+  async openEvalModal(agent: AdminAgentSummary): Promise<void> {
+    this.selectedAgentForEval.set(agent);
+    this.evalRating.set(5);
+    this.evalDiligence.set(5);
+    this.evalDelay.set(5);
+    this.evalCompliance.set(5);
+    this.evalPortfolioQuality.set(5);
+    this.evalComments.set('Diligence constatée dans le traitement des dossiers et respect des directives BCEAO.');
+    this.showEvalModal.set(true);
+    await this.loadAgentEvaluations(agent.id);
+  }
+
+  closeEvalModal(): void {
+    this.showEvalModal.set(false);
+    this.selectedAgentForEval.set(null);
+  }
+
+  async loadAgentEvaluations(agentId: number): Promise<void> {
+    this.loadingEvaluations.set(true);
+    try {
+      const data = await this.api.getAgentEvaluations(agentId);
+      this.agentEvaluationsList.set(data || []);
+    } catch (e: any) {
+      this.agentEvaluationsList.set([]);
+    } finally {
+      this.loadingEvaluations.set(false);
+    }
+  }
+
+  async submitEvaluation(): Promise<void> {
+    const agent = this.selectedAgentForEval();
+    if (!agent) return;
+    this.submittingEvaluation.set(true);
+    try {
+      await this.api.evaluateAgent(agent.id, {
+        rating: this.evalRating(),
+        criteria_scores: {
+          diligence: this.evalDiligence(),
+          delay: this.evalDelay(),
+          compliance: this.evalCompliance(),
+          portfolio_quality: this.evalPortfolioQuality(),
+        },
+        comments: this.evalComments(),
+      });
+      this.toast.success(
+        'Agent Évalué !',
+        `La notation de performance pour ${agent.full_name} a été enregistrée avec succès.`
+      );
+      await this.loadAgentEvaluations(agent.id);
+      await this.loadAgents();
+    } catch (e: any) {
+      this.toast.error('Erreur Évaluation', e.message);
+    } finally {
+      this.submittingEvaluation.set(false);
+    }
   }
 }

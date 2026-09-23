@@ -357,6 +357,7 @@ class _SimulatorScreenState extends State<SimulatorScreen> {
                       DropdownMenuItem(value: 'Agriculture', child: Text('Agriculture & Maraîchage')),
                       DropdownMenuItem(value: 'Artisanat', child: Text('Artisanat & Métiers')),
                       DropdownMenuItem(value: 'TPE', child: Text('Très Petite Entreprise / Services')),
+                      DropdownMenuItem(value: 'Autre', child: Text('Autre secteur d\'activité')),
                     ],
                     onChanged: (v) => setState(() => _sector = v ?? 'Commerce'),
                   ),

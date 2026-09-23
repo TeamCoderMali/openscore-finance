@@ -39,6 +39,7 @@ class ActivitySector(str, enum.Enum):
     AGRICULTURE = "Agriculture"
     ARTISANAT = "Artisanat"
     TPE = "TPE"
+    AUTRE = "Autre"
 
 
 class ApplicationStatus(str, enum.Enum):
@@ -82,6 +83,7 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.CLIENT)
     phone: Mapped[str] = mapped_column(String(20), nullable=True)
     account_number: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
+    branch_code: Mapped[str] = mapped_column(String(50), nullable=True, default="701", index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -120,12 +122,17 @@ class CreditApplication(Base):
     reference: Mapped[str] = mapped_column(String(30), unique=True, nullable=False, index=True)
     applicant_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     account_number: Mapped[str] = mapped_column(String(50), nullable=True, index=True)
+    branch_code: Mapped[str] = mapped_column(String(50), nullable=True, default="701", index=True)
+    application_type: Mapped[str] = mapped_column(String(50), default="INDIVIDUAL")  # INDIVIDUAL (Salarié/Particulier) or PME
     activity_sector: Mapped[ActivitySector] = mapped_column(Enum(ActivitySector), nullable=False)
     requested_amount: Mapped[float] = mapped_column(Float, nullable=False)
     requested_duration_months: Mapped[int] = mapped_column(default=12)
+    approved_amount: Mapped[float] = mapped_column(Float, nullable=True)
     business_description: Mapped[str] = mapped_column(Text, nullable=True)
     status: Mapped[ApplicationStatus] = mapped_column(Enum(ApplicationStatus), default=ApplicationStatus.DRAFT)
     agent_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
+    committee_notes: Mapped[str] = mapped_column(Text, nullable=True)
+    form_data: Mapped[dict] = mapped_column(JSON, nullable=True)  # Complete Fiche data (Salarié or PME)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -310,6 +317,60 @@ class AuditLog(Base):
 
     # Relationships
     application: Mapped["CreditApplication"] = relationship("CreditApplication", back_populates="audit_logs")
+
+
+class AgentEvaluation(Base):
+    """Administrator evaluations of credit officers."""
+    __tablename__ = "agent_evaluations"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    agent_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    admin_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    rating: Mapped[float] = mapped_column(Float, default=5.0)  # Rating from 1.0 to 5.0
+    criteria_scores: Mapped[dict] = mapped_column(JSON, nullable=True)  # diligence, speed, bceao_compliance, portfolio_quality
+    comments: Mapped[str] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    agent: Mapped["User"] = relationship("User", foreign_keys=[agent_id])
+    admin: Mapped["User"] = relationship("User", foreign_keys=[admin_id])
+
+
+class CommitteeReport(Base):
+    """Post-committee arbitration minutes and reports uploaded by administrators."""
+    __tablename__ = "committee_reports"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    meeting_date: Mapped[str] = mapped_column(String(50), nullable=False)
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_url: Mapped[str] = mapped_column(Text, nullable=False)  # Download URL or base64 data
+    file_size: Mapped[int] = mapped_column(default=0)  # bytes
+    notes: Mapped[str] = mapped_column(Text, nullable=True)
+    uploaded_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    uploader: Mapped["User"] = relationship("User", foreign_keys=[uploaded_by_user_id])
+
+
+class AccountCreationRequest(Base):
+    """Kafo Jiginew membership & account creation requests from mobile."""
+    __tablename__ = "account_creation_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    phone: Mapped[str] = mapped_column(String(30), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=True)
+    id_type: Mapped[str] = mapped_column(String(50), default="NINA")
+    id_number: Mapped[str] = mapped_column(String(50), nullable=False)
+    birth_date: Mapped[str] = mapped_column(String(30), nullable=True)
+    city: Mapped[str] = mapped_column(String(100), default="Bamako")
+    address: Mapped[str] = mapped_column(String(255), nullable=True)
+    profession: Mapped[str] = mapped_column(String(100), nullable=False)
+    branch_code: Mapped[str] = mapped_column(String(50), default="701")  # 701 (Bamako), 801 (Sikasso), 901 (Ségou)
+    account_type: Mapped[str] = mapped_column(String(50), default="INDIVIDUAL")  # INDIVIDUAL or PME
+    status: Mapped[str] = mapped_column(String(30), default="PENDING")  # PENDING, APPROVED, REJECTED
+    account_number_generated: Mapped[str] = mapped_column(String(50), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 # ── Database initialization ───────────────────────────────────────────

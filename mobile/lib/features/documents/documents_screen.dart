@@ -35,6 +35,12 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
+  List<Application> get _approvedApps => _apps
+      .where((a) =>
+          a.status.toLowerCase() == 'approved' ||
+          a.status.toLowerCase() == 'adjusted')
+      .toList();
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -75,7 +81,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Les récépissés sont disponibles dès qu\'un dossier est évalué par l\'agent.',
+                            'Les récépissés officiels sont délivrés dès qu\'un dossier est validé et approuvé par le comité de crédit.',
                             style: TextStyle(
                                 color: AppTheme.primaryBlue,
                                 fontSize: 11),
@@ -100,10 +106,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                 childCount: 3,
               ),
             )
-          else if (_apps.isEmpty)
+          else if (_approvedApps.isEmpty)
             const SliverFillRemaining(
               child: EmptyState(
-                message: 'Aucun document disponible.\nVos récépissés apparaîtront ici une fois vos dossiers traités.',
+                message: 'Aucun document disponible pour le moment.\nVos récépissés officiels apparaîtront ici dès que vos dossiers seront approuvés par le comité de crédit.',
                 icon: Icons.description_outlined,
               ),
             )
@@ -112,8 +118,8 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (ctx, i) => _DocCard(app: _apps[i], index: i),
-                  childCount: _apps.length,
+                  (ctx, i) => _DocCard(app: _approvedApps[i], index: i),
+                  childCount: _approvedApps.length,
                 ),
               ),
             ),

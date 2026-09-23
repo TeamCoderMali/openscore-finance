@@ -20,6 +20,7 @@ export class AdminClientsComponent implements OnInit {
   // Search & Precise Filters
   clientSearchQuery = signal<string>('');
   clientSectorFilter = signal<string>('all');
+  clientBranchFilter = signal<string>('all');
   clientKycFilter = signal<string>('all');
   clientStatusFilter = signal<string>('all'); // 'all', 'active', 'suspended'
   clientRevenueFilter = signal<string>('all'); // 'all', 'low', 'mid', 'high'
@@ -37,6 +38,7 @@ export class AdminClientsComponent implements OnInit {
     let count = 0;
     if (this.clientSearchQuery().trim()) count++;
     if (this.clientSectorFilter() !== 'all') count++;
+    if (this.clientBranchFilter() !== 'all') count++;
     if (this.clientKycFilter() !== 'all') count++;
     if (this.clientStatusFilter() !== 'all') count++;
     if (this.clientRevenueFilter() !== 'all') count++;
@@ -47,6 +49,7 @@ export class AdminClientsComponent implements OnInit {
   filteredClients = computed(() => {
     let list = this.clients();
     const sector = this.clientSectorFilter();
+    const branch = this.clientBranchFilter();
     const kyc = this.clientKycFilter();
     const status = this.clientStatusFilter();
     const rev = this.clientRevenueFilter();
@@ -67,6 +70,11 @@ export class AdminClientsComponent implements OnInit {
     // 2. Sector
     if (sector !== 'all') {
       list = list.filter(c => c.activity_sector === sector);
+    }
+
+    // 2b. Branch / Site
+    if (branch !== 'all') {
+      list = list.filter(c => (c.branch_code || '701') === branch || (c.account_number && c.account_number.includes(`-${branch}-`)));
     }
 
     // 3. KYC Status
@@ -202,6 +210,7 @@ export class AdminClientsComponent implements OnInit {
   resetFilters(): void {
     this.clientSearchQuery.set('');
     this.clientSectorFilter.set('all');
+    this.clientBranchFilter.set('all');
     this.clientKycFilter.set('all');
     this.clientStatusFilter.set('all');
     this.clientRevenueFilter.set('all');

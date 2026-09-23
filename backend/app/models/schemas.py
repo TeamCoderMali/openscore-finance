@@ -32,6 +32,8 @@ class UserRegisterRequest(BaseModel):
     revenue_regularity_months: Optional[int] = 12
     requested_amount: Optional[float] = None
     business_description: Optional[str] = None
+    branch_code: Optional[str] = "701"
+    application_type: Optional[str] = "INDIVIDUAL"
 
 
 class TokenResponse(BaseModel):
@@ -40,6 +42,7 @@ class TokenResponse(BaseModel):
     role: str
     full_name: str
     user_id: int
+    branch_code: Optional[str] = "701"
 
 
 class UserOut(BaseModel):
@@ -48,6 +51,8 @@ class UserOut(BaseModel):
     full_name: str
     role: str
     phone: Optional[str] = None
+    branch_code: Optional[str] = "701"
+    account_number: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -117,6 +122,15 @@ class AccountLookupOut(BaseModel):
     existing_debts: List[Dict[str, Any]] = []
     known_guarantees: List[Dict[str, Any]] = []
     past_applications: List[Dict[str, Any]] = []
+    branch_code: Optional[str] = "701"
+    suggested_application_type: Optional[str] = "INDIVIDUAL"
+    has_active_other_branch: bool = False
+    has_no_dossier_in_current_branch: bool = True
+    current_agent_branch: Optional[str] = "701"
+    current_agent_branch_name: Optional[str] = "Antenne 701 - Bamako District"
+    other_branch_applications: List[Dict[str, Any]] = []
+    current_branch_applications: List[Dict[str, Any]] = []
+    warning_message: Optional[str] = None
 
 
 class AccountLinkRequest(BaseModel):
@@ -127,14 +141,18 @@ class QuickApplicationInitRequest(BaseModel):
     account_number: str
     requested_amount: float = Field(..., gt=0)
     requested_duration_months: int = Field(default=12, ge=1, le=60)
+    application_type: Optional[str] = "INDIVIDUAL"  # INDIVIDUAL or PME
+    branch_code: Optional[str] = "701"
     activity_sector: Optional[str] = None
     business_description: Optional[str] = None
     monthly_revenue: Optional[float] = None
     monthly_expenses: Optional[float] = None
     years_in_business: Optional[float] = None
     revenue_regularity_months: Optional[int] = None
+    form_data: Optional[Dict[str, Any]] = None
     guarantees: Optional[List[GuaranteeCreate]] = []
     debts: Optional[List[DebtCreate]] = []
+    force_override_cross_branch: Optional[bool] = False
 
 
 # ── Application ──────────────────────────────────────────────────────
@@ -143,12 +161,15 @@ class ActivitySectorEnum(str, Enum):
     AGRICULTURE = "Agriculture"
     ARTISANAT = "Artisanat"
     TPE = "TPE"
+    AUTRE = "Autre"
 
 
 class ApplicationCreate(BaseModel):
     activity_sector: ActivitySectorEnum
     requested_amount: float = Field(..., gt=0, description="Montant demandé en FCFA")
     requested_duration_months: int = Field(default=12, ge=1, le=60)
+    application_type: Optional[str] = "INDIVIDUAL"
+    branch_code: Optional[str] = "701"
     business_description: Optional[str] = None
     account_number: Optional[str] = None
     monthly_revenue: Optional[float] = None
@@ -158,6 +179,7 @@ class ApplicationCreate(BaseModel):
     existing_debt: Optional[float] = 0.0
     years_in_business: Optional[float] = 3.0
     revenue_regularity_months: Optional[int] = 12
+    form_data: Optional[Dict[str, Any]] = None
     guarantees: Optional[List[GuaranteeCreate]] = []
     debts: Optional[List[DebtCreate]] = []
 
@@ -167,16 +189,21 @@ class ApplicationOut(BaseModel):
     reference: str
     applicant_id: int
     account_number: Optional[str] = None
+    branch_code: Optional[str] = "701"
+    application_type: Optional[str] = "INDIVIDUAL"
     applicant_name: Optional[str] = None
     applicant_phone: Optional[str] = None
     applicant_email: Optional[str] = None
     activity_sector: str
     requested_amount: float
     requested_duration_months: int
+    approved_amount: Optional[float] = None
     business_description: Optional[str] = None
     status: str
     agent_id: Optional[int] = None
     agent_name: Optional[str] = None
+    committee_notes: Optional[str] = None
+    form_data: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
     guarantees: Optional[List[GuaranteeOut]] = []
@@ -205,7 +232,13 @@ class ApproveDecisionRequest(BaseModel):
 class CommitteeDecisionRequest(BaseModel):
     decision: str = Field(..., description="approved | rejected | adjusted")
     approved_amount: Optional[float] = None
+    approved_duration_months: Optional[int] = None
     notes: Optional[str] = None
+
+
+class CommitteeDocumentRequest(BaseModel):
+    document_name: str = Field(..., description="Intitulé du document demandé (ex: Relevé bancaire, Titre foncier)")
+    description: Optional[str] = Field(default="", description="Instructions ou motif pour l'agent instructeur")
 
 
 class RejectApplicationRequest(BaseModel):
@@ -506,4 +539,85 @@ class VoiceQueryResponse(BaseModel):
     detected_intent: Optional[str] = None
     suggested_field: Optional[Dict[str, Any]] = None
     audio_base64: Optional[str] = None
+
+
+# ── Agent Evaluation ─────────────────────────────────────────────────
+class AgentEvaluationCreate(BaseModel):
+    rating: float = Field(..., ge=1.0, le=5.0)
+    criteria_scores: Optional[Dict[str, float]] = None
+    comments: Optional[str] = None
+
+
+class AgentEvaluationOut(BaseModel):
+    id: int
+    agent_id: int
+    admin_id: int
+    admin_name: Optional[str] = None
+    rating: float
+    criteria_scores: Optional[Dict[str, Any]] = None
+    comments: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ── Committee Report ─────────────────────────────────────────────────
+class CommitteeReportCreate(BaseModel):
+    title: str = Field(..., min_length=2)
+    meeting_date: str
+    file_name: str
+    file_url: str  # URL or base64
+    file_size: Optional[int] = 0
+    notes: Optional[str] = None
+
+
+class CommitteeReportOut(BaseModel):
+    id: int
+    title: str
+    meeting_date: str
+    file_name: str
+    file_url: str
+    file_size: int
+    notes: Optional[str] = None
+    uploaded_by_user_id: int
+    uploader_name: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ── Kafo Jiginew Account Creation Requests ───────────────────────────
+class KafoJiginewRequestCreate(BaseModel):
+    full_name: str = Field(..., min_length=2)
+    phone: str = Field(..., min_length=6)
+    email: Optional[str] = None
+    id_type: Optional[str] = "NINA"
+    id_number: str = Field(..., min_length=3)
+    birth_date: Optional[str] = None
+    city: str = Field(default="Bamako")
+    address: Optional[str] = None
+    profession: str = Field(..., min_length=2)
+    branch_code: str = Field(default="701")  # 701 (Bamako), 801 (Sikasso), 901 (Ségou)
+    account_type: str = Field(default="INDIVIDUAL")  # INDIVIDUAL or PME
+
+
+class KafoJiginewRequestOut(BaseModel):
+    id: int
+    full_name: str
+    phone: str
+    email: Optional[str] = None
+    id_type: str
+    id_number: str
+    birth_date: Optional[str] = None
+    city: str
+    address: Optional[str] = None
+    profession: str
+    branch_code: str
+    account_type: str
+    status: str
+    account_number_generated: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
 

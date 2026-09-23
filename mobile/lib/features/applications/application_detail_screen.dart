@@ -104,7 +104,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                                     ),
                                   ),
                                   Text(
-                                    _app!.activitySector,
+                                    _app!.activitySectorLabel,
                                     style: TextStyle(
                                         color: AppTheme.slate500, fontSize: 13),
                                   ),
@@ -127,8 +127,26 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                                   monospace: true),
                               const Divider(height: 20),
                               _row('Montant demandé',
-                                  formatFCFA(_app!.requestedAmount),
-                                  color: AppTheme.primaryBlue),
+                                  formatFCFA(_app!.requestedAmount)),
+                              if (_app!.approvedAmount != null) ...[
+                                const Divider(height: 20),
+                                _row(
+                                  _app!.isAdjusted ? 'Montant accordé (Ajusté)' : 'Montant accordé',
+                                  formatFCFA(_app!.approvedAmount!),
+                                  color: AppTheme.emerald,
+                                ),
+                              ],
+                              if (_app!.branchCode != null) ...[
+                                const Divider(height: 20),
+                                _row('Antenne / Caisse', 'Kafo Jiginew ${_app!.branchCode}'),
+                              ],
+                              if (_app!.applicationType != null) ...[
+                                const Divider(height: 20),
+                                _row(
+                                  'Catégorie',
+                                  _app!.applicationTypeLabel,
+                                ),
+                              ],
                               const Divider(height: 20),
                               _row('Durée',
                                   '${_app!.requestedDurationMonths} mois'),

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/shared_widgets.dart';
 
 class VoiceAssistantScreen extends StatefulWidget {
   const VoiceAssistantScreen({super.key});
@@ -25,6 +26,12 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   bool _isListening = false;
   int? _speakingMessageIndex;
   String _selectedLanguage = 'fr'; // 'fr' or 'bm'
+
+  // Diagnostic Mode Interactif Pas-à-Pas
+  int _diagnosticStep = 0; // 0 = standard chat, 1 = revenue, 2 = expenses, 3 = debts, 4 = guarantees
+  double _diagRevenue = 350000;
+  double _diagExpenses = 120000;
+  double _diagDebts = 0;
 
   late final AnimationController _waveCtrl;
 
@@ -121,9 +128,158 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
     super.dispose();
   }
 
+  void _startDiagnostic() {
+    setState(() {
+      _diagnosticStep = 1;
+      _messages.add(
+        _ChatMessage(
+          text: "🚀 Diagnostic de Solvabilité Pas-à-Pas (IA)\n\n"
+              "Étape 1/4 : Quel est votre revenu mensuel moyen (chiffre d'affaires net ou salaire) ?",
+          isBot: true,
+          timestamp: DateTime.now(),
+          suggestions: [
+            "200 000 FCFA / mois",
+            "350 000 FCFA / mois",
+            "600 000 FCFA / mois",
+            "1 000 000 FCFA / mois",
+          ],
+          intent: "DIAG_STEP_1",
+        ),
+      );
+    });
+    _scrollToBottom();
+  }
+
   Future<void> _send(String query) async {
     final clean = query.trim();
     if (clean.isEmpty) return;
+
+    if (clean.toLowerCase().contains("recommencer le diagnostic") ||
+        clean.toLowerCase().contains("démarrer le diagnostic")) {
+      _queryCtrl.clear();
+      _startDiagnostic();
+      return;
+    }
+
+    if (_diagnosticStep > 0) {
+      _queryCtrl.clear();
+      setState(() {
+        _isListening = false;
+        _waveCtrl.stop();
+        _messages.add(_ChatMessage(
+          text: clean,
+          isBot: false,
+          timestamp: DateTime.now(),
+        ));
+      });
+
+      if (_diagnosticStep == 1) {
+        final numMatch = RegExp(r'\d[\d\s]*').firstMatch(clean);
+        if (numMatch != null) {
+          _diagRevenue = double.tryParse(numMatch.group(0)!.replaceAll(' ', '')) ?? 350000;
+        }
+        _diagnosticStep = 2;
+        setState(() {
+          _messages.add(_ChatMessage(
+            text: "Étape 2/4 : Quelles sont vos charges et dépenses mensuelles moyennes (loyer, alimentation, factures, intrants) ?",
+            isBot: true,
+            timestamp: DateTime.now(),
+            suggestions: [
+              "60 000 FCFA",
+              "120 000 FCFA",
+              "200 000 FCFA",
+              "350 000 FCFA",
+            ],
+            intent: "DIAG_STEP_2",
+          ));
+        });
+      } else if (_diagnosticStep == 2) {
+        final numMatch = RegExp(r'\d[\d\s]*').firstMatch(clean);
+        if (numMatch != null) {
+          _diagExpenses = double.tryParse(numMatch.group(0)!.replaceAll(' ', '')) ?? 120000;
+        }
+        _diagnosticStep = 3;
+        setState(() {
+          _messages.add(_ChatMessage(
+            text: "Étape 3/4 : Avez-vous des prêts ou mensualités en cours (banques, microfinance ou tontines) ?",
+            isBot: true,
+            timestamp: DateTime.now(),
+            suggestions: [
+              "Aucune dette en cours (0 FCFA)",
+              "Dette de 50 000 FCFA",
+              "Dette de 150 000 FCFA",
+            ],
+            intent: "DIAG_STEP_3",
+          ));
+        });
+      } else if (_diagnosticStep == 3) {
+        final numMatch = RegExp(r'\d[\d\s]*').firstMatch(clean);
+        if (numMatch != null && !clean.toLowerCase().contains('aucun')) {
+          _diagDebts = double.tryParse(numMatch.group(0)!.replaceAll(' ', '')) ?? 0;
+        } else {
+          _diagDebts = 0;
+        }
+        _diagnosticStep = 4;
+        setState(() {
+          _messages.add(_ChatMessage(
+            text: "Étape 4/4 : De quelles garanties disposez-vous pour consolider votre dossier ?",
+            isBot: true,
+            timestamp: DateTime.now(),
+            suggestions: [
+              "Moto / Véhicule avec carte grise",
+              "Titre de propriété / Lettre d'attribution",
+              "Caution solidaire / Avaliste certifié",
+              "Dépôt de garantie épargne nantie (DGA)",
+            ],
+            intent: "DIAG_STEP_4",
+          ));
+        });
+      } else if (_diagnosticStep == 4) {
+        _diagnosticStep = 0;
+        final netIncome = math.max(0.0, _diagRevenue - _diagExpenses);
+        final debtRatio = _diagRevenue > 0 ? ((_diagDebts + (_diagRevenue * 0.15)) / _diagRevenue) * 100 : 25.0;
+        int score = 75;
+        if (debtRatio <= 30) {
+          score += 12;
+        } else if (debtRatio <= 40) {
+          score += 5;
+        } else {
+          score -= 15;
+        }
+
+        if (netIncome > 200000) {
+          score += 8;
+        }
+        if (clean.toLowerCase().contains('titre') || clean.toLowerCase().contains('épargne') || clean.toLowerCase().contains('dga')) {
+          score += 7;
+        }
+        score = score.clamp(35, 96);
+
+        final risk = score >= 80 ? 'Faible (Favorable)' : (score >= 60 ? 'Modéré (Acceptable)' : 'Élevé (Renforcer garanties)');
+        final maxCapacity = (netIncome * 0.40 * 12).round();
+
+        setState(() {
+          _messages.add(_ChatMessage(
+            text: "📊 RÉSULTAT DE VOTRE DIAGNOSTIC SOLVABILITÉ :\n\n"
+                "• Score estimé : $score / 100\n"
+                "• Niveau de risque : $risk\n"
+                "• Reste à vivre mensuel : ${formatFCFA(netIncome)}\n"
+                "• Ratio d'endettement : ${debtRatio.toStringAsFixed(1)}% (Plafond prudentiel BCEAO : 40%)\n"
+                "• Capacité d'emprunt indicative : ${formatFCFA(maxCapacity.toDouble())} sur 12 mois\n\n"
+                "💡 Recommandation de l'IA : Votre profil présente une bonne assise financière. Vous pouvez soumettre votre dossier directement auprès de votre antenne Kafo Jiginew.",
+            isBot: true,
+            timestamp: DateTime.now(),
+            suggestions: [
+              "Comment faire certifier mes garanties ?",
+              "Recommencer le diagnostic",
+            ],
+            intent: "DIAG_RESULT",
+          ));
+        });
+      }
+      _scrollToBottom();
+      return;
+    }
 
     _queryCtrl.clear();
     setState(() {
@@ -558,6 +714,66 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
             ),
           ),
 
+          const SizedBox(height: 18),
+
+          // ── Diagnostic Express Pas-à-Pas (IA) ─────────────────────────
+          GestureDetector(
+            onTap: _startDiagnostic,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Diagnostic Express du Score /100",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          "Simulez votre éligibilité en 4 questions interactives",
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+                ],
+              ),
+            ),
+          ),
+
           const SizedBox(height: 20),
 
           // 4 Action Cards in Grid (Solid Brand Chart Colors)
@@ -960,15 +1176,17 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            s,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.primaryBlue,
+                          Flexible(
+                            child: Text(
+                              s,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primaryBlue,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 3),
+                          const SizedBox(width: 4),
                           const Icon(
                             Icons.arrow_forward_rounded,
                             size: 11,

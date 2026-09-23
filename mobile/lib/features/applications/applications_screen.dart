@@ -271,13 +271,20 @@ class _AppCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Montant demandé',
-                          style: TextStyle(
-                              color: AppTheme.slate500, fontSize: 10)),
                       Text(
-                        formatFCFA(app.requestedAmount),
+                        app.approvedAmount != null
+                            ? (app.isAdjusted ? 'Accordé (Ajusté)' : 'Montant accordé')
+                            : 'Montant demandé',
                         style: TextStyle(
-                          color: AppTheme.primaryBlue,
+                          color: app.approvedAmount != null ? AppTheme.emerald : AppTheme.slate500,
+                          fontSize: 10,
+                          fontWeight: app.approvedAmount != null ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      Text(
+                        formatFCFA(app.approvedAmount ?? app.requestedAmount),
+                        style: TextStyle(
+                          color: app.approvedAmount != null ? AppTheme.emerald : AppTheme.primaryBlue,
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
                           fontFamily: 'monospace',
@@ -302,31 +309,44 @@ class _AppCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onTap,
-                    icon: const Icon(Icons.history, size: 14),
-                    label: const Text('Audit', style: TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+            Builder(
+              builder: (context) {
+                final bool isApproved = app.status.toLowerCase() == 'approved' ||
+                    app.status.toLowerCase() == 'adjusted';
+                return Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onTap,
+                        icon: const Icon(Icons.history, size: 14),
+                        label: const Text('Historique', style: TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onReceipt,
-                    icon: const Icon(Icons.receipt_long, size: 14),
-                    label:
-                        const Text('Récépissé', style: TextStyle(fontSize: 12)),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: isApproved ? onReceipt : null,
+                        icon: Icon(
+                          isApproved ? Icons.receipt_long : Icons.lock_outline_rounded,
+                          size: 14,
+                        ),
+                        label: Text(
+                          isApproved ? 'Récépissé' : 'En attente',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          backgroundColor: isApproved ? AppTheme.primaryBlue : null,
+                          foregroundColor: isApproved ? Colors.white : null,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
           ],
         ),

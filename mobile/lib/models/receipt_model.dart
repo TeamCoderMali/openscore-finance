@@ -61,15 +61,15 @@ class ReceiptData {
 
   String get decisionLabel {
     final d = decision.toLowerCase().replaceAll('applicationstatus.', '').trim();
-    switch (d) {
-      case 'approved': return 'APPROUVÉ';
-      case 'adjusted': return 'AJUSTÉ';
-      case 'rejected': return 'REFUSÉ';
-      case 'pending_committee_approval': return 'EN ATTENTE COMITÉ';
-      case 'scored': return 'ÉVALUÉ';
-      case 'pending_verification': return 'EN ATTENTE';
-      default: return 'EN COURS';
-    }
+    if (d == 'accordé' || d == 'accorde' || d == 'approved') return 'ACCORDÉ';
+    if (d == 'montant ajusté' || d == 'montant ajuste' || d == 'adjusted') return 'MONTANT AJUSTÉ';
+    if (d == 'refusé' || d == 'refuse' || d == 'rejected') return 'REFUSÉ';
+    if (d == 'en attente comité' || d == 'pending_committee_approval') return 'EN ATTENTE DU COMITÉ';
+    if (d == 'évalué' || d == 'evalue' || d == 'scored') return 'DOSSIER ÉVALUÉ';
+    if (d == 'en attente' || d == 'pending_verification' || d == 'pending') return 'EN ATTENTE DE VÉRIFICATION';
+    if (d == 'draft') return 'BROUILLON';
+    if (d == 'documents_uploaded') return 'DOCUMENTS DÉPOSÉS';
+    return d.replaceAll('_', ' ').toUpperCase();
   }
 
   String get riskLabel {
@@ -80,7 +80,7 @@ class ReceiptData {
       case 'high': return 'Élevé';
       case 'very_high': return 'Très Élevé';
       case 'critical': return 'Critique';
-      default: return r;
+      default: return r.isNotEmpty ? r : 'Non déterminé';
     }
   }
 

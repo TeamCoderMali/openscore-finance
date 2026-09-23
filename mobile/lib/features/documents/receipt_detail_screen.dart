@@ -163,55 +163,66 @@ class _ReceiptDetailScreenState extends State<ReceiptDetailScreen> {
                             ),
 
                             // Decision badge
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              color: _receipt!.decision == 'approved'
-                                  ? AppTheme.emeraldLight
-                                  : _receipt!.decision == 'adjusted'
-                                      ? const Color(0xFFdbeafe)
-                                      : AppTheme.roseLight,
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    _receipt!.decision == 'approved'
-                                        ? Icons.check_circle
-                                        : _receipt!.decision == 'adjusted'
-                                            ? Icons.tune
-                                            : Icons.cancel,
-                                    size: 40,
-                                    color: _receipt!.decision == 'approved'
-                                        ? AppTheme.emerald
-                                        : _receipt!.decision == 'adjusted'
-                                            ? AppTheme.primaryBlue
-                                            : AppTheme.rose,
+                            Builder(
+                              builder: (context) {
+                                final label = _receipt!.decisionLabel;
+                                final isAppr = label == 'ACCORDÉ' || label == 'APPROUVÉ';
+                                final isAdj = label == 'MONTANT AJUSTÉ' || label == 'AJUSTÉ';
+                                final isPending = label.contains('ATTENTE');
+                                final bgColor = isAppr
+                                    ? AppTheme.emeraldLight
+                                    : isAdj
+                                        ? const Color(0xFFdbeafe)
+                                        : isPending
+                                            ? const Color(0xFFfef3c7)
+                                            : AppTheme.roseLight;
+                                final fgColor = isAppr
+                                    ? AppTheme.emerald
+                                    : isAdj
+                                        ? AppTheme.primaryBlue
+                                        : isPending
+                                            ? const Color(0xFFd97706)
+                                            : AppTheme.rose;
+                                final iconData = isAppr
+                                    ? Icons.check_circle
+                                    : isAdj
+                                        ? Icons.tune
+                                        : isPending
+                                            ? Icons.hourglass_top
+                                            : Icons.cancel;
+                                return Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  color: bgColor,
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        iconData,
+                                        size: 40,
+                                        color: fgColor,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        label,
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          color: fgColor,
+                                        ),
+                                      ),
+                                      Text(
+                                        formatFCFA(_receipt!.finalAmount),
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: fgColor,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    _receipt!.decisionLabel,
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w900,
-                                      color: _receipt!.decision == 'approved'
-                                          ? AppTheme.emerald
-                                          : _receipt!.decision == 'adjusted'
-                                              ? AppTheme.primaryBlue
-                                              : AppTheme.rose,
-                                    ),
-                                  ),
-                                  Text(
-                                    formatFCFA(_receipt!.finalAmount),
-                                    style: TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: _receipt!.decision == 'approved'
-                                          ? AppTheme.emerald
-                                          : AppTheme.primaryBlue,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
 
                             // Details

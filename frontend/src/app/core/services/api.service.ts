@@ -209,12 +209,13 @@ export class ApiService {
   }
 
   // ── Applications ─────────────────────────────────────────────────
-  async getApplications(statusFilter?: string, sectorFilter?: string): Promise<ApplicationListResponse> {
+  async getApplications(statusFilter?: string, sectorFilter?: string, branchFilter?: string): Promise<ApplicationListResponse> {
     try {
       let query = '';
       const params = new URLSearchParams();
       if (statusFilter && statusFilter !== 'all') params.append('status_filter', statusFilter);
       if (sectorFilter && sectorFilter !== 'all') params.append('sector_filter', sectorFilter);
+      if (branchFilter && branchFilter !== 'all') params.append('branch_filter', branchFilter);
       if (params.toString()) query = `?${params.toString()}`;
 
       return await this.request<ApplicationListResponse>(`/applications${query}`);
@@ -387,10 +388,26 @@ export class ApiService {
     });
   }
 
-  async quickInitApplication(data: { account_number: string; requested_amount: number; requested_duration_months: number; business_description?: string }): Promise<CreditApplication> {
+  async quickInitApplication(data: {
+    account_number: string;
+    requested_amount: number;
+    requested_duration_months: number;
+    business_description?: string;
+    branch_code?: string;
+    application_type?: string;
+    form_data?: any;
+    force_override_cross_branch?: boolean;
+  }): Promise<CreditApplication> {
     return this.request<CreditApplication>('/applications/quick-init', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async updateApplicationFormData(appId: number, formData: any): Promise<CreditApplication> {
+    return this.request<CreditApplication>(`/applications/${appId}/form-data`, {
+      method: 'PATCH',
+      body: JSON.stringify({ form_data: formData }),
     });
   }
 
@@ -448,10 +465,32 @@ export class ApiService {
     return [];
   }
 
-  async processCommitteeDecision(appId: number, data: { decision: string; approved_amount?: number; notes?: string }): Promise<any> {
+  async processCommitteeDecision(
+    appId: number,
+    data: { decision: string; approved_amount?: number; approved_duration_months?: number; notes?: string }
+  ): Promise<any> {
     return this.request<any>(`/admin/applications/${appId}/committee-decision`, {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async requestCommitteeDocument(appId: number, data: { document_name: string; description?: string }): Promise<any> {
+    return this.request<any>(`/admin/applications/${appId}/request-document`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async uploadRequestedDocument(appId: number, file: File, requestId?: string, notes?: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (requestId) formData.append('request_id', requestId);
+    if (notes) formData.append('notes', notes);
+
+    return this.request<any>(`/applications/${appId}/upload-requested-document`, {
+      method: 'POST',
+      body: formData,
     });
   }
 
@@ -505,6 +544,52 @@ export class ApiService {
     });
   }
 
+  // ── Agent Evaluations ────────────────────────────────────────────
+  async getAgentEvaluations(agentId: number): Promise<any[]> {
+    return this.request<any[]>(`/admin/agents/${agentId}/evaluations`);
+  }
+
+  async evaluateAgent(agentId: number, data: { rating: number; criteria_scores?: any; comments?: string }): Promise<any> {
+    return this.request<any>(`/admin/agents/${agentId}/evaluations`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAllEvaluations(): Promise<any[]> {
+    return this.request<any[]>('/admin/evaluations');
+  }
+
+  // ── Committee Reports ────────────────────────────────────────────
+  async getCommitteeReports(): Promise<any[]> {
+    return this.request<any[]>('/admin/committee/reports');
+  }
+
+  async createCommitteeReport(data: { title: string; meeting_date: string; file_name: string; file_url: string; file_size?: number; notes?: string }): Promise<any> {
+    return this.request<any>('/admin/committee/reports', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ── Kafo Jiginew Account Requests ────────────────────────────────
+  async requestKafoJiginewAccount(data: any): Promise<any> {
+    return this.request<any>('/accounts/kafo-jiginew-request', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async listKafoJiginewRequests(branchCode: string = 'all', statusFilter: string = 'all'): Promise<any[]> {
+    return this.request<any[]>(`/accounts/kafo-jiginew-requests?branch_code=${branchCode}&status_filter=${statusFilter}`);
+  }
+
+  async approveKafoJiginewRequest(requestId: number): Promise<any> {
+    return this.request<any>(`/accounts/kafo-jiginew-requests/${requestId}/approve`, {
+      method: 'POST',
+    });
+  }
+
   // ── Voice Assist ─────────────────────────────────────────────────
   async voiceQuery(queryText: string, language: string = 'fr'): Promise<VoiceQueryResponse> {
     return this.request<VoiceQueryResponse>('/assist/voice-query', {
@@ -513,3 +598,4 @@ export class ApiService {
     });
   }
 }
+

@@ -26,6 +26,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passCtrl = TextEditingController();
   bool _obscure = true;
 
+  // ── Antenne Régionale & Structure Kafo Jiginew ───────────────
+  String _country = 'Mali';
+  String _city = 'Bamako';
+  String _branchCode = '701';
+  String _accountType = 'INDIVIDUAL'; // 'INDIVIDUAL' or 'BUSINESS'
+
+  final List<String> _countries = ['Mali', 'Sénégal', 'Côte d\'Ivoire'];
+  final List<String> _maliCities = ['Bamako', 'Sikasso', 'Ségou', 'Mopti', 'Kayes'];
+  final Map<String, List<Map<String, String>>> _branchesByCity = {
+    'Bamako': [
+      {'code': '701', 'name': '701 - Agence Centrale Bamako (Hamdallaye ACI)'},
+      {'code': '702', 'name': '702 - Caisse Urbaine Médina-Coura'},
+    ],
+    'Sikasso': [
+      {'code': '801', 'name': '801 - Antenne Régionale Sikasso (Wayerma)'},
+      {'code': '802', 'name': '802 - Caisse Rurale Koutiala'},
+    ],
+    'Ségou': [
+      {'code': '901', 'name': '901 - Antenne Régionale Ségou (Pelengana)'},
+    ],
+    'Mopti': [
+      {'code': '902', 'name': '902 - Antenne Mopti (Sévaré)'},
+    ],
+    'Kayes': [
+      {'code': '903', 'name': '903 - Antenne Kayes (Légal Ségou)'},
+    ],
+  };
+
   // ── Step 2 : Profil financier ─────────────────────────────────
   String _sector = 'Commerce';
   double _revenue = 350000;
@@ -49,18 +77,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   XFile? _attestationFile;
 
   // ── Static data ───────────────────────────────────────────────
-  final List<String> _sectors = ['Commerce', 'Agriculture', 'Artisanat', 'TPE'];
+  final List<String> _sectors = ['Commerce', 'Agriculture', 'Artisanat', 'TPE', 'Autre'];
   final Map<String, String> _sectorSubs = {
     'Commerce': 'Grand Marché / Détaillant',
     'Agriculture': 'Maraîchage / cultivateur',
     'Artisanat': 'Couture & Forge',
     'TPE': 'PME Locale',
+    'Autre': 'Activités diverses',
   };
   final Map<String, IconData> _sectorIcons = {
     'Commerce': Icons.storefront_rounded,
     'Agriculture': Icons.agriculture_rounded,
     'Artisanat': Icons.handyman_rounded,
     'TPE': Icons.business_center_rounded,
+    'Autre': Icons.category_rounded,
   };
 
   bool get _isTpe => _sector == 'TPE';
@@ -230,6 +260,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ? 'NIF-${_nifCtrl.text.trim()}'
           : _ninaCtrl.text.trim(),
       'id_type': _isTpe ? 'NIF' : _idType,
+      'branch_code': _branchCode,
+      'city': _city,
+      'application_type': _accountType,
     });
     if (ok && mounted) context.go('/home');
   }
@@ -402,20 +435,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // STEP 1 — Informations personnelles
   // ════════════════════════════════════════════════════════════
   Widget _buildStep1() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Créez votre compte emprunteur',
+            'Demande d\'Ouverture de Compte Kafo Jiginew',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ).animate().fadeIn(duration: 400.ms),
           const SizedBox(height: 4),
           Text(
-            'Espace Microfinance Mali • Sécurisé BCEAO / CIF',
+            'Adhésion Sociétaire & Microfinance • Conforme BCEAO',
             style: Theme.of(context).textTheme.bodySmall,
           ).animate().fadeIn(delay: 100.ms),
           const SizedBox(height: 24),
@@ -476,6 +510,215 @@ class _RegisterScreenState extends State<RegisterScreen> {
               return null;
             },
           ).animate().fadeIn(delay: 350.ms),
+
+          // ── Sélection de l'Antenne & Caisse Régionale Kafo Jiginew ──────
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? AppTheme.darkBorder : AppTheme.slate200,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.account_balance_rounded, size: 18, color: AppTheme.primaryBlue),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Caisse & Antenne Kafo Jiginew',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: isDark ? Colors.white : AppTheme.slate900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Type de Compte (Particulier / Salarié vs Entreprise / PME)
+                Text(
+                  'Catégorie de Sociétaire :',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.slate500),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _accountType = 'INDIVIDUAL'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: _accountType == 'INDIVIDUAL'
+                                ? AppTheme.primaryBlue.withValues(alpha: 0.12)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _accountType == 'INDIVIDUAL' ? AppTheme.primaryBlue : AppTheme.slate300,
+                              width: _accountType == 'INDIVIDUAL' ? 2 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            'Particulier / Salarié',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: _accountType == 'INDIVIDUAL' ? AppTheme.primaryBlue : AppTheme.slate600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _accountType = 'BUSINESS'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: _accountType == 'BUSINESS'
+                                ? AppTheme.primaryBlue.withValues(alpha: 0.12)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: _accountType == 'BUSINESS' ? AppTheme.primaryBlue : AppTheme.slate300,
+                              width: _accountType == 'BUSINESS' ? 2 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            'Entreprise / PME',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: _accountType == 'BUSINESS' ? AppTheme.primaryBlue : AppTheme.slate600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Cascading: Pays & Ville
+                Row(
+                  children: [
+                    // Pays
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Pays *', style: TextStyle(fontSize: 11, color: AppTheme.slate500)),
+                          const SizedBox(height: 4),
+                          DropdownButtonFormField<String>(
+                            initialValue: _country,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                            ),
+                            items: _countries
+                                .map((c) => DropdownMenuItem(
+                                      value: c,
+                                      child: Text(
+                                        c,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? Colors.white : Colors.black,
+                                        ),
+                                      ),
+                                    ))
+                                .toList(),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _country = val);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Ville
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Ville *', style: TextStyle(fontSize: 11, color: AppTheme.slate500)),
+                          const SizedBox(height: 4),
+                          DropdownButtonFormField<String>(
+                            initialValue: _city,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                            ),
+                            items: _maliCities
+                                .map((ct) => DropdownMenuItem(
+                                      value: ct,
+                                      child: Text(
+                                        ct,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? Colors.white : Colors.black,
+                                        ),
+                                      ),
+                                    ))
+                                .toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _city = val;
+                                  final branches = _branchesByCity[val];
+                                  if (branches != null && branches.isNotEmpty) {
+                                    _branchCode = branches.first['code']!;
+                                  }
+                                });
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Antenne / Caisse
+                Text('Antenne / Caisse de rattachement *', style: TextStyle(fontSize: 11, color: AppTheme.slate500)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  initialValue: _branchCode,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  ),
+                  items: (_branchesByCity[_city] ?? [
+                    {'code': '701', 'name': '701 - Agence Centrale Bamako (Hamdallaye ACI)'}
+                  ]).map((b) => DropdownMenuItem(
+                    value: b['code'],
+                    child: Text(
+                      b['name']!,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11, color: isDark ? Colors.white : Colors.black),
+                    ),
+                  )).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _branchCode = val);
+                  },
+                ),
+              ],
+            ),
+          ).animate().fadeIn(delay: 380.ms),
+
           const SizedBox(height: 28),
           PrimaryButton(
             label: 'Continuer',

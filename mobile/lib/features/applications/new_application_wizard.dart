@@ -28,6 +28,34 @@ class _NewApplicationWizardState extends State<NewApplicationWizard> {
   int _duration = 12;
   final _descCtrl = TextEditingController();
 
+  // Antenne & Structure Kafo Jiginew
+  String _country = 'Mali';
+  String _city = 'Bamako';
+  String _branchCode = '701';
+  String _accountType = 'INDIVIDUAL';
+
+  final List<String> _countries = ['Mali', 'Sénégal', 'Côte d\'Ivoire'];
+  final List<String> _maliCities = ['Bamako', 'Sikasso', 'Ségou', 'Mopti', 'Kayes'];
+  final Map<String, List<Map<String, String>>> _branchesByCity = {
+    'Bamako': [
+      {'code': '701', 'name': '701 - Agence Centrale Bamako (Hamdallaye ACI)'},
+      {'code': '702', 'name': '702 - Caisse Urbaine Médina-Coura'},
+    ],
+    'Sikasso': [
+      {'code': '801', 'name': '801 - Antenne Régionale Sikasso (Wayerma)'},
+      {'code': '802', 'name': '802 - Caisse Rurale Koutiala'},
+    ],
+    'Ségou': [
+      {'code': '901', 'name': '901 - Antenne Régionale Ségou (Pelengana)'},
+    ],
+    'Mopti': [
+      {'code': '902', 'name': '902 - Antenne Mopti (Sévaré)'},
+    ],
+    'Kayes': [
+      {'code': '903', 'name': '903 - Antenne Kayes (Légal Ségou)'},
+    ],
+  };
+
   // Step 2 - document
   XFile? _docFile;
   bool _extracting = false;
@@ -39,18 +67,20 @@ class _NewApplicationWizardState extends State<NewApplicationWizard> {
   String? _voiceResponse;
   List<String> _suggestions = [];
 
-  final List<String> _sectors = ['Commerce', 'Agriculture', 'Artisanat', 'TPE'];
+  final List<String> _sectors = ['Commerce', 'Agriculture', 'Artisanat', 'TPE', 'Autre'];
   final Map<String, IconData> _sectorIcons = {
     'Commerce': Icons.storefront_rounded,
     'Agriculture': Icons.agriculture_rounded,
     'Artisanat': Icons.handyman_rounded,
     'TPE': Icons.business_center_rounded,
+    'Autre': Icons.category_rounded,
   };
   final Map<String, String> _sectorSubs = {
     'Commerce': 'Grand Marché / Détaillant',
     'Agriculture': 'Maraîchage Baguinéda',
     'Artisanat': 'Couture & Forge',
     'TPE': 'PME Locale',
+    'Autre': 'Activités diverses',
   };
 
   @override
@@ -87,6 +117,8 @@ class _NewApplicationWizardState extends State<NewApplicationWizard> {
         'business_description': _descCtrl.text.trim().isEmpty
             ? '$_sector – Activité déclarée via mobile'
             : _descCtrl.text.trim(),
+        'branch_code': _branchCode,
+        'application_type': _accountType,
       });
       _createdAppId = result['id'];
       _next();
@@ -555,6 +587,188 @@ class _NewApplicationWizardState extends State<NewApplicationWizard> {
               prefixIcon: Icon(Icons.business_outlined),
               alignLabelWithHint: true,
             ),
+          ),
+
+          // ── Sélection de l'Antenne Régionale ───────────────────────────
+          const SizedBox(height: 16),
+          Builder(
+            builder: (context) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? AppTheme.darkBorder : AppTheme.slate200,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.account_balance_rounded, size: 16, color: AppTheme.primaryBlue),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Antenne Régionale de Rattachement',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: isDark ? Colors.white : AppTheme.slate900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Type de dossier (Particulier / Salarié vs PME)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _accountType = 'INDIVIDUAL'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 7),
+                              decoration: BoxDecoration(
+                                color: _accountType == 'INDIVIDUAL'
+                                    ? AppTheme.primaryBlue.withValues(alpha: 0.12)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _accountType == 'INDIVIDUAL' ? AppTheme.primaryBlue : AppTheme.slate300,
+                                  width: _accountType == 'INDIVIDUAL' ? 2 : 1,
+                                ),
+                              ),
+                              child: Text(
+                                'Particulier',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _accountType == 'INDIVIDUAL' ? AppTheme.primaryBlue : AppTheme.slate600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => setState(() => _accountType = 'BUSINESS'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 7),
+                              decoration: BoxDecoration(
+                                color: _accountType == 'BUSINESS'
+                                    ? AppTheme.primaryBlue.withValues(alpha: 0.12)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: _accountType == 'BUSINESS' ? AppTheme.primaryBlue : AppTheme.slate300,
+                                  width: _accountType == 'BUSINESS' ? 2 : 1,
+                                ),
+                              ),
+                              child: Text(
+                                'Entreprise / PME',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _accountType == 'BUSINESS' ? AppTheme.primaryBlue : AppTheme.slate600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Cascading: Pays & Ville
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Pays', style: TextStyle(fontSize: 10, color: AppTheme.slate500)),
+                              const SizedBox(height: 2),
+                              DropdownButtonFormField<String>(
+                                initialValue: _country,
+                                isExpanded: true,
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                ),
+                                items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c, style: TextStyle(fontSize: 11, color: isDark ? Colors.white : Colors.black)))).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _country = val);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 6,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Ville', style: TextStyle(fontSize: 10, color: AppTheme.slate500)),
+                              const SizedBox(height: 2),
+                              DropdownButtonFormField<String>(
+                                initialValue: _city,
+                                isExpanded: true,
+                                decoration: const InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                ),
+                                items: _maliCities.map((ct) => DropdownMenuItem(value: ct, child: Text(ct, style: TextStyle(fontSize: 11, color: isDark ? Colors.white : Colors.black)))).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _city = val;
+                                      final branches = _branchesByCity[val];
+                                      if (branches != null && branches.isNotEmpty) {
+                                        _branchCode = branches.first['code']!;
+                                      }
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Antenne / Caisse
+                    Text('Antenne / Caisse', style: TextStyle(fontSize: 10, color: AppTheme.slate500)),
+                    const SizedBox(height: 2),
+                    DropdownButtonFormField<String>(
+                      initialValue: _branchCode,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      ),
+                      items: (_branchesByCity[_city] ?? [
+                        {'code': '701', 'name': '701 - Agence Centrale Bamako (Hamdallaye ACI)'}
+                      ]).map((b) => DropdownMenuItem(
+                        value: b['code'],
+                        child: Text(
+                          b['name']!,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: isDark ? Colors.white : Colors.black),
+                        ),
+                      )).toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => _branchCode = val);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
 

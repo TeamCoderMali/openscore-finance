@@ -10,10 +10,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, or_
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.models.database import (
     User, CreditApplication, ExtractedData, ScoringResult,
@@ -33,6 +34,41 @@ from app.services.extraction_service import process_document_extraction
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
 
+BRANCH_NAMES = {
+    "701": "Antenne 701 - Bamako District (Hamdallaye ACI)",
+    "702": "Antenne 702 - Caisse Médina-Coura",
+    "801": "Antenne 801 - Sikasso (Wayerma)",
+    "802": "Antenne 802 - Caisse Rurale Koutiala",
+    "901": "Antenne 901 - Ségou (Pelengana)",
+    "902": "Antenne 902 - Antenne Mopti (Sévaré)",
+    "903": "Antenne 903 - Antenne Kayes (Légal Ségou)",
+}
+
+STATUS_LABELS_FR = {
+    "draft": "Brouillon",
+    "documents_uploaded": "Pièces transmises",
+    "data_extracted": "Données extraites",
+    "pending_verification": "À certifier par l'agent",
+    "data_verified": "Données certifiées",
+    "scored": "Scoring ML calculé",
+    "pending_committee_approval": "En attente comité de crédit",
+    "approved": "Approuvé / En cours de décaissement",
+    "adjusted": "Montant ajusté par le comité",
+    "rejected": "Rejeté",
+}
+
+ACTIVE_APPLICATION_STATUSES = [
+    ApplicationStatus.DRAFT,
+    ApplicationStatus.DOCUMENTS_UPLOADED,
+    ApplicationStatus.DATA_EXTRACTED,
+    ApplicationStatus.PENDING_VERIFICATION,
+    ApplicationStatus.DATA_VERIFIED,
+    ApplicationStatus.SCORED,
+    ApplicationStatus.PENDING_COMMITTEE_APPROVAL,
+    ApplicationStatus.APPROVED,
+    ApplicationStatus.ADJUSTED,
+]
+
 
 def _generate_reference() -> str:
     """Generate unique application reference: OSF-YYYYMMDD-XXXX"""
@@ -41,7 +77,7 @@ def _generate_reference() -> str:
     return f"OSF-{now.strftime('%Y%m%d')}-{short_id}"
 
 
-def _application_to_out(app: CreditApplication) -> ApplicationOut:
+def _application_to_out(app: CreditApplication, hide_score: bool = False) -> ApplicationOut:
     sector_val = app.activity_sector.value if hasattr(app.activity_sector, "value") else str(app.activity_sector)
     status_val = app.status.value if hasattr(app.status, "value") else str(app.status)
     name = app.applicant.full_name if app.applicant else None
@@ -53,13 +89,13 @@ def _application_to_out(app: CreditApplication) -> ApplicationOut:
     debts_out = [DebtOut.model_validate(d) for d in app.debts] if app.debts else []
 
     scoring_dict = None
-    if app.scoring_result:
+    if app.scoring_result and not hide_score:
         sr = app.scoring_result
         scoring_dict = {
             "score": sr.score,  # 0-100
             "risk_level": sr.risk_level.value if hasattr(sr.risk_level, "value") else str(sr.risk_level),
             "decision": sr.decision,
-            "approved_amount": sr.approved_amount,
+            "approved_amount": sr.approved_amount or app.approved_amount,
             "proposed_amount": sr.proposed_amount,
             "proposed_duration_months": sr.proposed_duration_months,
             "debt_ratio": sr.debt_ratio,
@@ -74,16 +110,21 @@ def _application_to_out(app: CreditApplication) -> ApplicationOut:
         reference=str(app.reference),
         applicant_id=int(app.applicant_id),
         account_number=app.account_number or (app.applicant.account_number if app.applicant else None),
+        branch_code=getattr(app, "branch_code", "701") or "701",
+        application_type=getattr(app, "application_type", "INDIVIDUAL") or "INDIVIDUAL",
         applicant_name=name,
         applicant_phone=phone,
         applicant_email=email,
         activity_sector=sector_val,
         requested_amount=float(app.requested_amount),
         requested_duration_months=int(app.requested_duration_months),
+        approved_amount=app.approved_amount or (app.scoring_result.approved_amount if app.scoring_result else None),
         business_description=app.business_description,
         status=status_val,
         agent_id=int(app.agent_id) if app.agent_id else None,
         agent_name=agent_name,
+        committee_notes=app.committee_notes,
+        form_data=app.form_data or {},
         created_at=app.created_at,
         updated_at=app.updated_at,
         guarantees=guarantees_out,
@@ -122,11 +163,16 @@ async def search_applications(
                 User.phone.ilike(term),
             )
         )
-        .order_by(desc(CreditApplication.created_at))
     )
+
+    if current_user.role == UserRole.AGENT:
+        agent_branch = getattr(current_user, "branch_code", "701") or "701"
+        stmt = stmt.where(or_(CreditApplication.branch_code == agent_branch, CreditApplication.agent_id == current_user.id))
+
+    stmt = stmt.order_by(desc(CreditApplication.created_at))
     result = await db.execute(stmt)
     apps = result.scalars().all()
-    out_list = [_application_to_out(a) for a in apps]
+    out_list = [_application_to_out(a, hide_score=(current_user.role == UserRole.AGENT)) for a in apps]
     return ApplicationListOut(applications=out_list, total=len(out_list))
 
 
@@ -139,7 +185,7 @@ async def lookup_microfinance_account(
 ):
     """
     Look up known client information from their microfinance account number.
-    Returns existing profile, financial history, and past applications.
+    Returns existing profile, financial history, past applications, and cross-branch risk report.
     """
     clean_acc = account_number.strip().upper()
     stmt = select(MicrofinanceAccount).where(MicrofinanceAccount.account_number == clean_acc)
@@ -149,7 +195,11 @@ async def lookup_microfinance_account(
     if not acc:
         raise HTTPException(status_code=404, detail="Numéro de compte microfinance introuvable.")
 
-    # Find past applications linked to this account
+    current_agent_branch = "701"
+    if current_user:
+        current_agent_branch = getattr(current_user, "branch_code", "701") or "701"
+
+    # Find past applications linked to this account or client phone
     app_stmt = (
         select(CreditApplication)
         .options(selectinload(CreditApplication.scoring_result))
@@ -157,12 +207,13 @@ async def lookup_microfinance_account(
             or_(
                 CreditApplication.account_number == clean_acc,
                 CreditApplication.applicant.has(account_number=clean_acc),
+                CreditApplication.applicant.has(phone=acc.phone) if acc.phone else False,
             )
         )
         .order_by(desc(CreditApplication.created_at))
     )
     app_res = await db.execute(app_stmt)
-    past_apps = app_res.scalars().all()
+    all_apps = app_res.scalars().all()
 
     past_apps_summary = [
         {
@@ -171,10 +222,70 @@ async def lookup_microfinance_account(
             "requested_amount": float(a.requested_amount),
             "status": str(a.status),
             "score": a.scoring_result.score if a.scoring_result else None,
-            "created_at": a.created_at.isoformat(),
+            "branch_code": a.branch_code or "701",
+            "branch_name": BRANCH_NAMES.get(a.branch_code or "701", f"Antenne {a.branch_code}"),
+            "created_at": a.created_at.isoformat() if a.created_at else "",
         }
-        for a in past_apps
+        for a in all_apps
     ]
+
+    current_branch_active = [
+        a for a in all_apps
+        if (a.branch_code or "701") == current_agent_branch and a.status in ACTIVE_APPLICATION_STATUSES
+    ]
+    other_branch_active = [
+        a for a in all_apps
+        if (a.branch_code or "701") != current_agent_branch and a.status in ACTIVE_APPLICATION_STATUSES
+    ]
+
+    has_active_other_branch = len(other_branch_active) > 0
+    has_no_dossier_in_current_branch = len(current_branch_active) == 0
+
+    other_branch_summary = [
+        {
+            "id": a.id,
+            "reference": a.reference,
+            "branch_code": a.branch_code or "701",
+            "branch_name": BRANCH_NAMES.get(a.branch_code or "701", f"Antenne {a.branch_code}"),
+            "status": a.status.value if hasattr(a.status, "value") else str(a.status),
+            "status_label": STATUS_LABELS_FR.get(a.status.value if hasattr(a.status, "value") else str(a.status), str(a.status)),
+            "requested_amount": float(a.requested_amount),
+            "approved_amount": float(a.approved_amount) if a.approved_amount else None,
+            "activity_sector": a.activity_sector.value if hasattr(a.activity_sector, "value") else str(a.activity_sector),
+            "application_type": getattr(a, "application_type", "INDIVIDUAL"),
+            "created_at": a.created_at.strftime("%d/%m/%Y") if a.created_at else "",
+        }
+        for a in other_branch_active
+    ]
+
+    current_branch_summary = [
+        {
+            "id": a.id,
+            "reference": a.reference,
+            "branch_code": a.branch_code or "701",
+            "branch_name": BRANCH_NAMES.get(a.branch_code or "701", f"Antenne {a.branch_code}"),
+            "status": a.status.value if hasattr(a.status, "value") else str(a.status),
+            "status_label": STATUS_LABELS_FR.get(a.status.value if hasattr(a.status, "value") else str(a.status), str(a.status)),
+            "requested_amount": float(a.requested_amount),
+            "created_at": a.created_at.strftime("%d/%m/%Y") if a.created_at else "",
+        }
+        for a in current_branch_active
+    ]
+
+    warning_msg = None
+    if has_active_other_branch and has_no_dossier_in_current_branch:
+        first_b_name = other_branch_summary[0]["branch_name"]
+        first_ref = other_branch_summary[0]["reference"]
+        warning_msg = (
+            f"ALERTE CENTRALE DES RISQUES : Le sociétaire n'a aucun dossier dans votre antenne ({BRANCH_NAMES.get(current_agent_branch, current_agent_branch)}), "
+            f"mais possède déjà un dossier en cours ({first_ref}) dans l'antenne {first_b_name}. "
+            "Conformément aux règles prudentielles BCEAO contre le surendettement croisé, il est recommandé de ne pas ouvrir de nouveau dossier."
+        )
+    elif has_active_other_branch:
+        warning_msg = (
+            "ALERTE RISQUE MULTI-ANTENNES : Le sociétaire possède des dossiers en cours dans plusieurs antennes. "
+            "Consultez l'historique avant toute action."
+        )
 
     return AccountLookupOut(
         account_number=acc.account_number,
@@ -188,9 +299,18 @@ async def lookup_microfinance_account(
         monthly_expenses=acc.monthly_expenses,
         years_in_business=acc.years_in_business,
         revenue_regularity_months=acc.revenue_regularity_months,
+        branch_code="701" if "-701-" in acc.account_number else ("801" if "-801-" in acc.account_number else ("901" if "-901-" in acc.account_number else "701")),
+        suggested_application_type="PME" if any(k in (acc.full_name or "").lower() for k in ["sarl", "sa", "gpe", "entreprise", "ets", "coopérative", "société"]) else "INDIVIDUAL",
         existing_debts=[],
         known_guarantees=[],
         past_applications=past_apps_summary,
+        has_active_other_branch=has_active_other_branch,
+        has_no_dossier_in_current_branch=has_no_dossier_in_current_branch,
+        current_agent_branch=current_agent_branch,
+        current_agent_branch_name=BRANCH_NAMES.get(current_agent_branch, f"Antenne {current_agent_branch}"),
+        other_branch_applications=other_branch_summary,
+        current_branch_applications=current_branch_summary,
+        warning_message=warning_msg,
     )
 
 
@@ -259,20 +379,66 @@ async def quick_init_application(
     except ValueError:
         sector_enum = ActivitySector.COMMERCE
 
+    branch_val = payload.branch_code or getattr(current_user, "branch_code", "701") or "701"
+    app_type = payload.application_type or ("PME" if sector_str == "TPE" else "INDIVIDUAL")
+
+    # Cross-branch check: detect active dossiers in other branches
+    applicant_ids = [applicant.id] if applicant else []
+    cross_stmt = select(CreditApplication).where(
+        or_(
+            CreditApplication.account_number == clean_acc,
+            CreditApplication.applicant_id.in_(applicant_ids) if applicant_ids else False,
+        ),
+        CreditApplication.branch_code != branch_val,
+        CreditApplication.status.in_(ACTIVE_APPLICATION_STATUSES),
+    )
+    cross_res = await db.execute(cross_stmt)
+    cross_apps = cross_res.scalars().all()
+
+    if cross_apps and not payload.force_override_cross_branch:
+        first_conflict = cross_apps[0]
+        other_b_name = BRANCH_NAMES.get(first_conflict.branch_code or "701", f"Antenne {first_conflict.branch_code}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Dossier en cours détecté dans une autre antenne ({first_conflict.reference} - {other_b_name}). "
+                f"Pour respecter les règles prudentielles BCEAO contre le surendettement croisé, "
+                f"la création d'un second dossier est bloquée. Vous pouvez renoncer à la création ou appliquer une dérogation formelle."
+            )
+        )
+
     # Create application
     application = CreditApplication(
         reference=_generate_reference(),
         applicant_id=applicant.id,
         account_number=clean_acc,
+        branch_code=branch_val,
+        application_type=app_type,
         activity_sector=sector_enum,
         requested_amount=payload.requested_amount,
         requested_duration_months=payload.requested_duration_months,
         business_description=payload.business_description,
+        form_data=payload.form_data or {},
         status=ApplicationStatus.DATA_VERIFIED,
         agent_id=current_user.id,
     )
     db.add(application)
     await db.flush()
+
+    if cross_apps and payload.force_override_cross_branch:
+        db.add(
+            AuditLog(
+                application_id=application.id,
+                user_id=current_user.id,
+                action="cross_branch_override_granted",
+                details={
+                    "agent": current_user.full_name,
+                    "account_number": clean_acc,
+                    "target_branch": branch_val,
+                    "conflicting_applications": [a.reference for a in cross_apps],
+                }
+            )
+        )
 
     # Pre-populate ExtractedData from known account profile
     extracted = ExtractedData(
@@ -349,7 +515,7 @@ async def quick_init_application(
     )
     res_full = await db.execute(stmt_full)
     full_app = res_full.scalar_one()
-    return _application_to_out(full_app)
+    return _application_to_out(full_app, hide_score=(current_user.role == UserRole.AGENT))
 
 
 # ── PORTFOLIO STATS (Agent Cockpit) ──────────────────────────────────
@@ -390,6 +556,7 @@ async def get_portfolio_stats(
         "Agriculture": sum(1 for a in apps if a.activity_sector == ActivitySector.AGRICULTURE),
         "Artisanat": sum(1 for a in apps if a.activity_sector == ActivitySector.ARTISANAT),
         "TPE": sum(1 for a in apps if a.activity_sector == ActivitySector.TPE),
+        "Autre": sum(1 for a in apps if a.activity_sector == ActivitySector.AUTRE),
     }
 
     risk_distribution = {
@@ -426,14 +593,18 @@ async def create_application(
     sector_enum = ActivitySector(data.activity_sector.value)
     account_num = data.account_number or current_user.account_number
 
+    branch_val = data.branch_code or getattr(current_user, "branch_code", "701") or "701"
     application = CreditApplication(
         reference=_generate_reference(),
         applicant_id=current_user.id,
         account_number=account_num,
+        branch_code=branch_val,
+        application_type=data.application_type or "INDIVIDUAL",
         activity_sector=sector_enum,
         requested_amount=data.requested_amount,
         requested_duration_months=data.requested_duration_months,
         business_description=data.business_description,
+        form_data=data.form_data or {},
         status=ApplicationStatus.DRAFT,
     )
     db.add(application)
@@ -521,10 +692,11 @@ async def create_application(
 async def list_applications(
     status_filter: Optional[str] = None,
     sector_filter: Optional[str] = None,
+    branch_filter: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List applications for client or agent."""
+    """List applications for client or agent, filtered by branch, status, or sector."""
     stmt = (
         select(CreditApplication)
         .options(
@@ -539,6 +711,17 @@ async def list_applications(
 
     if current_user.role == UserRole.CLIENT:
         stmt = stmt.where(CreditApplication.applicant_id == current_user.id)
+    elif current_user.role == UserRole.AGENT:
+        agent_branch = getattr(current_user, "branch_code", "701") or "701"
+        if not branch_filter or branch_filter == "my_branch":
+            # Default: only see applications belonging to agent's assigned branch or created by agent
+            stmt = stmt.where(or_(CreditApplication.branch_code == agent_branch, CreditApplication.agent_id == current_user.id))
+        elif branch_filter != "all":
+            stmt = stmt.where(CreditApplication.branch_code == branch_filter)
+        # If branch_filter == "all", agent can view applications across all branches
+    elif current_user.role == UserRole.ADMIN:
+        if branch_filter and branch_filter not in ["all", "my_branch"]:
+            stmt = stmt.where(CreditApplication.branch_code == branch_filter)
 
     if status_filter:
         try:
@@ -556,7 +739,8 @@ async def list_applications(
 
     result = await db.execute(stmt)
     applications = result.scalars().all()
-    out_list = [_application_to_out(app) for app in applications]
+    is_agent = (current_user.role == UserRole.AGENT)
+    out_list = [_application_to_out(app, hide_score=is_agent) for app in applications]
     return ApplicationListOut(applications=out_list, total=len(out_list))
 
 
@@ -584,10 +768,16 @@ async def get_application(
     if not app:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
 
+    is_agent = (current_user.role == UserRole.AGENT)
+    if is_agent:
+        agent_branch = getattr(current_user, "branch_code", "701") or "701"
+        if app.branch_code and app.branch_code != agent_branch and app.agent_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Dossier rattaché à une autre antenne régionale.")
+
     if current_user.role == UserRole.CLIENT and app.applicant_id != current_user.id:
         raise HTTPException(status_code=403, detail="Accès non autorisé à ce dossier")
 
-    return _application_to_out(app)
+    return _application_to_out(app, hide_score=is_agent)
 
 
 # ── EXTRACT DOCUMENTS (OCR Gemini) ───────────────────────────────────
@@ -860,19 +1050,166 @@ async def delete_debt(
     return {"status": "deleted", "debt_id": debt_id}
 
 
-# ── SUBMIT TO COMMITTEE (Agent submits scored application) ────────────
+# ── UPDATE APPLICATION FORM DATA (Fiches Salarié & PME) ──────────────
+@router.patch("/{app_id}/form-data", response_model=ApplicationOut)
+async def update_application_form_data(
+    app_id: int,
+    payload: Dict[str, Any],
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("agent", "admin", "client")),
+):
+    """
+    Update detailed fiche fields (Particulier/Salarié or PME Kafo Jiginew) before submission.
+    """
+    stmt = (
+        select(CreditApplication)
+        .options(
+            selectinload(CreditApplication.applicant),
+            selectinload(CreditApplication.agent),
+            selectinload(CreditApplication.guarantees),
+            selectinload(CreditApplication.debts),
+            selectinload(CreditApplication.scoring_result),
+            selectinload(CreditApplication.extracted_data),
+        )
+        .where(CreditApplication.id == app_id)
+    )
+    res = await db.execute(stmt)
+    app = res.scalar_one_or_none()
+    if not app:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+
+    existing_form = dict(app.form_data or {})
+    existing_form.update(payload)
+    app.form_data = existing_form
+
+    if "application_type" in payload and payload["application_type"]:
+        app.application_type = str(payload["application_type"])
+    if "branch_code" in payload and payload["branch_code"]:
+        app.branch_code = str(payload["branch_code"])
+    if "requested_amount" in payload and payload["requested_amount"]:
+        app.requested_amount = float(payload["requested_amount"])
+    if "requested_duration_months" in payload and payload["requested_duration_months"]:
+        app.requested_duration_months = int(payload["requested_duration_months"])
+    if "activity_sector" in payload and payload["activity_sector"]:
+        try:
+            app.activity_sector = ActivitySector(payload["activity_sector"])
+        except ValueError:
+            pass
+
+    # Update extracted_data if relevant financial figures supplied
+    if app.extracted_data:
+        if "monthly_revenue" in payload and payload["monthly_revenue"] is not None:
+            app.extracted_data.monthly_revenue = float(payload["monthly_revenue"])
+        if "monthly_expenses" in payload and payload["monthly_expenses"] is not None:
+            app.extracted_data.monthly_expenses = float(payload["monthly_expenses"])
+        if "years_in_business" in payload and payload["years_in_business"] is not None:
+            app.extracted_data.years_in_business = float(payload["years_in_business"])
+        if "revenue_regularity_months" in payload and payload["revenue_regularity_months"] is not None:
+            app.extracted_data.revenue_regularity_months = int(payload["revenue_regularity_months"])
+
+    app.updated_at = datetime.now(timezone.utc)
+    flag_modified(app, "form_data")
+    await db.commit()
+    await db.refresh(app)
+    return _application_to_out(app, hide_score=(current_user.role == UserRole.AGENT))
+
+
+# ── UPLOAD REQUESTED DOCUMENT (Agent uploads piece requested by Committee) ─
+@router.post("/{app_id}/upload-requested-document")
+async def upload_requested_document(
+    app_id: int,
+    file: UploadFile = File(...),
+    request_id: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("agent", "admin")),
+):
+    """
+    Agent uploads a complementary document requested by Credit Committee.
+    Updates the request status to PROVIDED and registers audit event.
+    """
+    stmt = select(CreditApplication).where(CreditApplication.id == app_id)
+    result = await db.execute(stmt)
+    app = result.scalar_one_or_none()
+    if not app:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+
+    filename = file.filename or "piece_complementaire.pdf"
+    content = await file.read()
+
+    form_data = dict(app.form_data or {})
+    requests_list = list(form_data.get("document_requests", []))
+
+    # Match request
+    for req in requests_list:
+        if (request_id and req.get("id") == request_id) or (not request_id and req.get("status") == "PENDING"):
+            req["status"] = "PROVIDED"
+            req["provided_file_name"] = filename
+            req["provided_at"] = datetime.now(timezone.utc).isoformat()
+            req["provided_by"] = current_user.full_name
+            req["agent_notes"] = notes or ""
+            break
+
+    # Add to attached documents list
+    attached = list(form_data.get("attached_documents", []))
+    attached.append({
+        "filename": filename,
+        "size_bytes": len(content),
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+        "uploaded_by": current_user.full_name,
+        "request_id": request_id,
+        "notes": notes or "",
+    })
+    form_data["attached_documents"] = attached
+
+    # Check if there are any pending requests left
+    has_pending = any(r.get("status") == "PENDING" for r in requests_list)
+    form_data["has_pending_document_request"] = has_pending
+    form_data["document_requests"] = requests_list
+
+    app.form_data = form_data
+    flag_modified(app, "form_data")
+    app.updated_at = datetime.now(timezone.utc)
+
+    db.add(
+        AuditLog(
+            application_id=app.id,
+            user_id=current_user.id,
+            action="document_provided_by_agent",
+            details={
+                "agent": current_user.full_name,
+                "filename": filename,
+                "request_id": request_id,
+                "notes": notes,
+            },
+        )
+    )
+    await db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Document '{filename}' rattaché avec succès au dossier.",
+        "form_data": app.form_data,
+        "has_pending_document_request": has_pending,
+    }
+
+
+# ── SUBMIT TO COMMITTEE (Agent submits application) ───────────────────
 @router.post("/{app_id}/submit-to-committee", response_model=ApplicationOut)
 async def submit_to_committee(
     app_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("agent", "admin")),
 ):
-    """Agent forwards a scored application to the Credit Committee / Admin for final grant."""
+    """
+    Agent forwards an application to the Credit Committee. Automatically triggers ML scoring if not done.
+    """
     stmt = (
         select(CreditApplication)
         .options(
             selectinload(CreditApplication.applicant),
             selectinload(CreditApplication.agent),
+            selectinload(CreditApplication.extracted_data),
             selectinload(CreditApplication.scoring_result),
             selectinload(CreditApplication.guarantees),
             selectinload(CreditApplication.debts),
@@ -884,8 +1221,43 @@ async def submit_to_committee(
     if not app:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
 
+    # Automatically score the application if not already scored
     if not app.scoring_result:
-        raise HTTPException(status_code=400, detail="Le dossier doit d'abord être scoré avant d'être soumis au comité.")
+        from app.services.scoring_engine import scoring_engine
+        from app.api.v1.scoring import get_active_policy_dict
+        policy_dict = await get_active_policy_dict(db)
+        score_res = scoring_engine.calculate_score_direct(
+            extracted=app.extracted_data,
+            requested_amount=app.requested_amount,
+            requested_duration_months=app.requested_duration_months,
+            activity_sector=app.activity_sector,
+            guarantees=app.guarantees,
+            debts=app.debts,
+            policy_override=policy_dict,
+        )
+        risk_lvl_str = score_res["risk_level"].lower().replace("risklevel.", "")
+        try:
+            risk_enum = RiskLevel(risk_lvl_str)
+        except ValueError:
+            risk_enum = RiskLevel.MEDIUM
+
+        sr = ScoringResult(
+            application_id=app.id,
+            score=score_res["score"],
+            risk_level=risk_enum,
+            decision=score_res["decision"],
+            approved_amount=score_res.get("proposed_amount"),
+            proposed_amount=score_res.get("proposed_amount"),
+            proposed_duration_months=score_res.get("proposed_duration_months"),
+            explainability=score_res.get("explainability", []),
+            debt_ratio=score_res.get("debt_ratio"),
+            disposable_income=score_res.get("disposable_income"),
+            guarantee_coverage_ratio=score_res.get("guarantee_coverage_ratio"),
+            policy_version=score_res.get("policy_version", "v1.0-UEMOA"),
+        )
+        db.add(sr)
+        app.scoring_result = sr
+        await db.flush()
 
     app.status = ApplicationStatus.PENDING_COMMITTEE_APPROVAL
     app.agent_id = current_user.id
@@ -896,13 +1268,17 @@ async def submit_to_committee(
             application_id=app_id,
             user_id=current_user.id,
             action="submitted_to_committee",
-            details={"agent": current_user.full_name, "score": app.scoring_result.score},
+            details={
+                "agent": current_user.full_name,
+                "application_type": getattr(app, "application_type", "INDIVIDUAL"),
+                "branch_code": getattr(app, "branch_code", "701"),
+            },
         )
     )
 
     await db.commit()
     await db.refresh(app)
-    return _application_to_out(app)
+    return _application_to_out(app, hide_score=(current_user.role == UserRole.AGENT))
 
 
 # ── AUDIT LOGS ───────────────────────────────────────────────────────
@@ -966,6 +1342,12 @@ async def get_receipt(
     if not app:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
 
+    if app.status not in [ApplicationStatus.APPROVED, ApplicationStatus.ADJUSTED]:
+        raise HTTPException(
+            status_code=400,
+            detail="Le récépissé officiel n'est disponible que pour les dossiers validés et approuvés par le comité de crédit."
+        )
+
     if not app.scoring_result:
         raise HTTPException(status_code=400, detail="Le dossier n'a pas encore été évalué")
 
@@ -996,6 +1378,32 @@ async def get_receipt(
     proc_res = await db.execute(proc_stmt)
     procedure_name = proc_res.scalar_one_or_none() or "Procédure d'Octroi Microfinance"
 
+    dec_val = str(scoring.decision).lower().replace("applicationstatus.", "").strip()
+    if dec_val in ["approved", "accorde"]:
+        dec_label = "ACCORDÉ"
+    elif dec_val in ["adjusted", "ajuste"]:
+        dec_label = "MONTANT AJUSTÉ"
+    elif dec_val in ["rejected", "refuse"]:
+        dec_label = "REFUSÉ"
+    elif dec_val == "pending_committee_approval":
+        dec_label = "EN ATTENTE COMITÉ"
+    else:
+        dec_label = dec_val.upper()
+
+    risk_val = (scoring.risk_level.value if hasattr(scoring.risk_level, "value") else str(scoring.risk_level)).lower().replace("risklevel.", "").strip()
+    if risk_val == "low":
+        risk_label = "Faible"
+    elif risk_val == "medium":
+        risk_label = "Modéré"
+    elif risk_val == "high":
+        risk_label = "Élevé"
+    elif risk_val == "very_high":
+        risk_label = "Très Élevé"
+    else:
+        risk_label = risk_val.capitalize()
+
+    final_approved = app.approved_amount or scoring.approved_amount
+
     return ReceiptData(
         reference=str(app.reference),
         account_number=account_num,
@@ -1004,12 +1412,12 @@ async def get_receipt(
         applicant_phone=applicant_phone,
         activity_sector=app.activity_sector.value if hasattr(app.activity_sector, "value") else str(app.activity_sector),
         requested_amount=float(app.requested_amount),
-        decision=str(scoring.decision),
-        approved_amount=scoring.approved_amount,
+        decision=dec_label,
+        approved_amount=final_approved,
         proposed_amount=scoring.proposed_amount,
         proposed_duration_months=scoring.proposed_duration_months,
         score=int(scoring.score),  # 0-100!
-        risk_level=scoring.risk_level.value if hasattr(scoring.risk_level, "value") else str(scoring.risk_level),
+        risk_level=risk_label,
         agent_name=agent_name,
         procedure_name=procedure_name,
         scored_at=scoring.scored_at,

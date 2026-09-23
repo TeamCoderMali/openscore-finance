@@ -102,7 +102,7 @@ export class ClientPortalComponent implements OnInit, OnDestroy {
     decision: 'Décision & Suivi',
   };
 
-  sectors: ActivitySector[] = ['Commerce', 'Agriculture', 'Artisanat', 'TPE'];
+  sectors: ActivitySector[] = ['Commerce', 'Agriculture', 'Artisanat', 'TPE', 'Autre'];
 
   formattedAmount = computed(() => {
     return this.requestedAmount().toLocaleString('fr-FR') + ' FCFA';

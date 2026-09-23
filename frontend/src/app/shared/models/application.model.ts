@@ -23,6 +23,7 @@ export interface TokenResponse {
   role: 'client' | 'agent' | 'admin';
   full_name: string;
   user_id: number;
+  branch_code?: string;
 }
 
 export interface User {
@@ -31,6 +32,8 @@ export interface User {
   full_name: string;
   role: 'client' | 'agent' | 'admin';
   phone?: string;
+  branch_code?: string;
+  account_number?: string;
   is_active?: boolean;
 }
 
@@ -83,6 +86,7 @@ export interface AdminClientSummary {
   email: string;
   phone?: string;
   account_number?: string;
+  branch_code?: string;
   id_number?: string;
   is_active: boolean;
   created_at: string;
@@ -104,6 +108,7 @@ export interface AdminClientDetail {
   email: string;
   phone?: string;
   account_number?: string;
+  branch_code?: string;
   id_number?: string;
   is_active: boolean;
   created_at: string;
@@ -209,10 +214,16 @@ export interface RiskMatrixData {
     baseline_par_30: number;
     capital_adequacy_ratio: number;
   };
+  in_progress_count?: number;
+  in_progress_amount?: number;
+  incomplete_count?: number;
+  approved_count?: number;
+  approved_amount?: number;
+  total_applications?: number;
 }
 
 // ── Application ──────────────────────────────────────────────────────
-export type ActivitySector = 'Commerce' | 'Agriculture' | 'Artisanat' | 'TPE';
+export type ActivitySector = 'Commerce' | 'Agriculture' | 'Artisanat' | 'TPE' | 'Autre';
 
 export type ApplicationStatus =
   | 'draft'
@@ -330,6 +341,12 @@ export interface PendingCommitteeApproval {
   total_debt_monthly: number;
   agent_name?: string;
   status?: string;
+  approved_amount?: number;
+  approved_duration_months?: number;
+  branch_code?: string;
+  application_type?: string;
+  committee_notes?: string;
+  form_data?: any;
   submitted_at: string;
   updated_at?: string;
 }
@@ -360,6 +377,12 @@ export interface CreditApplication {
   guarantees?: Guarantee[];
   debts?: Debt[];
   granting_method?: GrantingMethod;
+  branch_code?: string;
+  application_type?: string;
+  approved_amount?: number;
+  committee_notes?: string;
+  form_data?: any;
+  applicant?: any;
   created_at: string;
   updated_at: string;
   is_offline_draft?: boolean;

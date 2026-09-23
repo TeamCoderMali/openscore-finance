@@ -1,7 +1,7 @@
 import { Component, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ApiService } from '../../../../core/services/api.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { SvgIconComponent } from '../../../../shared/components/svg-icon/svg-icon.component';
@@ -58,17 +58,36 @@ export class AdminCommitteeComponent implements OnInit {
   scoringResult = signal<ScoringResult | null>(null);
   guarantees = signal<any[]>([]);
   debts = signal<any[]>([]);
-  detailTab = signal<'financials' | 'scoring' | 'arbitration'>('financials');
+  detailTab = signal<'identity' | 'financials' | 'scoring' | 'arbitration'>('identity');
 
-  // Committee decision arbitration inputs
+  // Committee decision arbitration inputs & state
   arbitrationAmount = signal<number>(0);
   arbitrationDuration = signal<number>(12);
   arbitrationNotes = signal<string>('Dossier analysé et conforme aux directives prudentielles.');
   processingDecision = signal<boolean>(false);
+  isEditingDecision = signal<boolean>(false);
+
+  // ── Demande de document complémentaire par le Comité ───────────
+  showDocRequestModal = signal<boolean>(false);
+  docRequestName = signal<string>('Relevé bancaire des 3 derniers mois');
+  docRequestDesc = signal<string>('Pièce indispensable pour clore l\'instruction prudentielle de la demande.');
+  submittingDocRequest = signal<boolean>(false);
+
+  // ── Rapports & PV de Séance du Comité ───────────────────────────
+  showReportsModal = signal<boolean>(false);
+  committeeReports = signal<any[]>([]);
+  loadingReports = signal<boolean>(false);
+  showNewReportForm = signal<boolean>(false);
+  newReportTitle = signal<string>('Procès-Verbal de Session de Crédit — Kafo Jiginew');
+  newReportDate = signal<string>(new Date().toISOString().split('T')[0]);
+  newReportNotes = signal<string>('Validation des dossiers en souffrance et arbitrages des quotités.');
+  newReportFileName = signal<string>('PV_Session_Comite_' + new Date().toISOString().split('T')[0] + '.pdf');
+  submittingReport = signal<boolean>(false);
 
   constructor(
     private api: ApiService,
     private toast: ToastService,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -357,13 +376,15 @@ export class AdminCommitteeComponent implements OnInit {
   // ── DOSSIER DETAILS MODAL (3 Volets) ────────────────────────────
   async openDossierDetails(approval: PendingCommitteeApproval): Promise<void> {
     this.selectedApproval.set(approval);
-    this.detailTab.set('financials');
+    this.detailTab.set(this.isDecided(approval.status) ? 'arbitration' : 'identity');
     this.showDetailModal.set(true);
     this.loadingDetail.set(true);
+    this.isEditingDecision.set(false);
 
-    this.arbitrationAmount.set(approval.proposed_amount || approval.requested_amount);
-    this.arbitrationDuration.set(approval.requested_duration_months || 12);
-    this.arbitrationNotes.set('Dossier examiné en séance de comité et approuvé après analyse du risque.');
+    const initialAmt = approval.approved_amount || approval.proposed_amount || approval.requested_amount;
+    this.arbitrationAmount.set(initialAmt);
+    this.arbitrationDuration.set(approval.approved_duration_months || approval.requested_duration_months || 12);
+    this.arbitrationNotes.set(approval.committee_notes || 'Dossier examiné en séance de comité et approuvé après analyse du risque.');
 
     try {
       const [app, ext, guar, debt] = await Promise.allSettled([
@@ -374,7 +395,17 @@ export class AdminCommitteeComponent implements OnInit {
       ]);
 
       if (app.status === 'fulfilled') {
-        this.selectedApp.set(app.value);
+        const fullApp = app.value;
+        this.selectedApp.set(fullApp);
+        if (fullApp.approved_amount) {
+          this.arbitrationAmount.set(fullApp.approved_amount);
+        }
+        if (fullApp.requested_duration_months) {
+          this.arbitrationDuration.set(fullApp.requested_duration_months);
+        }
+        if (fullApp.committee_notes) {
+          this.arbitrationNotes.set(fullApp.committee_notes);
+        }
       }
       if (ext.status === 'fulfilled') {
         this.extractedData.set(ext.value);
@@ -402,6 +433,83 @@ export class AdminCommitteeComponent implements OnInit {
     this.showDetailModal.set(false);
     this.selectedApproval.set(null);
     this.selectedApp.set(null);
+    this.isEditingDecision.set(false);
+  }
+
+  // ── Helpers Statut & Affichage ──────────────────────────────────
+  isApproved(status?: string): boolean {
+    if (!status) return false;
+    const s = status.toLowerCase().replace('applicationstatus.', '').trim();
+    return s === 'approved' || s === 'accorde';
+  }
+
+  isRejected(status?: string): boolean {
+    if (!status) return false;
+    const s = status.toLowerCase().replace('applicationstatus.', '').trim();
+    return s === 'rejected' || s === 'refuse';
+  }
+
+  isDecided(status?: string): boolean {
+    return this.isApproved(status) || this.isRejected(status);
+  }
+
+  viewReceipt(appId?: number): void {
+    if (!appId) return;
+    this.router.navigate(['/receipt', appId]);
+  }
+
+  calculateEstimatedMonthly(amt: number, dur: number): number {
+    if (!amt || !dur || dur <= 0) return 0;
+    const totalWithInterest = amt * (1 + 0.015 * dur);
+    return Math.round(totalWithInterest / dur);
+  }
+
+  // ── Demande de document complémentaire par le Comité ───────────
+  openDocRequestModal(): void {
+    this.docRequestName.set('Relevé bancaire des 3 derniers mois');
+    this.docRequestDesc.set('Pièce indispensable pour clore l\'instruction prudentielle de la demande.');
+    this.showDocRequestModal.set(true);
+  }
+
+  closeDocRequestModal(): void {
+    this.showDocRequestModal.set(false);
+  }
+
+  async submitDocRequest(): Promise<void> {
+    const item = this.selectedApproval() || (this.selectedApp() as any);
+    if (!item || !this.docRequestName().trim()) {
+      this.toast.warning('Intitulé requis', 'Veuillez préciser le document demandé.');
+      return;
+    }
+
+    this.submittingDocRequest.set(true);
+    try {
+      const res = await this.api.requestCommitteeDocument(item.id, {
+        document_name: this.docRequestName().trim(),
+        description: this.docRequestDesc().trim(),
+      });
+
+      this.toast.success(
+        'Demande transmise à l\'agent',
+        `L'agent référent a été averti de la demande de pièce : "${this.docRequestName()}"`
+      );
+
+      const updatedForm = {
+        ...(this.selectedApp()?.form_data || {}),
+        has_pending_document_request: true,
+        document_requests: res.document_requests || [],
+      };
+
+      this.selectedApp.update(curr => curr ? { ...curr, form_data: updatedForm } : null);
+      this.selectedApproval.update(curr => curr ? { ...curr, form_data: updatedForm } : null);
+      this.pendingApprovals.update(list => list.map(a => a.id === item.id ? { ...a, form_data: updatedForm } : a));
+
+      this.closeDocRequestModal();
+    } catch (e: any) {
+      this.toast.error('Erreur demande pièce', e.message);
+    } finally {
+      this.submittingDocRequest.set(false);
+    }
   }
 
   // ── Action Confirmation Modal (Approve / Reject) ─────────────────
@@ -417,8 +525,8 @@ export class AdminCommitteeComponent implements OnInit {
     this.actionItem.set(item);
     this.actionType.set(type);
     if (type === 'approve') {
-      this.actionAmount.set(item.proposed_amount || item.requested_amount || 1000000);
-      this.actionDuration.set(item.requested_duration_months || 12);
+      this.actionAmount.set(item.approved_amount || item.proposed_amount || item.requested_amount || 1000000);
+      this.actionDuration.set(item.approved_duration_months || item.requested_duration_months || 12);
       this.actionNotes.set('Validé et signé en séance de comité d\'agence.');
     } else {
       this.actionNotes.set('Refusé après arbitrage du comité de crédit.');
@@ -437,10 +545,15 @@ export class AdminCommitteeComponent implements OnInit {
 
     this.processingAction.set(true);
     const type = this.actionType();
+    const isApprove = type === 'approve';
+    const amt = isApprove ? this.actionAmount() : undefined;
+    const dur = isApprove ? this.actionDuration() : undefined;
+
     try {
       await this.api.processCommitteeDecision(item.id, {
-        decision: type === 'approve' ? 'approved' : 'rejected',
-        approved_amount: type === 'approve' ? this.actionAmount() : undefined,
+        decision: isApprove ? 'approved' : 'rejected',
+        approved_amount: amt,
+        approved_duration_months: dur,
         notes: this.actionNotes(),
       });
 
@@ -449,19 +562,23 @@ export class AdminCommitteeComponent implements OnInit {
         if (a.id === item.id) {
           return {
             ...a,
-            status: type === 'approve' ? 'approved' : 'rejected',
+            status: isApprove ? 'approved' : 'rejected',
             recommended_decision: type,
             algorithmic_decision: type,
-            proposed_amount: type === 'approve' ? this.actionAmount() : a.proposed_amount,
+            approved_amount: amt,
+            proposed_amount: amt || a.proposed_amount,
+            requested_duration_months: dur || a.requested_duration_months,
+            approved_duration_months: dur || a.approved_duration_months,
+            committee_notes: this.actionNotes(),
           };
         }
         return a;
       }));
 
-      if (type === 'approve') {
+      if (isApprove) {
         this.toast.success(
           'Crédit Accordé !',
-          `Le prêt de ${this.formatAmount(this.actionAmount())} pour ${item.applicant_name} a été validé et signé.`
+          `Le prêt de ${this.formatAmount(this.actionAmount())} (${dur} mois) pour ${item.applicant_name} a été validé et signé.`
         );
       } else {
         this.toast.warning('Dossier Rejeté', `La demande ${item.reference} a été refusée.`);
@@ -484,10 +601,15 @@ export class AdminCommitteeComponent implements OnInit {
 
     this.processingDecision.set(true);
     try {
+      const amt = this.arbitrationAmount();
+      const dur = this.arbitrationDuration();
+      const notes = this.arbitrationNotes();
+
       await this.api.processCommitteeDecision(item.id, {
         decision: 'approved',
-        approved_amount: this.arbitrationAmount(),
-        notes: this.arbitrationNotes(),
+        approved_amount: amt,
+        approved_duration_months: dur,
+        notes: notes,
       });
 
       // Instant UI update
@@ -498,17 +620,39 @@ export class AdminCommitteeComponent implements OnInit {
             status: 'approved',
             recommended_decision: 'approved',
             algorithmic_decision: 'approved',
-            proposed_amount: this.arbitrationAmount(),
+            approved_amount: amt,
+            proposed_amount: amt,
+            requested_duration_months: dur,
+            approved_duration_months: dur,
+            committee_notes: notes,
           };
         }
         return a;
       }));
 
+      this.selectedApproval.update(curr => curr ? {
+        ...curr,
+        status: 'approved',
+        approved_amount: amt,
+        requested_duration_months: dur,
+        approved_duration_months: dur,
+        committee_notes: notes,
+      } : null);
+
+      this.selectedApp.update(curr => curr ? {
+        ...curr,
+        status: 'approved',
+        approved_amount: amt,
+        requested_duration_months: dur,
+        committee_notes: notes,
+      } : null);
+
+      this.isEditingDecision.set(false);
+
       this.toast.success(
         'Crédit Accordé !',
-        `Le prêt de ${this.formatAmount(this.arbitrationAmount())} pour ${item.applicant_name} a été validé et signé.`
+        `Le prêt de ${this.formatAmount(amt)} (${dur} mois) pour ${item.applicant_name} a été validé et signé.`
       );
-      this.closeDetailModal();
       await this.loadApprovals();
     } catch (e: any) {
       this.toast.error('Erreur validation', e.message);
@@ -529,6 +673,53 @@ export class AdminCommitteeComponent implements OnInit {
 
   async quickReject(item: PendingCommitteeApproval): Promise<void> {
     this.openActionModal(item, 'reject');
+  }
+
+  // ── Rapports de Comité ──────────────────────────────────────────
+  async openReportsModal(): Promise<void> {
+    this.showReportsModal.set(true);
+    await this.loadReports();
+  }
+
+  closeReportsModal(): void {
+    this.showReportsModal.set(false);
+    this.showNewReportForm.set(false);
+  }
+
+  async loadReports(): Promise<void> {
+    this.loadingReports.set(true);
+    try {
+      const data = await this.api.getCommitteeReports();
+      this.committeeReports.set(data || []);
+    } catch (e: any) {
+      this.toast.error('Erreur Rapports', e.message || 'Impossible de charger les rapports.');
+    } finally {
+      this.loadingReports.set(false);
+    }
+  }
+
+  async submitNewReport(): Promise<void> {
+    if (!this.newReportTitle().trim()) {
+      this.toast.warning('Titre requis', 'Veuillez saisir un intitulé pour le rapport de séance');
+      return;
+    }
+    this.submittingReport.set(true);
+    try {
+      await this.api.createCommitteeReport({
+        title: this.newReportTitle(),
+        meeting_date: this.newReportDate(),
+        file_name: this.newReportFileName(),
+        file_url: 'data:application/pdf;base64,JVBERi0xLjQK...',
+        notes: this.newReportNotes(),
+      });
+      this.toast.success('Rapport Enregistré', 'Le procès-verbal a été archivé avec succès.');
+      this.showNewReportForm.set(false);
+      await this.loadReports();
+    } catch (e: any) {
+      this.toast.error('Erreur Enregistrement', e.message || 'Erreur lors de la sauvegarde du rapport.');
+    } finally {
+      this.submittingReport.set(false);
+    }
   }
 
   // ── Formatters & UI Helpers ─────────────────────────────────────
@@ -575,5 +766,13 @@ export class AdminCommitteeComponent implements OnInit {
       rejected: 'Refusé',
     };
     return labels[status.toLowerCase()] || status;
+  }
+
+  getApplicationType(): string {
+    return this.selectedApp()?.application_type || this.selectedApproval()?.application_type || 'INDIVIDUAL';
+  }
+
+  getBranchCode(): string {
+    return this.selectedApp()?.branch_code || this.selectedApproval()?.branch_code || '701';
   }
 }

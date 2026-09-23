@@ -147,6 +147,7 @@ async def run_e2e_tests():
                 "requested_duration_months": 12,
                 "activity_sector": "Commerce",
                 "business_description": "Extension stock de pagnes",
+                "force_override_cross_branch": True,
                 "guarantees": [
                     {
                         "guarantee_type": "stock",

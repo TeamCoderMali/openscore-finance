@@ -228,8 +228,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       validator: (v) {
-                        if (v == null || v.isEmpty)
+                        if (v == null || v.isEmpty) {
                           return 'Mot de passe requis';
+                        }
                         if (v.length < 6) return 'Minimum 6 caractères';
                         return null;
                       },

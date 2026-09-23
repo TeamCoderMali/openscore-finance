@@ -106,9 +106,27 @@ class AuthService extends ChangeNotifier {
       final response = (e as dynamic).response;
       if (response != null) {
         final detail = response.data['detail'];
-        if (detail is String) return detail;
+        if (detail is String) {
+          final d = detail.trim().toLowerCase();
+          if (d.contains('invalid credentials') || d.contains('incorrect email or password') || d.contains('could not validate credentials')) {
+            return 'Identifiants incorrects. Veuillez vérifier votre adresse email et votre mot de passe.';
+          }
+          if (d.contains('already registered') || d.contains('already exists')) {
+            return 'Cette adresse email est déjà enregistrée. Veuillez vous connecter.';
+          }
+          if (d.contains('not found')) {
+            return 'Ressource ou utilisateur introuvable.';
+          }
+          if (d.contains('expired') || d.contains('invalid token')) {
+            return 'Votre session a expiré. Veuillez vous reconnecter.';
+          }
+          if (d.contains('unauthorized') || d.contains('permission denied')) {
+            return 'Accès non autorisé pour cette opération.';
+          }
+          return detail;
+        }
       }
     } catch (_) {}
-    return 'Une erreur est survenue. Vérifiez votre connexion.';
+    return 'Une erreur est survenue. Vérifiez votre connexion internet.';
   }
 }
