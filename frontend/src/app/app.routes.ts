@@ -1,0 +1,52 @@
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+
+export const routes: Routes = [
+  {
+    path: 'login',
+    loadComponent: () =>
+      import('./features/login/login.component').then(m => m.LoginComponent),
+  },
+  {
+    path: 'client',
+    loadComponent: () =>
+      import('./features/client-portal/client-portal.component').then(m => m.ClientPortalComponent),
+    canActivate: [authGuard],
+    data: { role: 'client' },
+  },
+  {
+    path: 'agent',
+    loadChildren: () =>
+      import('./features/agent/agent.routes').then(m => m.AGENT_ROUTES),
+    canActivate: [authGuard],
+    data: { role: 'agent' },
+  },
+  {
+    path: 'admin',
+    loadChildren: () =>
+      import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
+    canActivate: [authGuard],
+    data: { role: 'admin' },
+  },
+  {
+    path: 'audit/:id',
+    loadComponent: () =>
+      import('./features/score-audit/score-audit.component').then(m => m.ScoreAuditComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'receipt/:id',
+    loadComponent: () =>
+      import('./features/receipt-view/receipt-view.component').then(m => m.ReceiptViewComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: '',
+    redirectTo: 'login',
+    pathMatch: 'full',
+  },
+  {
+    path: '**',
+    redirectTo: 'login',
+  },
+];

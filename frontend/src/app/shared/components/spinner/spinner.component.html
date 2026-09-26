@@ -1,0 +1,81 @@
+<!-- Fullscreen Overlay Mode -->
+<div
+  *ngIf="size === 'fullscreen'"
+  class="fixed inset-0 z-50 bg-zinc-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+>
+  <div class="bg-white border border-zinc-200 rounded-lg p-6 max-w-sm w-full shadow-lg text-center">
+    <!-- Double Ring Ledger Spinner -->
+    <div class="relative w-12 h-12 mx-auto mb-4 flex items-center justify-center">
+      <div
+        class="w-12 h-12 rounded-full border-2 border-zinc-200 border-t-blue-900 animate-spin"
+      ></div>
+      <div
+        class="absolute w-6 h-6 rounded-full border border-zinc-200 border-b-emerald-600 animate-spin-reverse"
+      ></div>
+    </div>
+
+    <h4 *ngIf="label" class="text-sm font-semibold text-zinc-900 mb-1">
+      {{ label }}
+    </h4>
+    <p *ngIf="sublabel" class="text-xs font-mono text-zinc-500 leading-relaxed">
+      {{ sublabel }}
+    </p>
+  </div>
+</div>
+
+<!-- Inline / Standard Container Mode -->
+<div
+  *ngIf="size !== 'fullscreen'"
+  [ngClass]="{
+    'inline-flex items-center gap-2': inline,
+    'flex flex-col items-center justify-center py-8 text-center': !inline
+  }"
+>
+  <!-- Spinner Ring -->
+  <div
+    class="relative flex items-center justify-center shrink-0"
+    [ngClass]="{
+      'w-4 h-4': size === 'sm',
+      'w-8 h-8': size === 'md',
+      'w-12 h-12': size === 'lg'
+    }"
+  >
+    <!-- Outer Ring -->
+    <div
+      class="rounded-full animate-spin"
+      [ngClass]="[
+        getRingColor(),
+        size === 'sm' ? 'w-4 h-4 border-2' : '',
+        size === 'md' ? 'w-8 h-8 border-2' : '',
+        size === 'lg' ? 'w-12 h-12 border-3' : ''
+      ]"
+    ></div>
+
+    <!-- Inner Pulse Dot for md/lg -->
+    <div
+      *ngIf="size === 'md' || size === 'lg'"
+      class="absolute rounded-full bg-zinc-300"
+      [ngClass]="size === 'md' ? 'w-1.5 h-1.5' : 'w-2.5 h-2.5'"
+    ></div>
+  </div>
+
+  <!-- Labels -->
+  <div *ngIf="label || sublabel" [ngClass]="{'mt-3': !inline, 'text-left': inline}">
+    <p
+      *ngIf="label"
+      class="font-medium leading-snug"
+      [ngClass]="[
+        getTextColor(),
+        size === 'sm' ? 'text-xs' : 'text-sm'
+      ]"
+    >
+      {{ label }}
+    </p>
+    <p
+      *ngIf="sublabel"
+      class="text-[11px] font-mono text-zinc-500 mt-0.5"
+    >
+      {{ sublabel }}
+    </p>
+  </div>
+</div>

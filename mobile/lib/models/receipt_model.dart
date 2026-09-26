@@ -1,0 +1,88 @@
+class ReceiptData {
+  final String reference;
+  final String applicantName;
+  final String applicantEmail;
+  final String? applicantPhone;
+  final String activitySector;
+  final double requestedAmount;
+  final String decision;
+  final double? approvedAmount;
+  final double? proposedAmount;
+  final int? proposedDurationMonths;
+  final int score;
+  final String riskLevel;
+  final String? agentName;
+  final String? accountNumber;
+  final DateTime? scoredAt;
+  final DateTime? createdAt;
+  final String receiptId;
+
+  ReceiptData({
+    required this.reference,
+    required this.applicantName,
+    required this.applicantEmail,
+    this.applicantPhone,
+    required this.activitySector,
+    required this.requestedAmount,
+    required this.decision,
+    this.approvedAmount,
+    this.proposedAmount,
+    this.proposedDurationMonths,
+    required this.score,
+    required this.riskLevel,
+    this.agentName,
+    this.accountNumber,
+    this.scoredAt,
+    this.createdAt,
+    required this.receiptId,
+  });
+
+  factory ReceiptData.fromJson(Map<String, dynamic> json) {
+    return ReceiptData(
+      reference: json['reference'] ?? '',
+      applicantName: json['applicant_name'] ?? '',
+      applicantEmail: json['applicant_email'] ?? '',
+      applicantPhone: json['applicant_phone'],
+      activitySector: json['activity_sector'] ?? '',
+      requestedAmount: (json['requested_amount'] ?? 0).toDouble(),
+      decision: json['decision'] ?? '',
+      approvedAmount: json['approved_amount']?.toDouble(),
+      proposedAmount: json['proposed_amount']?.toDouble(),
+      proposedDurationMonths: json['proposed_duration_months'],
+      score: json['score'] ?? 0,
+      riskLevel: json['risk_level'] ?? '',
+      agentName: json['agent_name'],
+      accountNumber: json['account_number'],
+      scoredAt: json['scored_at'] != null ? DateTime.tryParse(json['scored_at']) : null,
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
+      receiptId: json['receipt_id'] ?? '',
+    );
+  }
+
+  String get decisionLabel {
+    final d = decision.toLowerCase().replaceAll('applicationstatus.', '').trim();
+    if (d == 'accordé' || d == 'accorde' || d == 'approved') return 'ACCORDÉ';
+    if (d == 'montant ajusté' || d == 'montant ajuste' || d == 'adjusted') return 'MONTANT AJUSTÉ';
+    if (d == 'refusé' || d == 'refuse' || d == 'rejected') return 'REFUSÉ';
+    if (d == 'en attente comité' || d == 'pending_committee_approval') return 'EN ATTENTE DU COMITÉ';
+    if (d == 'évalué' || d == 'evalue' || d == 'scored') return 'DOSSIER ÉVALUÉ';
+    if (d == 'en attente' || d == 'pending_verification' || d == 'pending') return 'EN ATTENTE DE VÉRIFICATION';
+    if (d == 'draft') return 'BROUILLON';
+    if (d == 'documents_uploaded') return 'DOCUMENTS DÉPOSÉS';
+    return d.replaceAll('_', ' ').toUpperCase();
+  }
+
+  String get riskLabel {
+    final r = riskLevel.toLowerCase().replaceAll('risklevel.', '').trim();
+    switch (r) {
+      case 'low': return 'Faible';
+      case 'medium': return 'Modéré';
+      case 'high': return 'Élevé';
+      case 'very_high': return 'Très Élevé';
+      case 'critical': return 'Critique';
+      default: return r.isNotEmpty ? r : 'Non déterminé';
+    }
+  }
+
+  double get finalAmount => approvedAmount ?? proposedAmount ?? requestedAmount;
+}

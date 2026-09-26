@@ -1,0 +1,14 @@
+/* Receipt view — print-optimized styles */
+.receipt-page {
+  min-height: 297mm;
+}
+
+@media print {
+  .receipt-page {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+}

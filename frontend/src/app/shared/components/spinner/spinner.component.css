@@ -1,0 +1,16 @@
+:host {
+  display: contents;
+}
+
+@keyframes spinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-spin-reverse {
+  animation: spinReverse 0.75s linear infinite;
+}

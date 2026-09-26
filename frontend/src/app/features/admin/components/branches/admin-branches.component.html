@@ -1,0 +1,151 @@
+<div class="space-y-4 animate-slide-up">
+  <div class="flex items-center justify-between">
+    <div>
+      <h3 class="text-sm font-bold text-slate-900 dark:text-white">Implantation Territoriale & Limites Régionales</h3>
+      <p class="text-xs text-slate-500 font-mono">Supervision des antennes CIF/IMF et guichets mobiles ruraux</p>
+    </div>
+    <button (click)="openCreateBranchModal()" class="btn-primary text-xs py-1.5 px-3 cursor-pointer">
+      <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+      <span>+ Déployer une Antenne</span>
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div *ngFor="let b of branches()" class="card p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-900 dark:text-purple-300">
+            {{ b.branch_type }}
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
+            {{ b.status }}
+          </span>
+        </div>
+        <h4 class="text-base font-bold text-slate-900 dark:text-white">{{ b.name }}</h4>
+        <p class="text-xs text-slate-500 font-mono mt-0.5">Ville : <strong>{{ b.city }}</strong> • Responsable : {{ b.lead_agent }}</p>
+
+        <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2 text-xs font-mono">
+          <div class="flex justify-between">
+            <span class="text-slate-500">Agents affectés</span>
+            <span class="font-bold text-slate-800 dark:text-slate-200">{{ b.agents_count }} agents</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Dossiers actifs</span>
+            <span class="font-bold text-slate-800 dark:text-slate-200">{{ b.active_loans_count }} crédits</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Volume décaissé</span>
+            <span class="font-bold text-emerald-700 dark:text-emerald-400">{{ formatAmount(b.total_disbursed) }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Plafond d'octroi</span>
+            <span class="font-bold text-slate-900 dark:text-white">{{ formatAmount(b.max_credit_limit) }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">PAR 30 local</span>
+            <span class="font-bold text-blue-900 dark:text-blue-400">{{ b.par_30 }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+        <button (click)="exportBceaoReport()" class="btn-ghost text-[11px] py-1 text-purple-700 dark:text-purple-300 cursor-pointer">
+          Export Déclaration
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- MODAL : DÉPLOIEMENT D'UNE ANTENNE RÉGIONALE                     -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div *ngIf="showCreateBranchModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fade-in p-4">
+  <div class="bg-white dark:bg-[#111827] rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden border border-slate-200 dark:border-slate-800 animate-slide-up">
+    <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-purple-50 dark:bg-purple-950/40">
+      <div>
+        <h3 class="text-sm font-bold text-purple-950 dark:text-purple-200">Déployer une Nouvelle Antenne</h3>
+        <p class="text-[11px] text-purple-700 dark:text-purple-300 font-mono">Extension du réseau OpenScore Finance</p>
+      </div>
+      <button (click)="closeCreateBranchModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
+        <app-svg-icon name="x-circle" [size]="20"></app-svg-icon>
+      </button>
+    </div>
+
+    <form (ngSubmit)="createBranch()" class="p-5 space-y-3 text-xs">
+      <div>
+        <label class="form-label text-xs">Nom de l'Antenne / Agence</label>
+        <input
+          type="text"
+          [ngModel]="newBranch().name"
+          (ngModelChange)="newBranch().name = $event"
+          name="name"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="ex: Antenne Mopti-Venise"
+        />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label text-xs">Ville / Région</label>
+          <input
+            type="text"
+            [ngModel]="newBranch().city"
+            (ngModelChange)="newBranch().city = $event"
+            name="city"
+            required
+            class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+            placeholder="Mopti"
+          />
+        </div>
+        <div>
+          <label class="form-label text-xs">Type de Guichet</label>
+          <select
+            [ngModel]="newBranch().branch_type"
+            (ngModelChange)="newBranch().branch_type = $event"
+            name="branch_type"
+            class="form-select text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          >
+            <option value="Antenne Régionale">Antenne Régionale</option>
+            <option value="Agence Centrale">Agence Centrale</option>
+            <option value="Guichet Mobile WA+">Guichet Mobile WA+</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Agent Responsable Désigné</label>
+        <input
+          type="text"
+          [ngModel]="newBranch().lead_agent"
+          (ngModelChange)="newBranch().lead_agent = $event"
+          name="lead_agent"
+          required
+          class="form-input text-xs dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+          placeholder="ex: Fatoumata Koné"
+        />
+      </div>
+
+      <div>
+        <label class="form-label text-xs">Plafond d'Octroi Régional (FCFA)</label>
+        <input
+          type="number"
+          step="5000000"
+          [ngModel]="newBranch().max_credit_limit"
+          (ngModelChange)="newBranch().max_credit_limit = +$event"
+          name="max_credit_limit"
+          class="form-input text-xs font-mono dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+        />
+      </div>
+
+      <div class="pt-3 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
+        <button type="button" (click)="closeCreateBranchModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+        <button type="submit" class="btn-primary text-xs cursor-pointer" [disabled]="creatingBranch()">
+          <app-spinner *ngIf="creatingBranch()" size="sm" [inline]="true" variant="white"></app-spinner>
+          <span *ngIf="!creatingBranch()">Déployer l'Antenne</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

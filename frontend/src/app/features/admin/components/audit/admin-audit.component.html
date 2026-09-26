@@ -1,0 +1,85 @@
+<div class="space-y-4 animate-slide-up font-mono text-xs">
+  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4 gap-3">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white font-sans">Piste d'Audit Globale de l'Institution</h3>
+        <p class="text-xs text-slate-500 font-sans">Traçabilité intégrale de toutes les transactions, certifications et décisions</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="exportAuditTrail()" class="btn-secondary text-xs py-1 px-2.5 cursor-pointer">
+          <app-svg-icon name="printer" [size]="12"></app-svg-icon>
+          <span>Exporter Audit (JSON)</span>
+        </button>
+        <button (click)="loadAuditLogs()" class="btn-secondary text-xs py-1 px-2.5 cursor-pointer">
+          <app-svg-icon name="refresh" [size]="12"></app-svg-icon>
+          <span>Actualiser</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Audit Search and Filter Bar -->
+    <div class="flex items-center gap-2 mb-4">
+      <input
+        type="text"
+        [ngModel]="auditSearchQuery()"
+        (ngModelChange)="auditSearchQuery.set($event)"
+        placeholder="Filtrer événements par mot-clé, utilisateur..."
+        class="form-input text-xs py-1 flex-1 dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      />
+    </div>
+
+    <div *ngIf="auditLoading()" class="py-12 text-center">
+      <app-spinner size="sm" label="Chargement de l'audit..."></app-spinner>
+    </div>
+
+    <div *ngIf="!auditLoading()" class="space-y-2">
+      <div *ngFor="let log of pagedAuditLogs()" class="p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-md">
+        <div class="flex items-center justify-between text-slate-500">
+          <span class="font-bold text-blue-900 dark:text-blue-400 uppercase font-sans">{{ log.action.replace('_', ' ') }}</span>
+          <span>{{ log.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+        </div>
+        <p class="text-slate-700 dark:text-slate-300 font-sans mt-0.5">Intervenant : <strong>{{ log.user_name || 'Système' }}</strong> • Réf Dossier : {{ log.application_id }}</p>
+        <pre *ngIf="log.details" class="text-[10px] text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800 mt-1 overflow-x-auto">{{ log.details | json }}</pre>
+      </div>
+
+      <div *ngIf="filteredAuditLogs().length === 0" class="py-8 text-center text-slate-400 text-xs">
+        Aucun événement d'audit enregistré.
+      </div>
+
+      <!-- Audit Pagination Toolbar -->
+      <div *ngIf="filteredAuditLogs().length > 0" class="flex flex-col sm:flex-row items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-md text-xs text-slate-600 dark:text-slate-300 font-mono mt-3">
+        <div class="flex items-center gap-2">
+          <span>Afficher</span>
+          <select
+            [ngModel]="auditPageSize()"
+            (ngModelChange)="auditPageSize.set(+$event); auditPage.set(1)"
+            class="form-select py-0.5 px-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded"
+          >
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="20">20</option>
+          </select>
+          <span>sur <strong>{{ filteredAuditLogs().length }}</strong> événements</span>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <button
+            (click)="auditPage.set(auditPage() - 1)"
+            [disabled]="auditPage() <= 1"
+            class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+          >
+            Précédent
+          </button>
+          <span class="px-2 font-bold text-slate-900 dark:text-white">Page {{ auditPage() }} / {{ totalAuditPages() }}</span>
+          <button
+            (click)="auditPage.set(auditPage() + 1)"
+            [disabled]="auditPage() >= totalAuditPages()"
+            class="btn-secondary text-[11px] py-1 px-2.5 disabled:opacity-40 cursor-pointer"
+          >
+            Suivant
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

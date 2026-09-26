@@ -1,0 +1,78 @@
+<div class="inline-flex items-center gap-2.5 select-none" [ngClass]="{'gap-3': size === 'lg', 'gap-2': size === 'sm'}">
+  <!-- BCEAO Monetary Emblem (Poisson-scie — Symbole monétaire officiel BCEAO) — Solid Blue, NO Gradient -->
+  <div
+    class="shrink-0 rounded-xl bg-blue-700 flex items-center justify-center transition-transform duration-200 hover:scale-[1.05] shadow-xs"
+    [ngClass]="{
+      'w-8 h-8 rounded-lg': size === 'sm',
+      'w-10 h-10 rounded-xl': size === 'md',
+      'w-13 h-13 rounded-2xl': size === 'lg'
+    }">
+    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full p-1 text-white">
+      <!-- Outer Currency Medallion Circle -->
+      <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 2" opacity="0.6" />
+      <circle cx="24" cy="24" r="19" stroke="currentColor" stroke-width="1.2" />
+
+      <!-- BCEAO Sawfish Rostrum Stem -->
+      <rect x="8" y="22.5" width="16" height="3" rx="1.5" fill="currentColor" />
+
+      <!-- 4 Calibrated Saw Teeth Top -->
+      <path d="M9.5 22.5L10.5 18.5L11.5 22.5Z" fill="currentColor" />
+      <path d="M13 22.5L14 18.5L15 22.5Z" fill="currentColor" />
+      <path d="M16.5 22.5L17.5 18.5L18.5 22.5Z" fill="currentColor" />
+      <path d="M20 22.5L21 18.5L22 22.5Z" fill="currentColor" />
+
+      <!-- 4 Calibrated Saw Teeth Bottom -->
+      <path d="M9.5 25.5L10.5 29.5L11.5 25.5Z" fill="currentColor" />
+      <path d="M13 25.5L14 29.5L15 25.5Z" fill="currentColor" />
+      <path d="M16.5 25.5L17.5 29.5L18.5 25.5Z" fill="currentColor" />
+      <path d="M20 25.5L21 29.5L22 25.5Z" fill="currentColor" />
+
+      <!-- Fish Body -->
+      <path d="M22 24C23 20 27 19.5 32 21L37 23.5V24.5C32 27 27 28.5 22 24Z" fill="currentColor" />
+
+      <!-- Dorsal Fin (Top) -->
+      <path d="M27 20.2L30.5 14.5L32.5 21Z" fill="currentColor" />
+
+      <!-- Ventral Fin (Bottom) -->
+      <path d="M27 27.8L30.5 33.5L32.5 27Z" fill="currentColor" />
+
+      <!-- Caudal Tail Fin -->
+      <path d="M36.5 24L41.5 17.5C39 24 39 24 41.5 30.5Z" fill="currentColor" />
+
+      <!-- Eye Dot -->
+      <circle cx="24.5" cy="22.8" r="1.2" fill="#1D4ED8" />
+    </svg>
+  </div>
+
+  <!-- Text Branding -->
+  <div *ngIf="variant !== 'icon'" class="flex flex-col">
+    <div class="flex items-center gap-1.5 leading-none">
+      <span class="font-bold tracking-tight text-slate-900 dark:text-white" [ngClass]="{
+          'text-sm': size === 'sm',
+          'text-base': size === 'md',
+          'text-xl': size === 'lg'
+        }">
+        OpenScore
+      </span>
+      <span class="font-bold tracking-tight text-blue-700 dark:text-blue-400" [ngClass]="{
+          'text-sm': size === 'sm',
+          'text-base': size === 'md',
+          'text-xl': size === 'lg'
+        }">
+        Finance
+      </span>
+      <!-- BCEAO / UEMOA Currency Tag -->
+      <!-- <span
+        class="font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 tracking-wider ml-0.5"
+      >
+        BCEAO
+      </span> -->
+    </div>
+
+    <!-- Editorial Subtitle -->
+    <div *ngIf="variant === 'full'"
+      class="flex items-center gap-1 text-[9px] uppercase font-mono tracking-widest text-slate-400 mt-1 font-semibold leading-none">
+      <span>{{ subtitle || 'Microfinance Mali • UEMOA' }}</span>
+    </div>
+  </div>
+</div>

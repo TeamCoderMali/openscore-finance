@@ -1,0 +1,1442 @@
+<div class="space-y-6 animate-slide-up">
+  <!-- Top KPI Header & Quick Init Action -->
+  <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">À Certifier / En Cours</span>
+      <p class="text-2xl font-mono font-bold text-amber-600 dark:text-amber-400 mt-1">{{ pendingCount() }}</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">Enquête et pièces à vérifier</p>
+    </div>
+
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">En Instruction</span>
+      <p class="text-2xl font-mono font-bold text-blue-900 dark:text-blue-400 mt-1">{{ applications().length }}</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">Dossiers de votre antenne</p>
+    </div>
+
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">En Attente Comité</span>
+      <p class="text-2xl font-mono font-bold text-purple-700 dark:text-purple-400 mt-1">{{ committeeCount() }}</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">Soumis à la Direction / Comité</p>
+    </div>
+
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+      <span class="text-xs text-slate-500 dark:text-slate-400 font-mono uppercase">Validés & Décaissés</span>
+      <p class="text-2xl font-mono font-bold text-emerald-700 dark:text-emerald-400 mt-1">{{ approvedCount() }}</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">Accords formels d'octroi</p>
+    </div>
+  </div>
+
+  <!-- Search Bar & Filters -->
+  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm">
+    <!-- Top Row: Search Input + CTA Button -->
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div class="flex-1 relative">
+        <app-svg-icon name="search" [size]="16"
+          class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></app-svg-icon>
+        <input type="text" [(ngModel)]="searchQuery"
+          placeholder="Rechercher par référence dossier (OSF-...), compte (CMF-...), nom du sociétaire..."
+          class="form-input pl-9 text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white w-full" />
+      </div>
+
+      <!-- Quick Init Button -->
+      <button (click)="openQuickInitModal()" class="btn-primary text-xs shadow-sm cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5 py-2 px-3.5">
+        <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+        <span>Nouveau Dossier Rapide (N° Compte)</span>
+      </button>
+    </div>
+
+    <!-- Bottom Row: Filter Dropdowns & Live Counters -->
+    <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Site / Antenne Filter (Default: Mon Antenne) -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400 text-[11px] font-medium hidden sm:inline">Site :</span>
+          <select [(ngModel)]="selectedBranchFilter" (change)="onBranchFilterChange()"
+            class="form-input py-1.5 text-xs font-semibold dark:bg-slate-950 dark:border-slate-700 dark:text-white border-blue-300 text-blue-900 dark:text-blue-300 bg-blue-50/50">
+            <option *ngFor="let b of branchOptions()" [value]="b.code">
+              {{ b.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400 text-[11px] font-medium hidden sm:inline">Statut :</span>
+          <select [(ngModel)]="selectedStatusFilter"
+            class="form-input py-1.5 text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white">
+            <option value="all">Tous les statuts</option>
+            <option value="pending">À certifier / En cours</option>
+            <option value="committee">En attente comité</option>
+            <option value="decided">Décidés</option>
+          </select>
+        </div>
+
+        <!-- Sector Filter -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400 text-[11px] font-medium hidden sm:inline">Secteur :</span>
+          <select [(ngModel)]="selectedSectorFilter"
+            class="form-input py-1.5 text-xs dark:bg-slate-950 dark:border-slate-700 dark:text-white">
+            <option value="all">Tous secteurs</option>
+            <option value="Commerce">Commerce</option>
+            <option value="Agriculture">Agriculture</option>
+            <option value="Artisanat">Artisanat</option>
+            <option value="TPE">TPE</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Result Counter Badge -->
+      <div class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+        <span class="font-bold text-slate-800 dark:text-slate-200">{{ filteredApplications().length }}</span> dossier(s) affiché(s)
+      </div>
+    </div>
+  </div>
+
+  <!-- Applications Table -->
+  <div class="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+    <div *ngIf="loading()" class="py-12">
+      <app-spinner size="md" label="Chargement du portefeuille des demandes..."></app-spinner>
+    </div>
+
+    <div *ngIf="!loading()" class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr
+            class="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-mono uppercase text-[10px] bg-slate-50 dark:bg-slate-800/50">
+            <th class="py-3 px-4">Réf. Dossier</th>
+            <th class="py-3 px-4 text-center">Antenne / Site</th>
+            <th class="py-3 px-4">Compte IMF</th>
+            <th class="py-3 px-4">Client / Emprunteur</th>
+            <th class="py-3 px-4">Secteur</th>
+            <th class="py-3 px-4 text-right">Montant Demandé</th>
+            <th class="py-3 px-4 text-center">Type de Fiche</th>
+            <th class="py-3 px-4 text-center">Statut Dossier</th>
+            <th class="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <tr *ngFor="let app of pagedApplications()"
+            class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+            <td class="py-3 px-4 font-mono font-bold text-blue-900 dark:text-blue-400 cursor-pointer"
+              (click)="selectApplication(app)">
+              {{ app.reference }}
+            </td>
+            <td class="py-3 px-4 text-center font-mono">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold"
+                [ngClass]="getBranchBadgeClass(app.branch_code)">
+                <span>🏛️</span>
+                <span>{{ getBranchShortName(app.branch_code) }}</span>
+              </span>
+            </td>
+            <td class="py-3 px-4 font-mono">
+              <span *ngIf="app.account_number"
+                class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+                {{ app.account_number }}
+              </span>
+              <span *ngIf="!app.account_number" class="text-slate-400 text-[10px] italic">Non rattaché</span>
+            </td>
+            <td class="py-3 px-4">
+              <p class="font-semibold text-slate-900 dark:text-white">{{ app.applicant_name || 'Demandeur' }}</p>
+              <p class="text-[10px] text-slate-400 font-mono">{{ app.applicant_phone || '—' }}</p>
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">
+              {{ app.activity_sector }}
+            </td>
+            <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
+              {{ formatAmount(app.requested_amount) }}
+            </td>
+            <td class="py-3 px-4 text-center">
+              <span class="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold"
+                [class.bg-blue-100]="app.application_type === 'PME'"
+                [class.text-blue-900]="app.application_type === 'PME'"
+                [class.bg-emerald-100]="app.application_type !== 'PME'"
+                [class.text-emerald-900]="app.application_type !== 'PME'">
+                {{ app.application_type === 'PME' ? 'Entreprise / PME' : 'Salarié / Particulier' }}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-center">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold"
+                [class]="getStatusBadgeClass(app.status)">
+                {{ getStatusLabel(app.status) }}
+              </span>
+              <span *ngIf="app.form_data?.has_pending_document_request"
+                class="block mt-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200"
+                title="Le Comité de Crédit attend une pièce justificative">
+                ⚠️ Pièce Demandée
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right space-x-2 whitespace-nowrap">
+              <button (click)="selectApplication(app)" class="btn-secondary text-[11px] py-1 px-2 cursor-pointer">
+                <span>Instruire</span>
+              </button>
+              <button *ngIf="app.status === 'approved' || app.status === 'adjusted'" (click)="viewReceipt(app.id)"
+                class="p-1 text-slate-600 hover:text-blue-900 dark:text-slate-400 cursor-pointer"
+                title="Voir récépissé">
+                <app-svg-icon name="printer" [size]="14"></app-svg-icon>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="filteredApplications().length === 0" class="text-center py-12 text-slate-400 text-xs">
+      <app-svg-icon name="search" [size]="32" class="mx-auto mb-2 text-slate-300"></app-svg-icon>
+      <p>Aucun dossier ne correspond aux critères de recherche.</p>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages() > 1"
+      class="p-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-mono">
+      <span class="text-slate-500">Page {{ pipelinePage() }} sur {{ totalPages() }} ({{ filteredApplications().length }}
+        dossiers)</span>
+      <div class="flex items-center gap-1">
+        <button (click)="pipelinePage.set(pipelinePage() - 1)" [disabled]="pipelinePage() <= 1"
+          class="btn-secondary text-xs py-1 px-2 cursor-pointer disabled:opacity-30">Précédent</button>
+        <button (click)="pipelinePage.set(pipelinePage() + 1)" [disabled]="pipelinePage() >= totalPages()"
+          class="btn-secondary text-xs py-1 px-2 cursor-pointer disabled:opacity-30">Suivant</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL DOSSIER STREAMLINÉ EN 3 PARTIES DISTINCTES                          -->
+<!-- ========================================================================= -->
+<div *ngIf="selectedApp()"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-6 overflow-y-auto animate-fade-in">
+  <div
+    class="bg-white dark:bg-slate-900 rounded-xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+
+    <!-- Modal Header -->
+    <div
+      class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+      <div>
+        <div class="flex items-center gap-3">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white font-mono">{{ selectedApp()!.reference }}</h3>
+          <span *ngIf="selectedApp()!.account_number"
+            class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-100 text-blue-900 dark:bg-blue-900/60 dark:text-blue-200">
+            Compte : {{ selectedApp()!.account_number }}
+          </span>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold"
+            [class]="getStatusBadgeClass(selectedApp()!.status)">
+            {{ getStatusLabel(selectedApp()!.status) }}
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 mt-0.5">
+          Demandeur : <strong>{{ selectedApp()!.applicant_name }}</strong> • {{ selectedApp()!.activity_sector }} •
+          Demande : <strong>{{ formatAmount(selectedApp()!.requested_amount) }}</strong> ({{
+          selectedApp()!.requested_duration_months }} mois)
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button (click)="openContactModal('whatsapp')" class="btn-secondary text-xs py-1 px-2 cursor-pointer"
+          title="Échanger avec le client">
+          <app-svg-icon name="message-circle" [size]="14"></app-svg-icon>
+          <span class="hidden sm:inline">Contacter</span>
+        </button>
+        <button (click)="closeDetail()"
+          class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-lg font-bold p-1 cursor-pointer">✕</button>
+      </div>
+    </div>
+
+    <!-- Alerte Demande de Pièce Complémentaire par le Comité de Crédit -->
+    <div *ngIf="selectedApp()?.form_data?.has_pending_document_request"
+      class="mx-6 mt-3 p-3.5 bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-400 dark:border-amber-600 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in shadow-xs">
+      <div class="flex items-start gap-2.5">
+        <div class="p-1.5 rounded-lg bg-amber-500 text-white font-bold shrink-0 mt-0.5 sm:mt-0">
+          <app-svg-icon name="alert-triangle" [size]="18"></app-svg-icon>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h4 class="text-xs font-bold text-amber-950 dark:text-amber-200 uppercase font-mono">
+              Demande de Pièce par le Comité de Crédit
+            </h4>
+            <span class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-200 text-amber-900">
+              ACTION REQUISE
+            </span>
+          </div>
+          <p class="text-xs text-amber-900 dark:text-amber-300 mt-0.5">
+            Pièce demandée : <strong>« {{ selectedApp()?.form_data?.latest_document_request?.document_name }} »</strong>
+            <span *ngIf="selectedApp()?.form_data?.latest_document_request?.description" class="text-slate-600 dark:text-slate-400 italic">
+              — {{ selectedApp()?.form_data?.latest_document_request?.description }}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <button (click)="openUploadDocModal(selectedApp()?.form_data?.latest_document_request)"
+        class="btn-primary text-xs py-1.5 px-3 bg-amber-700 hover:bg-amber-800 text-white font-bold cursor-pointer rounded-lg flex items-center gap-1.5 shrink-0 shadow-xs">
+        <app-svg-icon name="upload" [size]="13"></app-svg-icon>
+        <span>Uploader la pièce demandée</span>
+      </button>
+    </div>
+
+    <!-- 4-Tab Streamlined Navigation Bar -->
+    <div
+      class="border-b border-slate-200 dark:border-slate-800 px-6 flex items-center gap-2 bg-white dark:bg-slate-900 text-xs font-semibold overflow-x-auto">
+      <button (click)="setDetailTab('fiche_instruction')"
+        class="py-3 px-3 border-b-2 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+        [class.border-blue-900]="currentDetailTab() === 'fiche_instruction'"
+        [class.text-blue-900]="currentDetailTab() === 'fiche_instruction'"
+        [class.dark:border-blue-400]="currentDetailTab() === 'fiche_instruction'"
+        [class.dark:text-blue-400]="currentDetailTab() === 'fiche_instruction'"
+        [class.border-transparent]="currentDetailTab() !== 'fiche_instruction'"
+        [class.text-slate-500]="currentDetailTab() !== 'fiche_instruction'">
+        <span>1. Fiche Complète d'Instruction</span>
+        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold"
+          [class.bg-blue-100]="selectedApp()!.application_type === 'PME'"
+          [class.text-blue-900]="selectedApp()!.application_type === 'PME'"
+          [class.bg-emerald-100]="selectedApp()!.application_type !== 'PME'"
+          [class.text-emerald-900]="selectedApp()!.application_type !== 'PME'">
+          {{ selectedApp()!.application_type === 'PME' ? 'PME' : 'Salarié' }}
+        </span>
+      </button>
+
+      <button (click)="setDetailTab('financials_guarantees')"
+        class="py-3 px-3 border-b-2 transition-colors cursor-pointer whitespace-nowrap"
+        [class.border-blue-900]="currentDetailTab() === 'financials_guarantees'"
+        [class.text-blue-900]="currentDetailTab() === 'financials_guarantees'"
+        [class.dark:border-blue-400]="currentDetailTab() === 'financials_guarantees'"
+        [class.dark:text-blue-400]="currentDetailTab() === 'financials_guarantees'"
+        [class.border-transparent]="currentDetailTab() !== 'financials_guarantees'"
+        [class.text-slate-500]="currentDetailTab() !== 'financials_guarantees'">
+        <span>2. Données Financières, Dettes & Garanties</span>
+      </button>
+
+      <button (click)="setDetailTab('committee_submission')"
+        class="py-3 px-3 border-b-2 transition-colors cursor-pointer whitespace-nowrap"
+        [class.border-blue-900]="currentDetailTab() === 'committee_submission'"
+        [class.text-blue-900]="currentDetailTab() === 'committee_submission'"
+        [class.dark:border-blue-400]="currentDetailTab() === 'committee_submission'"
+        [class.dark:text-blue-400]="currentDetailTab() === 'committee_submission'"
+        [class.border-transparent]="currentDetailTab() !== 'committee_submission'"
+        [class.text-slate-500]="currentDetailTab() !== 'committee_submission'">
+        <span>3. Transmission Comité de Crédit</span>
+      </button>
+
+      <button (click)="setDetailTab('audit_logs')"
+        class="py-3 px-3 border-b-2 transition-colors cursor-pointer whitespace-nowrap text-slate-400 hover:text-slate-600 text-[11px]"
+        [class.border-slate-400]="currentDetailTab() === 'audit_logs'"
+        [class.text-slate-800]="currentDetailTab() === 'audit_logs'"
+        [class.border-transparent]="currentDetailTab() !== 'audit_logs'">
+        <span>Historique d'audit</span>
+      </button>
+    </div>
+
+    <!-- Modal Scrollable Body -->
+    <div class="p-6 overflow-y-auto flex-1 space-y-6">
+
+      <!-- ================================================================= -->
+      <!-- TAB 1: FICHE D'INSTRUCTION COMPLÈTE KAFO JIGINEW                  -->
+      <!-- ================================================================= -->
+      <div *ngIf="currentDetailTab() === 'fiche_instruction'" class="space-y-6 animate-fade-in">
+        <!-- Banner & Type Switcher -->
+        <div
+          class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-xl">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-900 text-white">
+                Antenne : {{ selectedApp()!.branch_code || '701' }}
+              </span>
+              <h4 class="text-xs font-bold text-blue-950 dark:text-blue-200 uppercase font-mono">
+                Fiche Officielle d'Instruction Kafo Jiginew
+              </h4>
+            </div>
+            <p class="text-[11px] text-blue-800 dark:text-blue-300 mt-0.5">
+              Dossier N° <strong>{{ selectedApp()!.reference }}</strong> • Compte N° <strong>{{
+                selectedApp()!.account_number || 'En cours' }}</strong>
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div
+              class="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 text-xs">
+              <button type="button" (click)="selectedApp()!.application_type = 'INDIVIDUAL'"
+                class="px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer"
+                [class.bg-emerald-600]="selectedApp()!.application_type !== 'PME'"
+                [class.text-white]="selectedApp()!.application_type !== 'PME'"
+                [class.text-slate-600]="selectedApp()!.application_type === 'PME'">
+                Salarié / Particulier
+              </button>
+              <button type="button" (click)="selectedApp()!.application_type = 'PME'"
+                class="px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer"
+                [class.bg-blue-900]="selectedApp()!.application_type === 'PME'"
+                [class.text-white]="selectedApp()!.application_type === 'PME'"
+                [class.text-slate-600]="selectedApp()!.application_type !== 'PME'">
+                Entreprise / PME
+              </button>
+            </div>
+
+            <button (click)="saveFiche()" [disabled]="savingFiche()"
+              class="btn-primary text-xs py-1.5 px-3 shadow-sm cursor-pointer whitespace-nowrap">
+              <app-svg-icon name="check" [size]="14"></app-svg-icon>
+              <span>{{ savingFiche() ? 'Enregistrement...' : 'Enregistrer la Fiche' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. MODE SALARIÉ / PARTICULIER -->
+        <div *ngIf="selectedApp()!.application_type !== 'PME'" class="space-y-6">
+          <!-- Section 1: Demandeur -->
+          <div
+            class="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 shadow-sm space-y-4">
+            <h4
+              class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono border-b border-slate-100 dark:border-slate-800 pb-2">
+              1. Identification du Demandeur (Personne Physique)
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="form-label">Nom & Prénoms</label>
+                <input type="text" [(ngModel)]="selectedApp()!.applicant_name" class="form-input" />
+              </div>
+              <div>
+                <label class="form-label">Numéro NINA / Pièce d'Identité</label>
+                <input type="text" [(ngModel)]="verifiedFields().id_number" class="form-input font-mono" />
+              </div>
+              <div>
+                <label class="form-label">Téléphone</label>
+                <input type="text" [(ngModel)]="selectedApp()!.applicant_phone" class="form-input font-mono" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Données Employeur & Quotité Cessible -->
+          <div
+            class="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 shadow-sm space-y-4">
+            <h4
+              class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono border-b border-slate-100 dark:border-slate-800 pb-2">
+              2. Situation Professionnelle, Employeur & Quotité Cessible
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="form-label">Employeur / Institution</label>
+                <input type="text" [(ngModel)]="ficheData().sal_employer" class="form-input" />
+              </div>
+              <div>
+                <label class="form-label">Poste / Fonction occupée</label>
+                <input type="text" [(ngModel)]="ficheData().sal_position" class="form-input" />
+              </div>
+              <div>
+                <label class="form-label">Type de Contrat</label>
+                <select [(ngModel)]="ficheData().sal_contract_type" class="form-input">
+                  <option value="CDI">CDI (Contrat Durée Indéterminée)</option>
+                  <option value="CDD">CDD (Contrat Durée Déterminée)</option>
+                  <option value="Fonctionnaire">Fonctionnaire d'État</option>
+                  <option value="Pensionné">Pensionné / Retraité</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Date d'Embauche / Ancienneté</label>
+                <input type="date" [(ngModel)]="ficheData().sal_hiring_date" class="form-input" />
+              </div>
+              <div>
+                <label class="form-label">Salaire Net Mensuel Certifié (FCFA)</label>
+                <input type="number" step="10000" [(ngModel)]="ficheData().sal_net_salary"
+                  class="form-input font-mono font-bold" />
+              </div>
+              <div>
+                <label class="form-label font-bold text-emerald-800 dark:text-emerald-400">Quotité Cessible Légale
+                  (FCFA)</label>
+                <input type="number" step="5000" [(ngModel)]="ficheData().sal_seizable_quota"
+                  class="form-input font-mono font-bold border-emerald-300" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Crédit Sollicité & Dépôt de Garantie (DGA) -->
+          <div
+            class="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 shadow-sm space-y-4">
+            <h4
+              class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono border-b border-slate-100 dark:border-slate-800 pb-2">
+              3. Caractéristiques du Crédit Salarié & Épargne Nantie
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="form-label">Montant Demandé (FCFA)</label>
+                <input type="number" [(ngModel)]="selectedApp()!.requested_amount"
+                  class="form-input font-mono font-bold" />
+              </div>
+              <div>
+                <label class="form-label">Durée Remboursement (Mois)</label>
+                <input type="number" [(ngModel)]="selectedApp()!.requested_duration_months"
+                  class="form-input font-mono font-bold" />
+              </div>
+              <div>
+                <label class="form-label font-bold text-blue-900 dark:text-blue-300">Dépôt de Garantie / DGA Épargne
+                  Nantie (FCFA)</label>
+                <input type="number" step="10000" [(ngModel)]="ficheData().sal_dga_deposit"
+                  class="form-input font-mono font-bold border-blue-300" />
+              </div>
+              <div class="sm:col-span-3">
+                <label class="form-label">Destination / But Précis du Crédit</label>
+                <select [(ngModel)]="ficheData().sal_loan_purpose" class="form-input">
+                  <option value="Construction / Amélioration de l'habitat">Construction / Amélioration de l'habitat
+                  </option>
+                  <option value="Achat de parcelle / Titre foncier">Achat de parcelle / Titre foncier</option>
+                  <option value="Scolarité / Frais universitaires">Scolarité / Frais universitaires</option>
+                  <option value="Équipement ménager / Véhicule">Équipement ménager / Véhicule</option>
+                  <option value="Événement familial / Santé">Événement familial / Santé</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Caution / Avaliste -->
+          <div
+            class="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 shadow-sm space-y-4">
+            <h4
+              class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono border-b border-slate-100 dark:border-slate-800 pb-2">
+              4. Renseignements sur la Caution / Avaliste
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="form-label">Nom Complet de la Caution</label>
+                <input type="text" [(ngModel)]="ficheData().sal_guarantor_name" placeholder="ex: Ousmane Coulibaly"
+                  class="form-input" />
+              </div>
+              <div>
+                <label class="form-label">Téléphone de la Caution</label>
+                <input type="text" [(ngModel)]="ficheData().sal_guarantor_phone" placeholder="+223 70 00 00 00"
+                  class="form-input font-mono" />
+              </div>
+              <div>
+                <label class="form-label">Employeur ou Activité de la Caution</label>
+                <input type="text" [(ngModel)]="ficheData().sal_guarantor_employer" placeholder="Société ou Ministère"
+                  class="form-input" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 5: Avis de l'Agent -->
+          <div
+            class="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 shadow-sm space-y-3">
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono">
+              5. Avis & Analyse Motivée de l'Agent de Crédit
+            </h4>
+            <textarea rows="3" [(ngModel)]="ficheData().sal_agent_recommendation"
+              placeholder="Renseignez vos constatations de terrain, régularité des bulletins et avis motivé pour le comité..."
+              class="form-input w-full text-xs"></textarea>
+          </div>
+        </div>
+
+        <!-- 2. MODE PME KAFO JIGINEW -->
+        <div *ngIf="selectedApp()!.application_type === 'PME'" class="space-y-6">
+          <!-- Section 1: Promoteur / Dirigeant -->
+          <div
+            class="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 shadow-sm space-y-4">
+            <h4
+              class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono border-b border-slate-100 dark:border-slate-800 pb-2">
+              1. Renseignements Personnels sur le Dirigeant / Promoteur
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="form-label">Nom & Prénoms du Promoteur</label>
+                <input type="text" [(ngModel)]="ficheData().pme_manager_name" class="form-input" />
+              </div>
+              <div>
+                <label class="form-label">Date de Naissance</label>
+                <input type="date" [(ngModel)]="ficheData().pme_manager_birth" class="form-input font-mono" />
+              </div>
+              <div>
+                <label class="form-label">Situation Matrimoniale</label>
+                <select [(ngModel)]="ficheData().pme_marital_status" class="form-input">
+                  <option value="Marié(e)">Marié(e)</option>
+                  <option value="Célibataire">Célibataire</option>
+                  <option value="Veuf/Veuve">Veuf/Veuve</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Nombre de Personnes à Charge</label>
+                <input type="number" min="0" [(ngModel)]="ficheData().pme_dependents" class="form-input font-mono" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="form-label">Domicile Précis</label>
+                <input type="text" [(ngModel)]="ficheData().pme_manager_residence" class="form-input" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Entreprise & Activité -->
+          <div
+            class="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 shadow-sm space-y-4">
+            <h4
+              class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono border-b border-slate-100 dark:border-slate-800 pb-2">
+              2. Fiche d'Identité de l'Entreprise / PME
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="form-label">Raison Sociale / Nom Commercial</label>
+                <input type="text" [(ngModel)]="ficheData().pme_company_name" class="form-input font-bold" />
+              </div>
+              <div>
+                <label class="form-label">Forme Juridique</label>
+                <select [(ngModel)]="ficheData().pme_legal_form" class="form-input">
+                  <option value="GPE">GPE (Groupement Professionnel / Solidaire)</option>
+                  <option value="SARL">SARL (Société à Responsabilité Limitée)</option>
+                  <option value="ETS">ETS (Entreprise Individuelle)</option>
+                  <option value="Coopérative">Coopérative / Association</option>
+                  <option value="SA">SA (Société Anonyme)</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">N° Registre de Commerce / NINA</label>
+                <input type="text" [(ngModel)]="ficheData().pme_registration_number" class="form-input font-mono" />
+              </div>
+              <div>
+                <label class="form-label">Années d'Exercice</label>
+                <input type="number" min="1" [(ngModel)]="ficheData().pme_years_activity"
+                  class="form-input font-mono" />
+              </div>
+              <div>
+                <label class="form-label">Siège Social / Lieu d'Exploitation</label>
+                <input type="text" [(ngModel)]="ficheData().pme_headquarters" class="form-input" />
+              </div>
+              <div>
+                <label class="form-label">Débouchés & Marché Principal</label>
+                <input type="text" [(ngModel)]="ficheData().pme_market_outlets"
+                  placeholder="Clients de gros, détaillants, export..." class="form-input" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Bilan Personnel Actif / Passif -->
+          <div
+            class="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 shadow-sm space-y-4">
+            <h4
+              class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono border-b border-slate-100 dark:border-slate-800 pb-2">
+              3. Bilan Patrimonial & Actifs du Promoteur (Kafo Jiginew)
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="form-label">Valeur Terrains & Bâtiments (FCFA)</label>
+                <input type="number" step="500000" [(ngModel)]="ficheData().pme_land_buildings_value"
+                  class="form-input font-mono font-bold" />
+              </div>
+              <div>
+                <label class="form-label">Véhicules & Matériel d'Exploitation (FCFA)</label>
+                <input type="number" step="200000" [(ngModel)]="ficheData().pme_vehicles_value"
+                  class="form-input font-mono font-bold" />
+              </div>
+              <div>
+                <label class="form-label font-bold text-blue-900 dark:text-blue-300">Dépôt de Garantie Épargne Nantie
+                  (DGA FCFA)</label>
+                <input type="number" step="50000" [(ngModel)]="ficheData().pme_cash_savings_dga"
+                  class="form-input font-mono font-bold border-blue-300" />
+              </div>
+              <div>
+                <label class="form-label">Valeur Stocks de Marchandises (FCFA)</label>
+                <input type="number" step="200000" [(ngModel)]="ficheData().pme_stock_value"
+                  class="form-input font-mono font-bold" />
+              </div>
+              <div>
+                <label class="form-label">Dettes Fournisseurs en Cours (FCFA)</label>
+                <input type="number" step="100000" [(ngModel)]="ficheData().pme_supplier_debts"
+                  class="form-input font-mono text-rose-600 font-bold" />
+              </div>
+              <div>
+                <label class="form-label font-bold text-emerald-800 dark:text-emerald-400">Capitaux Propres Estimés
+                  (FCFA)</label>
+                <input type="number" step="500000" [(ngModel)]="ficheData().pme_equity_capital"
+                  class="form-input font-mono font-bold border-emerald-300" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Avis de l'Agent -->
+          <div
+            class="border border-slate-200 dark:border-slate-800 rounded-xl p-5 bg-white dark:bg-slate-900 shadow-sm space-y-3">
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono">
+              4. Avis & Analyse Motivée de l'Agent Instructeur PME
+            </h4>
+            <textarea rows="3" [(ngModel)]="ficheData().pme_agent_recommendation"
+              placeholder="Renseignez l'analyse commerciale, le sérieux du promoteur, le carnet d'épargne et votre recommandation..."
+              class="form-input w-full text-xs"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 2: DONNÉES FINANCIÈRES, DETTES & GARANTIES (ÉDITABLE)         -->
+      <!-- ================================================================= -->
+      <div *ngIf="currentDetailTab() === 'financials_guarantees'" class="space-y-6 animate-fade-in">
+        <!-- 1.1 Financial Data Form -->
+        <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/30">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider font-mono">
+              Revenus, Dépenses & Ancienneté d'Activité (Certifiables)
+            </h4>
+            <span class="text-[10px] text-slate-500 font-mono">Modifiez et enregistrez pour recalculer</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <label class="form-label font-mono">Revenu Mensuel Principal (FCFA)</label>
+              <input type="number" step="10000" [(ngModel)]="verifiedFields().monthly_revenue"
+                class="form-input font-mono font-bold" />
+            </div>
+            <div>
+              <label class="form-label font-mono">Revenu Mensuel Secondaire (FCFA)</label>
+              <input type="number" step="10000" [(ngModel)]="verifiedFields().secondary_revenue"
+                class="form-input font-mono" />
+            </div>
+            <div>
+              <label class="form-label font-mono">Dépenses Mensuelles Ménage (FCFA)</label>
+              <input type="number" step="10000" [(ngModel)]="verifiedFields().monthly_expenses"
+                class="form-input font-mono" />
+            </div>
+            <div>
+              <label class="form-label font-mono">Autres Charges Récurrentes (FCFA)</label>
+              <input type="number" step="5000" [(ngModel)]="verifiedFields().other_recurring_expenses"
+                class="form-input font-mono" />
+            </div>
+            <div>
+              <label class="form-label font-mono">Ancienneté d'Activité (Années)</label>
+              <input type="number" step="0.5" [(ngModel)]="verifiedFields().years_in_business"
+                class="form-input font-mono" />
+            </div>
+            <div>
+              <label class="form-label font-mono">Régularité des Revenus (Mois/12)</label>
+              <input type="number" min="1" max="12" [(ngModel)]="verifiedFields().revenue_regularity_months"
+                class="form-input font-mono" />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end mt-4">
+            <button (click)="saveFinancials()" [disabled]="savingFinancials()"
+              class="btn-primary text-xs shadow-sm cursor-pointer">
+              <app-svg-icon name="check" [size]="14"></app-svg-icon>
+              <span>{{ savingFinancials() ? 'Enregistrement...' : 'Enregistrer les Données Financières' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1.2 Multi-Guarantees Section -->
+        <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-white dark:bg-slate-900 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono">Garanties & Sûretés
+                Réelles</h4>
+              <p class="text-[11px] text-slate-500">Total retenu : <strong class="text-emerald-700">{{
+                  formatAmount(totalGuaranteesRetained()) }}</strong> (Couverture : <strong>{{ guaranteeCoverageRatio()
+                  }}%</strong>)</p>
+            </div>
+            <button (click)="openAddGuaranteeModal()" class="btn-secondary text-xs cursor-pointer">
+              <app-svg-icon name="plus" [size]="12"></app-svg-icon>
+              <span>Ajouter une garantie</span>
+            </button>
+          </div>
+
+          <div *ngIf="guarantees().length === 0"
+            class="p-4 text-center text-slate-400 text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+            Aucune garantie enregistrée.
+          </div>
+
+          <div *ngIf="guarantees().length > 0" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+            <div *ngFor="let g of guarantees()" class="py-2.5 flex items-center justify-between">
+              <div>
+                <p class="font-semibold text-slate-800 dark:text-slate-200">{{ g.guarantee_type }} - {{ g.description }}</p>
+                <p class="text-[11px] text-slate-400 font-mono">Valeur estimée : {{ formatAmount(g.estimated_value) }} •
+                  Retenue : {{ formatAmount(g.retained_value) }}</p>
+              </div>
+              <button (click)="deleteGuarantee(g.id!)"
+                class="text-rose-500 hover:text-rose-700 text-xs cursor-pointer">
+                <app-svg-icon name="trash" [size]="14"></app-svg-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1.3 Multi-Debts Section -->
+        <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-4 bg-white dark:bg-slate-900 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono">Engagements & Dettes
+                Antérieures</h4>
+              <p class="text-[11px] text-slate-500">Mensualités globales : <strong class="text-rose-600">{{
+                  formatAmount(totalDebtsMonthly()) }}</strong></p>
+            </div>
+            <button (click)="openAddDebtModal()" class="btn-secondary text-xs cursor-pointer">
+              <app-svg-icon name="plus" [size]="12"></app-svg-icon>
+              <span>Ajouter une dette</span>
+            </button>
+          </div>
+
+          <div *ngIf="debts().length === 0"
+            class="p-4 text-center text-slate-400 text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+            Aucun autre engagement déclaré.
+          </div>
+
+          <div *ngIf="debts().length > 0" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+            <div *ngFor="let d of debts()" class="py-2.5 flex items-center justify-between">
+              <div>
+                <p class="font-semibold text-slate-800 dark:text-slate-200">{{ d.creditor_name }}</p>
+                <p class="text-[11px] text-slate-400 font-mono">Mensualité : {{ formatAmount(d.monthly_payment) }} •
+                  Solde restant : {{ formatAmount(d.remaining_amount) }}</p>
+              </div>
+              <button (click)="deleteDebt(d.id!)"
+                class="text-rose-500 hover:text-rose-700 text-xs cursor-pointer">
+                <app-svg-icon name="trash" [size]="14"></app-svg-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 3: TRANSMISSION AU COMITÉ DE CRÉDIT                           -->
+      <!-- ================================================================= -->
+      <div *ngIf="currentDetailTab() === 'committee_submission'" class="space-y-6 animate-fade-in">
+        <!-- 3.1 Recap Dossier -->
+        <div
+          class="card p-6 border rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-3">
+            <div>
+              <span class="text-[10px] text-blue-900 dark:text-blue-300 font-mono uppercase font-bold">Transmission
+                Institutionnelle</span>
+              <h4 class="text-base font-bold text-slate-900 dark:text-white">
+                Dossier {{ selectedApp()!.reference }} — {{ selectedApp()!.applicant_name }}
+              </h4>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold"
+              [class]="getStatusBadgeClass(selectedApp()!.status)">
+              {{ getStatusLabel(selectedApp()!.status) }}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+            <div class="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span class="text-slate-400 block text-[10px] uppercase">Antenne Régionale</span>
+              <span class="font-bold text-blue-900 dark:text-blue-300">{{ selectedApp()!.branch_code || '701' }} (Kafo
+                Jiginew)</span>
+            </div>
+            <div class="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span class="text-slate-400 block text-[10px] uppercase">Montant Sollicité</span>
+              <span class="font-bold text-slate-900 dark:text-white">{{ formatAmount(selectedApp()!.requested_amount)
+                }}</span>
+            </div>
+            <div class="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span class="text-slate-400 block text-[10px] uppercase">Durée Demandée</span>
+              <span class="font-bold text-slate-900 dark:text-white">{{ selectedApp()!.requested_duration_months }}
+                mois</span>
+            </div>
+            <div class="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span class="text-slate-400 block text-[10px] uppercase">Garanties Retenues</span>
+              <span class="font-bold text-emerald-700">{{ formatAmount(totalGuaranteesRetained()) }} ({{
+                guaranteeCoverageRatio() }}%)</span>
+            </div>
+          </div>
+
+          <!-- Integrity Notice: Agent does NOT score beforehand -->
+          <div
+            class="p-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl text-xs space-y-1">
+            <p class="font-bold text-blue-950 dark:text-blue-200 flex items-center gap-2">
+              <app-svg-icon name="shield" [size]="16" class="text-blue-600"></app-svg-icon>
+              <span>Intégrité & Impartialité de l'Évaluation Algorithmique</span>
+            </p>
+            <p class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+              Afin de préserver l'objectivité de l'enquête de terrain, l'agent ne visualise pas le score.
+              Le calcul du <strong>Score de Solvabilité (/100)</strong> et de l'arbre explicatif (Random Forest & SHAP)
+              s'effectue automatiquement au moment de la transmission et est directement mis à la disposition du Comité
+              de Crédit.
+            </p>
+          </div>
+
+          <!-- Status Indicator or Submission Action -->
+          <div *ngIf="selectedApp()!.status === 'pending_committee_approval'"
+            class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg text-xs text-amber-900 dark:text-amber-200 flex items-center gap-3">
+            <app-svg-icon name="clock" [size]="20" class="shrink-0 text-amber-600"></app-svg-icon>
+            <div>
+              <p class="font-bold">Dossier Transmis au Comité de Crédit</p>
+              <p class="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">Le dossier a été instruit et scoré. Il
+                est en attente d'arbitrage par le Comité et la Direction.</p>
+            </div>
+          </div>
+
+          <div *ngIf="selectedApp()!.status === 'approved' || selectedApp()!.status === 'adjusted'"
+            class="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg text-xs text-emerald-900 dark:text-emerald-200 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <app-svg-icon name="check-circle" [size]="20" class="shrink-0 text-emerald-600"></app-svg-icon>
+              <div>
+                <p class="font-bold">Dossier Accordé par le Comité de Crédit</p>
+                <p class="text-[11px] mt-0.5">Montant accordé : <strong>{{ formatAmount(selectedApp()!.approved_amount
+                    || selectedApp()!.requested_amount) }}</strong></p>
+              </div>
+            </div>
+            <button (click)="viewReceipt(selectedApp()!.id)" class="btn-primary text-xs py-1.5 px-3 cursor-pointer">
+              <app-svg-icon name="printer" [size]="14"></app-svg-icon>
+              <span>Imprimer le Récépissé Officiel</span>
+            </button>
+          </div>
+
+          <div
+            *ngIf="!['pending_committee_approval', 'approved', 'adjusted', 'rejected'].includes(selectedApp()!.status)"
+            class="pt-2 flex items-center justify-end gap-3">
+            <button (click)="openRejectModal()"
+              class="btn-secondary text-xs py-2 px-3 text-rose-600 border-rose-200 hover:text-rose-800 cursor-pointer">
+              <app-svg-icon name="x-circle" [size]="14"></app-svg-icon>
+              <span>Classer sans suite / Rejeter</span>
+            </button>
+
+            <button (click)="submitToCommittee()" [disabled]="submittingToCommittee()"
+              class="btn-primary text-xs py-2.5 px-5 shadow-sm cursor-pointer flex items-center gap-2">
+              <app-svg-icon name="check-circle" [size]="16"></app-svg-icon>
+              <span>{{ submittingToCommittee() ? 'Transmission en cours...' : 'Transmettre au Comité de Crédit (Scorer &
+                Verrouiller)' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 4: HISTORIQUE & AUDIT LOGS                                    -->
+      <!-- ================================================================= -->
+      <div *ngIf="currentDetailTab() === 'audit_logs'" class="space-y-3 font-mono text-xs animate-fade-in">
+        <div *ngIf="auditLoading()" class="py-6">
+          <app-spinner size="sm" label="Chargement de la piste d'audit..."></app-spinner>
+        </div>
+        <div *ngIf="!auditLoading() && auditLogs().length === 0" class="text-slate-400 py-6 text-center">
+          Aucun événement d'audit enregistré pour ce dossier.
+        </div>
+        <div *ngFor="let log of auditLogs()"
+          class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="font-bold text-slate-800 dark:text-slate-200">{{ log.action }}</p>
+            <p class="text-[11px] text-slate-500">Par : {{ log.user_name || 'Système' }}</p>
+          </div>
+          <span class="text-[10px] text-slate-400">{{ log.timestamp | date:'short' }}</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: QUICK INIT PAR NUMÉRO DE COMPTE AVEC PRÉREMPLISSAGE & CHOIX DU TYPE -->
+<!-- ========================================================================= -->
+<div *ngIf="showQuickInitModal()"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div
+    class="bg-white dark:bg-slate-900 rounded-xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Initialisation Rapide de Dossier</h3>
+        <p class="text-xs text-slate-500 font-mono">Recherche du sociétaire par N° de compte Kafo Jiginew</p>
+      </div>
+      <button (click)="closeQuickInitModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-4 text-xs">
+      <!-- 1. Account Number & Lookup Button -->
+      <div>
+        <label class="form-label font-bold text-slate-900 dark:text-white">N° de Compte Client Kafo Jiginew</label>
+        <div class="flex items-center gap-2">
+          <input type="text" [(ngModel)]="quickAccountNumber" placeholder="ex: CMF-701-001245"
+            class="form-input font-mono uppercase font-bold flex-1 border-blue-300" />
+          <button (click)="searchAccount()" [disabled]="searchingAccount()"
+            class="btn-primary text-xs cursor-pointer py-2 px-3">
+            <app-svg-icon name="search" [size]="14"></app-svg-icon>
+            <span>{{ searchingAccount() ? 'Recherche...' : 'Vérifier & Préremplir' }}</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-1 font-mono">Exemples actifs : CMF-2026-001245, CMF-2026-003891,
+          CMF-2026-004512</p>
+      </div>
+
+      <!-- ALERTE CENTRALE DES RISQUES : DOSSIER ACTIF DANS UNE AUTRE ANTENNE -->
+      <div *ngIf="quickAccountInfo()?.has_active_other_branch"
+        class="p-4 rounded-xl border-2 border-rose-500 bg-rose-50/90 dark:bg-rose-950/40 dark:border-rose-600 shadow-md space-y-3 animate-fade-in">
+        <div class="flex items-start gap-3">
+          <span class="text-2xl">⚠️</span>
+          <div class="flex-1">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <h4 class="text-xs font-black uppercase text-rose-900 dark:text-rose-300 tracking-wider">
+                Alerte Centrale des Risques : Dossier En Cours Détecté dans une Autre Antenne !
+              </h4>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-200 text-rose-950 dark:bg-rose-900 dark:text-rose-100">
+                Risque Surendettement Croisé (BCEAO)
+              </span>
+            </div>
+            <p class="text-xs text-rose-800 dark:text-rose-200 mt-1 font-medium leading-relaxed">
+              Ce sociétaire <strong class="underline">n'a aucun dossier actif dans votre antenne</strong> ({{ getBranchName(currentUserBranch()) }}), mais possède un ou plusieurs dossiers en cours d'instruction dans une autre antenne Kafo Jiginew :
+            </p>
+          </div>
+        </div>
+
+        <!-- Dossiers actifs dans les autres antennes -->
+        <div class="bg-white dark:bg-slate-900 rounded-lg p-3 border border-rose-200 dark:border-rose-800 space-y-2">
+          <div *ngFor="let ob of quickAccountInfo().other_branch_applications"
+            class="flex items-center justify-between p-2 rounded bg-rose-50/50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 flex-wrap gap-2">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-mono font-bold text-blue-900 dark:text-blue-300">{{ ob.reference }}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-900 dark:bg-purple-900/50 dark:text-purple-300">
+                  🏛️ {{ ob.branch_name }}
+                </span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-300">
+                  {{ ob.status_label }}
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Secteur : {{ ob.activity_sector }} • Déposé le : {{ ob.created_at }} • Type : {{ ob.application_type }}
+              </p>
+            </div>
+            <div class="text-right">
+              <span class="font-mono font-bold text-slate-900 dark:text-white">{{ ob.requested_amount | number:'1.0-0' }} FCFA</span>
+              <p class="text-[10px] text-slate-400">Montant demandé</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prudential Recommendation & Action to Abort Creation -->
+        <div class="p-3 bg-amber-100/80 dark:bg-amber-950/50 rounded-lg border border-amber-300 dark:border-amber-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div class="text-xs text-amber-900 dark:text-amber-200">
+            <p class="font-bold">Recommandation Prudentielle de Crédit :</p>
+            <p class="text-[11px]">Pour éviter le cumul de dettes non maîtrisé entre caisses régionales, il est vivement conseillé de renoncer à la création d'un nouveau dossier.</p>
+          </div>
+          <button type="button" (click)="abortDuplicateApplication()"
+            class="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap transition-all">
+            <span>🚫</span>
+            <span>Ne pas créer le dossier (Recommandé)</span>
+          </button>
+        </div>
+
+        <!-- Exception Override Checkbox -->
+        <div class="pt-1 flex items-center gap-2">
+          <input type="checkbox" id="forceCrossOverride" [(ngModel)]="forceCrossBranchOverride"
+            class="rounded border-rose-300 text-rose-600 focus:ring-rose-500 cursor-pointer" />
+          <label for="forceCrossOverride" class="text-[11px] font-semibold text-rose-950 dark:text-rose-200 cursor-pointer">
+            Dérogation exceptionnelle autorisée (Je confirme vouloir instruire un second dossier malgré le dossier en cours)
+          </label>
+        </div>
+      </div>
+
+      <!-- 2. Choice of Account Type (Individual vs PME) -->
+      <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+        <label class="form-label font-bold mb-2 block">Profil du Demandeur & Modèle de Fiche</label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all"
+            [class.border-emerald-500]="quickApplicationType() === 'INDIVIDUAL'"
+            [class.bg-emerald-50]="quickApplicationType() === 'INDIVIDUAL'"
+            [class.dark:bg-emerald-950/40]="quickApplicationType() === 'INDIVIDUAL'"
+            [class.border-slate-200]="quickApplicationType() !== 'INDIVIDUAL'">
+            <input type="radio" name="quick_type" [value]="'INDIVIDUAL'"
+              [checked]="quickApplicationType() === 'INDIVIDUAL'" (change)="quickApplicationType.set('INDIVIDUAL')" />
+            <div>
+              <p class="font-bold text-emerald-950 dark:text-emerald-200">Particulier / Salarié</p>
+              <p class="text-[10px] text-slate-500">Crédit personnel, équipement, habitat</p>
+            </div>
+          </label>
+
+          <label class="flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all"
+            [class.border-blue-600]="quickApplicationType() === 'PME'"
+            [class.bg-blue-50]="quickApplicationType() === 'PME'"
+            [class.dark:bg-blue-950/40]="quickApplicationType() === 'PME'"
+            [class.border-slate-200]="quickApplicationType() !== 'PME'">
+            <input type="radio" name="quick_type" [value]="'PME'" [checked]="quickApplicationType() === 'PME'"
+              (change)="quickApplicationType.set('PME')" />
+            <div>
+              <p class="font-bold text-blue-950 dark:text-blue-200">Entreprise / PME</p>
+              <p class="text-[10px] text-slate-500">Crédit commercial, fonds de roulement</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- 3. Pre-filled Information (Editable) -->
+      <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
+          <span class="font-mono uppercase text-[10px] text-slate-400 font-bold">Données Identifiées dans le
+            Système</span>
+          <span *ngIf="quickAccountInfo()"
+            class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800">
+            Prérempli via Compte
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="form-label">Nom Complet / Raison Sociale</label>
+            <input type="text" [(ngModel)]="quickApplicantName" placeholder="ex: Amadou Diallo"
+              class="form-input font-bold" />
+          </div>
+          <div>
+            <label class="form-label">Téléphone</label>
+            <input type="text" [(ngModel)]="quickApplicantPhone" placeholder="+223 76 00 00 00"
+              class="form-input font-mono" />
+          </div>
+          <div>
+            <label class="form-label">Secteur d'Activité</label>
+            <select [(ngModel)]="quickActivitySector" class="form-input">
+              <option value="Commerce">Commerce</option>
+              <option value="Agriculture">Agriculture / Élevage</option>
+              <option value="Artisanat">Artisanat</option>
+              <option value="TPE">TPE / Services</option>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Antenne Régionale Attribuée</label>
+            <select [(ngModel)]="quickBranchCode" class="form-input font-mono font-bold">
+              <option value="701">Antenne 701 - Bamako District (Hamdallaye ACI)</option>
+              <option value="702">Antenne 702 - Caisse Médina-Coura</option>
+              <option value="801">Antenne 801 - Sikasso (Wayerma)</option>
+              <option value="802">Antenne 802 - Caisse Rurale Koutiala</option>
+              <option value="901">Antenne 901 - Ségou (Pelengana)</option>
+              <option value="902">Antenne 902 - Mopti (Sévaré)</option>
+              <option value="903">Antenne 903 - Kayes (Légal Ségou)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Revenu / CA Mensuel Estimé (FCFA)</label>
+            <input type="number" step="10000" [(ngModel)]="quickMonthlyRevenue"
+              class="form-input font-mono font-bold" />
+          </div>
+          <div>
+            <label class="form-label">Charges Mensuelles Estimées (FCFA)</label>
+            <input type="number" step="10000" [(ngModel)]="quickMonthlyExpenses" class="form-input font-mono" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Loan Conditions -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label font-bold">Montant Demandé (FCFA)</label>
+          <input type="number" step="50000" min="50000" [(ngModel)]="quickRequestedAmount"
+            class="form-input font-mono font-bold text-blue-900 dark:text-blue-300" />
+        </div>
+        <div>
+          <label class="form-label font-bold">Durée (Mois)</label>
+          <input type="number" min="3" max="36" [(ngModel)]="quickRequestedDuration"
+            class="form-input font-mono font-bold" />
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">Objet / But Précis du Financement</label>
+        <input type="text" [(ngModel)]="quickBusinessDesc"
+          placeholder="ex: Renforcement de trésorerie et achat de stocks" class="form-input" />
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800 flex-wrap">
+      <div class="flex items-center gap-2">
+        <button (click)="closeQuickInitModal()" class="btn-secondary text-xs cursor-pointer">Fermer</button>
+        <button *ngIf="quickAccountInfo()?.has_active_other_branch" type="button" (click)="abortDuplicateApplication()"
+          class="px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-bold text-xs border border-rose-300 cursor-pointer">
+          🚫 Ne pas créer (Doublon détecté)
+        </button>
+      </div>
+      <button (click)="createQuickApplication()"
+        [disabled]="creatingQuickApp() || !quickAccountNumber() || (quickAccountInfo()?.has_active_other_branch && !forceCrossBranchOverride())"
+        class="btn-primary text-xs shadow-sm cursor-pointer py-2 px-4"
+        [class.opacity-50]="quickAccountInfo()?.has_active_other_branch && !forceCrossBranchOverride()">
+        <app-svg-icon name="check" [size]="14"></app-svg-icon>
+        <span>{{ creatingQuickApp() ? 'Création...' : (quickAccountInfo()?.has_active_other_branch && !forceCrossBranchOverride() ? 'Création bloquée (Dossier actif)' : 'Créer le Dossier & Ouvrir la Fiche') }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: AJOUT DE GARANTIE                                                  -->
+<!-- ========================================================================= -->
+<div *ngIf="showAddGuaranteeModal()"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div
+    class="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <h3 class="text-sm font-bold text-slate-900 dark:text-white">Inscrire une Garantie / Bien en Gage</h3>
+      <button (click)="showAddGuaranteeModal.set(false)"
+        class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="form-label">Nature du Bien</label>
+        <select [(ngModel)]="newGuaranteeType" class="form-input">
+          <option value="terrain">Terrain (Titre foncier / Lettre d'attribution)</option>
+          <option value="maison">Maison / Bâtiment d'habitation</option>
+          <option value="vehicule">Véhicule (Carte grise)</option>
+          <option value="equipement">Équipement professionnel / Matériel</option>
+          <option value="stock">Stock de marchandises (Nantissement)</option>
+          <option value="caution">Caution solidaire / Tontine</option>
+          <option value="autre">Autre actif</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Description Détaillée</label>
+        <input type="text" [(ngModel)]="newGuaranteeDesc" placeholder="ex: Parcelle 400m² Kalaban-Coro Titre N° 451"
+          class="form-input" />
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Valeur Estimée (FCFA)</label>
+          <input type="number" step="50000" [ngModel]="newGuaranteeEst()" (ngModelChange)="onEstValChange($event)"
+            class="form-input font-mono font-bold" />
+        </div>
+        <div>
+          <label class="form-label">Valeur Retenue (Décote)</label>
+          <input type="number" step="50000" [(ngModel)]="newGuaranteeRet"
+            class="form-input font-mono font-bold text-emerald-700" />
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">N° de Preuve / Pièce Justificative</label>
+        <input type="text" [(ngModel)]="newGuaranteeProof" placeholder="ex: TF-BKO-45192-2022"
+          class="form-input font-mono" />
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="showAddGuaranteeModal.set(false)" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button (click)="addGuarantee()" [disabled]="savingGuarantee()" class="btn-primary text-xs cursor-pointer">
+        {{ savingGuarantee() ? 'Enregistrement...' : 'Enregistrer la garantie' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: AJOUT DE DETTE                                                     -->
+<!-- ========================================================================= -->
+<div *ngIf="showAddDebtModal()"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div
+    class="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <h3 class="text-sm font-bold text-slate-900 dark:text-white">Déclarer un Engagement / Dette</h3>
+      <button (click)="showAddDebtModal.set(false)"
+        class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="form-label">Créancier</label>
+        <input type="text" [(ngModel)]="newDebtCreditor" placeholder="ex: Banque BDM / Tontine des Commerçantes"
+          class="form-input" />
+      </div>
+
+      <div>
+        <label class="form-label">Type d'engagement</label>
+        <div class="flex items-center gap-4 mt-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" [value]="false" [(ngModel)]="newDebtInternal" />
+            <span>Externe (Autre banque / tontine)</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" [value]="true" [(ngModel)]="newDebtInternal" />
+            <span>Interne (Notre IMF)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Montant Restant Dû (FCFA)</label>
+          <input type="number" step="25000" [(ngModel)]="newDebtRemaining" class="form-input font-mono font-bold" />
+        </div>
+        <div>
+          <label class="form-label">Mensualité Prélevée (FCFA)</label>
+          <input type="number" step="5000" [(ngModel)]="newDebtMonthly"
+            class="form-input font-mono font-bold text-rose-700" />
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="showAddDebtModal.set(false)" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button (click)="addDebt()" [disabled]="savingDebt()" class="btn-primary text-xs cursor-pointer">
+        {{ savingDebt() ? 'Enregistrement...' : 'Enregistrer l\'engagement' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: CONTACT CLIENT (WHATSAPP / APPEL / EMAIL)                          -->
+<!-- ========================================================================= -->
+<div *ngIf="showContactModal()"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div
+    class="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <h3 class="text-sm font-bold text-slate-900 dark:text-white">Échanger avec le Demandeur</h3>
+      <button (click)="closeContactModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="form-label">Canal de communication</label>
+        <select [(ngModel)]="contactChannel" class="form-input">
+          <option value="whatsapp">WhatsApp Direct</option>
+          <option value="phone">Appel Téléphonique</option>
+          <option value="email">Courrier Électronique (Email)</option>
+          <option value="in_app">Notification In-App</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Objet</label>
+        <input type="text" [(ngModel)]="contactSubject" class="form-input" />
+      </div>
+
+      <div>
+        <label class="form-label">Message</label>
+        <textarea [(ngModel)]="contactMessage" rows="4" class="form-input"></textarea>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="closeContactModal()" class="btn-secondary text-xs cursor-pointer">Fermer</button>
+      <button (click)="sendClientCommunication()" [disabled]="contactingClient()"
+        class="btn-primary text-xs cursor-pointer">
+        <app-svg-icon name="send" [size]="14"></app-svg-icon>
+        <span>Envoyer</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: REJET DE DOSSIER                                                   -->
+<!-- ========================================================================= -->
+<div *ngIf="showRejectModal()"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div
+    class="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <h3 class="text-sm font-bold text-rose-700">Rejeter la demande de microcrédit</h3>
+      <button (click)="closeRejectModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="form-label">Motif Réglementaire de Rejet</label>
+        <select [(ngModel)]="rejectReason" class="form-input">
+          <option value="Ratio d'endettement supérieur au plafond prudentiel BCEAO (40%)">Ratio d'endettement supérieur
+            au plafond prudentiel BCEAO (40%)</option>
+          <option value="Insuffisance du reste à vivre mensuel (inférieur au minimum vital)">Insuffisance du reste à
+            vivre mensuel (inférieur au minimum vital)</option>
+          <option value="Garanties insuffisantes ou non justifiées">Garanties insuffisantes ou non justifiées</option>
+          <option value="Incohérence des justificatifs d'activité ou de revenus">Incohérence des justificatifs
+            d'activité ou de revenus</option>
+          <option value="Autre motif d'incompatibilité prudentielle">Autre motif d'incompatibilité prudentielle</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Commentaires & Recommandations</label>
+        <textarea [(ngModel)]="rejectNotes" rows="3" placeholder="Précisez les observations pour l'archivage..."
+          class="form-input"></textarea>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="closeRejectModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button (click)="confirmReject()" [disabled]="rejectingApp()"
+        class="btn-primary text-xs bg-rose-700 hover:bg-rose-800 cursor-pointer">
+        {{ rejectingApp() ? 'Rejet en cours...' : 'Confirmer le Rejet' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: CONFIRMATION SUPPRESSION ÉLÉMENT (GARANTIE / DETTE)                -->
+<!-- ========================================================================= -->
+<div *ngIf="showDeleteConfirmModal()"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in zoom-in-95 duration-150">
+  <div
+    class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+      <div class="flex items-center gap-2 text-rose-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        <h3 class="font-bold text-slate-900 dark:text-white">Confirmer le retrait</h3>
+      </div>
+      <button (click)="showDeleteConfirmModal.set(false)"
+        class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="py-4 text-xs text-slate-600 dark:text-slate-300">
+      <p>Êtes-vous sûr de vouloir retirer définitivement <strong class="text-slate-900 dark:text-white">{{
+          itemToDelete()?.label }}</strong> de ce dossier de crédit ?</p>
+      <p class="mt-2 text-slate-400">Cette suppression recalculera immédiatement les ratios d'endettement et de
+        couverture.</p>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 pt-3 border-slate-100 dark:border-slate-800">
+      <button (click)="showDeleteConfirmModal.set(false)" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button (click)="executeDeleteItem()" [disabled]="deletingItem()"
+        class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-medium text-xs transition cursor-pointer">
+        {{ deletingItem() ? 'Suppression...' : 'Supprimer' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: RÉPONSE À LA DEMANDE DE DOCUMENT DU COMITÉ DE CRÉDIT               -->
+<!-- ========================================================================= -->
+<div *ngIf="showUploadDocModal()"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+  <div
+    class="bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-4">
+      <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+        <app-svg-icon name="upload" [size]="18"></app-svg-icon>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Transmission de Pièce Complémentaire</h3>
+      </div>
+      <button (click)="closeUploadDocModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+    </div>
+
+    <div class="space-y-4 text-xs">
+      <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg">
+        <p class="font-bold text-amber-900 dark:text-amber-200 uppercase text-[10px] font-mono">Pièce Sollicitée par le Comité</p>
+        <p class="font-bold text-slate-800 dark:text-slate-100 text-sm mt-0.5">
+          {{ targetDocRequest()?.document_name || 'Document complémentaire' }}
+        </p>
+        <p *ngIf="targetDocRequest()?.description" class="text-slate-600 dark:text-slate-400 mt-1 italic">
+          « {{ targetDocRequest()?.description }} »
+        </p>
+      </div>
+
+      <div>
+        <label class="form-label font-bold">Sélectionner le document justificatif (PDF, PNG, JPG)</label>
+        <input type="file" (change)="onFileSelected($event)" accept=".pdf,.png,.jpg,.jpeg"
+          class="form-input text-xs cursor-pointer file:mr-3 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+        <p *ngIf="selectedFileToUpload()" class="text-[11px] text-emerald-600 mt-1 font-mono flex items-center gap-1">
+          <app-svg-icon name="check" [size]="12"></app-svg-icon>
+          Fichier sélectionné : {{ selectedFileToUpload()!.name }} ({{ (selectedFileToUpload()!.size / 1024).toFixed(1) }} Ko)
+        </p>
+      </div>
+
+      <div>
+        <label class="form-label font-bold">Observations ou commentaires de l'agent</label>
+        <textarea [ngModel]="uploadDocNotes()" (ngModelChange)="uploadDocNotes.set($event)" rows="3"
+          placeholder="Ex: Document récupéré auprès du client, conforme aux exigences du comité..."
+          class="form-input text-xs"></textarea>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-3 border-t border-slate-200 dark:border-slate-800">
+      <button (click)="closeUploadDocModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+      <button (click)="submitRequestedDocument()" [disabled]="uploadingDoc() || !selectedFileToUpload()"
+        class="btn-primary text-xs py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5">
+        <app-svg-icon name="upload" [size]="14"></app-svg-icon>
+        <span>{{ uploadingDoc() ? 'Transmission en cours...' : 'Transmettre au Comité' }}</span>
+      </button>
+    </div>
+  </div>
+</div>

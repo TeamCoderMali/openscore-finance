@@ -1,0 +1,1826 @@
+<div class="space-y-6 animate-slide-up">
+  <!-- ── MACRO KPIS BANNER ────────────────────────────────────────────── -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- Dossiers en attente -->
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-mono uppercase text-slate-500 font-bold">Dossiers en Attente</span>
+        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+      </div>
+      <div class="text-2xl font-bold text-slate-900 dark:text-white mt-1 font-mono">
+        {{ kpiStats().totalCount }}
+      </div>
+      <p class="text-[11px] text-slate-500 mt-0.5">Instance de décision Comité</p>
+    </div>
+
+    <!-- Volume total sollicité -->
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <span class="text-xs font-mono uppercase text-slate-500 font-bold">Volume Total Demandé</span>
+      <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+        {{ formatAmount(kpiStats().totalAmount) }}
+      </div>
+      <p class="text-[11px] text-slate-500 mt-0.5">Engagement financier potentiel</p>
+    </div>
+
+    <!-- Score Moyen / 100 -->
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <span class="text-xs font-mono uppercase text-slate-500 font-bold">Score Moyen</span>
+      <div class="flex items-baseline gap-1 mt-1">
+        <span class="text-2xl font-bold font-mono text-blue-900 dark:text-blue-300">
+          {{ kpiStats().averageScore }}
+        </span>
+        <span class="text-xs font-mono text-slate-500">/ 100</span>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-0.5">Indice pondéré solvabilité ML</p>
+    </div>
+
+    <!-- Couverture Moyenne Garanties -->
+    <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <span class="text-xs font-mono uppercase text-slate-500 font-bold">Couverture Garanties</span>
+      <div class="text-2xl font-bold font-mono text-blue-900 dark:text-blue-300 mt-1">
+        {{ kpiStats().averageCoverage }}%
+      </div>
+      <p class="text-[11px] text-slate-500 mt-0.5">Ratio moyen sûretés / prêt</p>
+    </div>
+  </div>
+
+  <!-- ── SEARCH, DETAILED FILTERS & QUICK ACTION TOOLBAR ──────────────── -->
+  <div class="card p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <!-- Search Input -->
+      <div class="relative flex-1 min-w-[280px]">
+        <app-svg-icon name="search" [size]="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></app-svg-icon>
+        <input
+          type="text"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event); currentPage.set(1)"
+          placeholder="Rechercher par référence (OSF-...), compte (CMF-...), emprunteur, agent..."
+          class="form-input text-xs pl-8 py-2 w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
+        <button
+          *ngIf="searchQuery()"
+          (click)="searchQuery.set(''); currentPage.set(1)"
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          (click)="openReportsModal()"
+          class="btn-secondary text-xs py-2 px-3 font-semibold shadow-xs cursor-pointer flex items-center gap-1.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+          title="Consulter et archiver les procès-verbaux de séance"
+        >
+          <app-svg-icon name="file-text" [size]="14"></app-svg-icon>
+          <span>PV & Rapports</span>
+        </button>
+
+        <button
+          (click)="openQuickInitModal()"
+          class="btn-primary text-xs py-2 px-3 bg-blue-700 hover:bg-blue-800 text-white font-bold shadow-xs cursor-pointer flex items-center gap-1.5 rounded-lg"
+          title="Initialiser un dossier instantanément pour un compte client"
+        >
+          <app-svg-icon name="plus" [size]="14"></app-svg-icon>
+          <span>Nouveau Dossier (1-Clic)</span>
+        </button>
+
+        <button
+          (click)="loadApprovals()"
+          class="btn-secondary text-xs py-2 px-2.5 cursor-pointer"
+          title="Actualiser la file"
+        >
+          <app-svg-icon name="refresh-cw" [size]="13"></app-svg-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Multi-criteria Filter Dropdowns -->
+    <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+      <span class="text-[11px] font-mono text-slate-400 font-semibold uppercase shrink-0">Filtrer par :</span>
+
+      <!-- Secteur -->
+      <select
+        [ngModel]="sectorFilter()"
+        (ngModelChange)="sectorFilter.set($event); currentPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous secteurs</option>
+        <option value="Commerce">Commerce</option>
+        <option value="Agriculture">Agriculture</option>
+        <option value="Artisanat">Artisanat</option>
+        <option value="TPE">TPE / PME</option>
+        <option value="Autre">Autre</option>
+      </select>
+
+      <!-- Avis Algorithmique -->
+      <select
+        [ngModel]="decisionFilter()"
+        (ngModelChange)="decisionFilter.set($event); currentPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous avis ML</option>
+        <option value="approved">Favorable (Accordé)</option>
+        <option value="adjusted">Ajustement suggéré</option>
+        <option value="rejected">Défavorable (Refusé)</option>
+      </select>
+
+      <!-- Tranche de Score -->
+      <select
+        [ngModel]="scoreFilter()"
+        (ngModelChange)="scoreFilter.set($event); currentPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Tous scores (/100)</option>
+        <option value="excellent">Score ≥ 80 (Excellent)</option>
+        <option value="favorable">Score 60 - 79 (Favorable)</option>
+        <option value="risk">Score &lt; 60 (À risque)</option>
+      </select>
+
+      <!-- Couverture Garanties -->
+      <select
+        [ngModel]="coverageFilter()"
+        (ngModelChange)="coverageFilter.set($event); currentPage.set(1)"
+        class="form-select text-xs py-1 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+      >
+        <option value="all">Toutes couvertures</option>
+        <option value="over">≥ 100% (Sur-couvert)</option>
+        <option value="partial">50% - 99% (Couverture partielle)</option>
+        <option value="low">&lt; 50% (Sous-couvert)</option>
+      </select>
+
+      <!-- Reset button -->
+      <button
+        *ngIf="activeFiltersCount() > 0"
+        (click)="resetFilters()"
+        class="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1 ml-auto font-medium cursor-pointer"
+      >
+        <app-svg-icon name="x" [size]="12"></app-svg-icon>
+        <span>Réinitialiser ({{ activeFiltersCount() }} actif{{ activeFiltersCount() > 1 ? 's' : '' }})</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── DOSSIERS TABLE WITH SORTING & PAGINATION ──────────────────────── -->
+  <div class="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+    <!-- Table Header Info Bar -->
+    <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between text-xs">
+      <div class="font-mono text-slate-600 dark:text-slate-300">
+        <strong>{{ filteredApprovals().length }}</strong> dossier(s) trouvé(s)
+        <span *ngIf="filteredApprovals().length !== pendingApprovals().length" class="text-slate-400">
+          (sur {{ pendingApprovals().length }} au total)
+        </span>
+      </div>
+
+      <!-- Page Size Selector -->
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 text-[11px] font-mono">Afficher :</span>
+        <select
+          [ngModel]="pageSize()"
+          (ngModelChange)="setPageSize($event)"
+          class="form-select text-xs py-0.5 px-2 font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        >
+          <option [ngValue]="5">5 par page</option>
+          <option [ngValue]="10">10 par page</option>
+          <option [ngValue]="20">20 par page</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Spinner Loading -->
+    <div *ngIf="loading()" class="py-12">
+      <app-spinner size="md" label="Chargement des dossiers d'arbitrage..."></app-spinner>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading() && filteredApprovals().length === 0" class="p-12 text-center text-xs">
+      <app-svg-icon name="folder" [size]="32" class="mx-auto mb-2 text-slate-400"></app-svg-icon>
+      <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">Aucun dossier correspondant aux critères</p>
+      <p class="text-slate-400 mt-1">Modifiez vos filtres ou effectuez une recherche différente.</p>
+      <button *ngIf="activeFiltersCount() > 0" (click)="resetFilters()" class="btn-secondary text-xs mt-3 cursor-pointer">
+        Effacer tous les filtres
+      </button>
+    </div>
+
+    <!-- Data Table -->
+    <div *ngIf="!loading() && filteredApprovals().length > 0" class="overflow-x-auto">
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-mono uppercase text-[10px] bg-slate-50 dark:bg-slate-800/60 select-none">
+            <!-- Réf & Compte -->
+            <th class="py-3 px-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('applicant')">
+              <div class="flex items-center gap-1">
+                <span>Réf. & Compte</span>
+                <span *ngIf="sortBy() === 'applicant'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Client Emprunteur -->
+            <th class="py-3 px-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('applicant')">
+              <div class="flex items-center gap-1">
+                <span>Client Emprunteur</span>
+                <span *ngIf="sortBy() === 'applicant'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Agent Instructeur -->
+            <th class="py-3 px-3">Agent Instructeur</th>
+
+            <!-- Montant Demandé -->
+            <th class="py-3 px-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('amount')">
+              <div class="flex items-center justify-end gap-1">
+                <span>Montant Demandé</span>
+                <span *ngIf="sortBy() === 'amount'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Score (/100) -->
+            <th class="py-3 px-3 text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('score')">
+              <div class="flex items-center justify-center gap-1">
+                <span>Score (/100)</span>
+                <span *ngIf="sortBy() === 'score'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Garanties & Couverture -->
+            <th class="py-3 px-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800" (click)="setSort('coverage')">
+              <div class="flex items-center gap-1">
+                <span>Garanties & Couverture</span>
+                <span *ngIf="sortBy() === 'coverage'">{{ sortOrder() === 'asc' ? '▲' : '▼' }}</span>
+              </div>
+            </th>
+
+            <!-- Avis Algorithmique ML -->
+            <th class="py-3 px-3">Avis ML</th>
+
+            <!-- Actions Super Admin -->
+            <th class="py-3 px-3 text-right">Décision & Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <tr
+            *ngFor="let app of pagedApprovals()"
+            class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+            (click)="openDossierDetails(app)"
+          >
+            <!-- Réf & Compte -->
+            <td class="py-3.5 px-3">
+              <p class="font-mono font-bold text-blue-900 dark:text-blue-300 group-hover:underline">
+                {{ app.reference }}
+              </p>
+              <span *ngIf="app.account_number" class="text-[10px] font-mono text-blue-900 dark:text-blue-300 font-bold bg-blue-50 dark:bg-blue-950/80 px-1 rounded border border-blue-200 dark:border-blue-900">
+                {{ app.account_number }}
+              </span>
+            </td>
+
+            <!-- Client Emprunteur -->
+            <td class="py-3.5 px-3">
+              <p class="font-semibold text-slate-900 dark:text-white">{{ app.applicant_name }}</p>
+              <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                <span>{{ app.activity_sector }}</span>
+                <span *ngIf="app.applicant_phone">• {{ app.applicant_phone }}</span>
+              </div>
+            </td>
+
+            <!-- Agent Instructeur -->
+            <td class="py-3.5 px-3 font-mono text-slate-700 dark:text-slate-300">
+              <div class="font-medium">{{ app.agent_name || 'Non assigné' }}</div>
+              <div class="text-[10px] text-slate-400">Agent Référent</div>
+            </td>
+
+            <!-- Montant Demandé & Validé -->
+            <td class="py-3.5 px-3 text-right font-mono">
+              <div *ngIf="isApproved(app.status)" class="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                {{ formatAmount(app.approved_amount || app.requested_amount) }}
+              </div>
+              <div *ngIf="!isApproved(app.status)" class="font-bold text-slate-900 dark:text-white text-sm">
+                {{ formatAmount(app.requested_amount) }}
+              </div>
+              <span *ngIf="isApproved(app.status) && app.approved_amount && app.approved_amount !== app.requested_amount" class="text-[10px] text-amber-700 dark:text-amber-300 font-bold block bg-amber-50 dark:bg-amber-950/40 px-1 py-0.5 rounded mt-0.5">
+                Accordé ajusté (Init. {{ formatAmount(app.requested_amount) }})
+              </span>
+              <span *ngIf="!isApproved(app.status) && app.proposed_amount" class="text-[10px] text-blue-600 font-semibold block">
+                Prop. : {{ formatAmount(app.proposed_amount) }}
+              </span>
+              <span class="text-[10px] text-slate-400">{{ app.approved_duration_months || app.requested_duration_months || 12 }} mois</span>
+            </td>
+
+            <!-- Score (/100) -->
+            <td class="py-3.5 px-3 text-center">
+              <span
+                class="px-2.5 py-1 rounded-md font-mono font-bold text-xs inline-block shadow-2xs"
+                [class.bg-emerald-100]="normalizeScore(app.score) >= 80"
+                [class.text-emerald-900]="normalizeScore(app.score) >= 80"
+                [class.dark:bg-emerald-950]="normalizeScore(app.score) >= 80"
+                [class.dark:text-emerald-300]="normalizeScore(app.score) >= 80"
+                [class.bg-blue-100]="normalizeScore(app.score) >= 60 && normalizeScore(app.score) < 80"
+                [class.text-blue-900]="normalizeScore(app.score) >= 60 && normalizeScore(app.score) < 80"
+                [class.dark:bg-blue-950]="normalizeScore(app.score) >= 60 && normalizeScore(app.score) < 80"
+                [class.dark:text-blue-300]="normalizeScore(app.score) >= 60 && normalizeScore(app.score) < 80"
+                [class.bg-rose-100]="normalizeScore(app.score) < 60"
+                [class.text-rose-900]="normalizeScore(app.score) < 60"
+                [class.dark:bg-rose-950]="normalizeScore(app.score) < 60"
+                [class.dark:text-rose-300]="normalizeScore(app.score) < 60"
+              >
+                {{ normalizeScore(app.score) }} / 100
+              </span>
+            </td>
+
+            <!-- Garanties & Couverture -->
+            <td class="py-3.5 px-3">
+              <p
+                class="font-mono font-bold text-xs"
+                [class.text-emerald-600]="(app.guarantee_coverage_ratio || 0) >= 1.0"
+                [class.text-blue-600]="(app.guarantee_coverage_ratio || 0) >= 0.5 && (app.guarantee_coverage_ratio || 0) < 1.0"
+                [class.text-rose-600]="(app.guarantee_coverage_ratio || 0) < 0.5"
+              >
+                {{ (app.guarantee_coverage_ratio || 0) * 100 | number:'1.0-0' }}% de couverture
+              </p>
+              <p class="text-[10px] text-slate-400 font-mono">
+                {{ app.guarantees_count || 0 }} bien(s) • {{ formatAmount(app.total_guarantee_value) }}
+              </p>
+            </td>
+
+            <!-- Avis ML -->
+            <td class="py-3.5 px-3">
+              <span
+                class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase inline-block"
+                [class.bg-emerald-100]="(app.recommended_decision || app.algorithmic_decision) === 'approved'"
+                [class.text-emerald-800]="(app.recommended_decision || app.algorithmic_decision) === 'approved'"
+                [class.dark:bg-emerald-950/60]="(app.recommended_decision || app.algorithmic_decision) === 'approved'"
+                [class.dark:text-emerald-300]="(app.recommended_decision || app.algorithmic_decision) === 'approved'"
+                [class.bg-amber-100]="(app.recommended_decision || app.algorithmic_decision) === 'adjusted'"
+                [class.text-amber-800]="(app.recommended_decision || app.algorithmic_decision) === 'adjusted'"
+                [class.dark:bg-amber-950/60]="(app.recommended_decision || app.algorithmic_decision) === 'adjusted'"
+                [class.dark:text-amber-300]="(app.recommended_decision || app.algorithmic_decision) === 'adjusted'"
+                [class.bg-rose-100]="(app.recommended_decision || app.algorithmic_decision) === 'rejected'"
+                [class.text-rose-800]="(app.recommended_decision || app.algorithmic_decision) === 'rejected'"
+                [class.dark:bg-rose-950/60]="(app.recommended_decision || app.algorithmic_decision) === 'rejected'"
+                [class.dark:text-rose-300]="(app.recommended_decision || app.algorithmic_decision) === 'rejected'"
+              >
+                {{ getDecisionLabel(app.recommended_decision || app.algorithmic_decision) }}
+              </span>
+            </td>
+
+            <!-- Actions Super Admin -->
+            <td class="py-3.5 px-3 text-right space-x-1.5 whitespace-nowrap" (click)="$event.stopPropagation()">
+              <button
+                (click)="openDossierDetails(app)"
+                class="btn-secondary text-[11px] py-1 px-2.5 cursor-pointer hover:border-blue-300"
+                title="Consulter l'instruction complète"
+              >
+                <app-svg-icon name="eye" [size]="12"></app-svg-icon>
+                <span>Consulter</span>
+              </button>
+
+              <span
+                *ngIf="app.form_data?.has_pending_document_request"
+                class="px-2 py-0.5 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded text-[10px] font-bold inline-flex items-center gap-1 border border-amber-300 dark:border-amber-700"
+                title="Pièce complémentaire demandée par le comité"
+              >
+                <app-svg-icon name="file-text" [size]="10"></app-svg-icon>
+                <span>Doc Demandé</span>
+              </span>
+
+              <span
+                *ngIf="isApproved(app.status)"
+                class="px-2 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 rounded text-[11px] font-bold inline-flex items-center gap-1"
+              >
+                <app-svg-icon name="check" [size]="11"></app-svg-icon>
+                <span>Accordé</span>
+              </span>
+
+              <span
+                *ngIf="isRejected(app.status)"
+                class="px-2 py-1 bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 rounded text-[11px] font-bold inline-flex items-center gap-1"
+              >
+                <app-svg-icon name="x" [size]="11"></app-svg-icon>
+                <span>Rejeté</span>
+              </span>
+
+              <ng-container *ngIf="!isDecided(app.status)">
+                <button
+                  (click)="quickApprove(app)"
+                  class="btn-primary text-[11px] py-1 px-2.5 bg-emerald-700 hover:bg-emerald-800 shadow-xs cursor-pointer text-white"
+                  title="Valider immédiatement"
+                >
+                  <app-svg-icon name="check" [size]="12"></app-svg-icon>
+                  <span>Accorder</span>
+                </button>
+
+                <button
+                  (click)="quickReject(app)"
+                  class="btn-secondary text-[11px] py-1 px-2 text-rose-700 hover:text-rose-900 border-rose-200 cursor-pointer"
+                  title="Rejeter le dossier"
+                >
+                  <app-svg-icon name="x" [size]="12"></app-svg-icon>
+                  <span>Rejeter</span>
+                </button>
+              </ng-container>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginator Footer -->
+    <div class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-mono">
+      <div class="text-slate-500">
+        Page <strong>{{ currentPage() }}</strong> sur <strong>{{ totalPages() }}</strong>
+      </div>
+
+      <div class="flex items-center gap-1">
+        <button
+          (click)="prevPage()"
+          [disabled]="currentPage() === 1"
+          class="btn-secondary text-xs py-1 px-2.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          ← Précédent
+        </button>
+
+        <span class="px-2 py-1 font-bold text-slate-700 dark:text-slate-300">
+          {{ currentPage() }} / {{ totalPages() }}
+        </span>
+
+        <button
+          (click)="nextPage()"
+          [disabled]="currentPage() === totalPages()"
+          class="btn-secondary text-xs py-1 px-2.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          Suivant →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL : 1-CLIC QUICK INIT POUR SUPER ADMIN                         -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="showQuickInitModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold">
+            ⚡
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Initialisation Rapide de Dossier (1-Clic)</h3>
+            <p class="text-[11px] text-slate-500 font-mono">Création, extraction et scoring instantanés pour le Comité</p>
+          </div>
+        </div>
+        <button (click)="closeQuickInitModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Account Lookup -->
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+          Numéro de Compte Microfinance Client *
+        </label>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            [ngModel]="quickAccountNumber()"
+            (ngModelChange)="quickAccountNumber.set($event)"
+            (keyup.enter)="searchAccount()"
+            placeholder="Ex: CMF-2026-001245"
+            class="form-input text-xs flex-1 font-mono uppercase dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+          <button
+            (click)="searchAccount()"
+            [disabled]="searchingAccount()"
+            class="btn-secondary text-xs px-3 font-semibold cursor-pointer shrink-0"
+          >
+            {{ searchingAccount() ? 'Vérification...' : 'Identifier' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Identified Client Card -->
+      <div *ngIf="quickAccountInfo()" class="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg text-xs space-y-1.5 animate-fade-in">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-blue-950 dark:text-blue-200 text-sm">
+            {{ quickAccountInfo().full_name }}
+          </span>
+          <span class="px-2 py-0.5 bg-blue-200/60 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200 rounded font-mono font-bold text-[10px]">
+            {{ quickAccountInfo().activity_sector }}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-[11px] font-mono text-slate-600 dark:text-slate-300">
+          <div>Revenus déclarés : <strong>{{ formatAmount(quickAccountInfo().monthly_revenue) }}</strong></div>
+          <div>Capacité max estimée : <strong>{{ formatAmount(quickAccountInfo().max_credit_limit) }}</strong></div>
+          <div>Pièce d'identité : <strong>{{ quickAccountInfo().id_type }} • {{ quickAccountInfo().id_number }}</strong></div>
+          <div>Ancienneté d'activité : <strong>{{ quickAccountInfo().years_in_business }} an(s)</strong></div>
+        </div>
+      </div>
+
+      <!-- Financial Request Parameters -->
+      <div class="grid grid-cols-2 gap-3 pt-2">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            Montant Demandé (FCFA) *
+          </label>
+          <input
+            type="number"
+            step="50000"
+            [ngModel]="quickRequestedAmount()"
+            (ngModelChange)="quickRequestedAmount.set($event)"
+            class="form-input text-xs w-full font-mono font-bold dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            Durée de Remboursement (Mois) *
+          </label>
+          <select
+            [ngModel]="quickRequestedDuration()"
+            (ngModelChange)="quickRequestedDuration.set($event)"
+            class="form-select text-xs w-full font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          >
+            <option [ngValue]="6">6 mois</option>
+            <option [ngValue]="12">12 mois (1 an)</option>
+            <option [ngValue]="18">18 mois</option>
+            <option [ngValue]="24">24 mois (2 ans)</option>
+            <option [ngValue]="36">36 mois (3 ans)</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          Objet / Destination du Prêt
+        </label>
+        <input
+          type="text"
+          [ngModel]="quickBusinessDesc()"
+          (ngModelChange)="quickBusinessDesc.set($event)"
+          class="form-input text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+        />
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+        <button (click)="closeQuickInitModal()" class="btn-secondary text-xs cursor-pointer">
+          Annuler
+        </button>
+        <button
+          (click)="executeQuickInit()"
+          [disabled]="creatingQuickApp() || !quickAccountNumber()"
+          class="btn-primary text-xs py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5 rounded-lg shadow-sm"
+        >
+          <span *ngIf="creatingQuickApp()">Génération et Scoring en cours...</span>
+          <span *ngIf="!creatingQuickApp()">Initialiser et Scorer le Dossier</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL : DÉTAILS COMPLETS DU DOSSIER (3 VOLETS D'ARBITRAGE)         -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="showDetailModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-fade-in">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/40">
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">
+              Instruction du Dossier : {{ selectedApproval()?.reference }}
+            </h3>
+            <span *ngIf="selectedApproval()?.account_number" class="px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-200 rounded text-xs font-mono font-bold">
+              {{ selectedApproval()?.account_number }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 font-mono mt-0.5">
+            Client : <strong>{{ selectedApproval()?.applicant_name }}</strong> • Secteur : {{ selectedApproval()?.activity_sector }}
+          </p>
+        </div>
+
+        <button (click)="closeDetailModal()" class="text-slate-400 hover:text-slate-600 p-1 cursor-pointer text-lg">
+          ✕
+        </button>
+      </div>
+
+      <!-- Tab Navigation (4 Volets Distincts) -->
+      <div class="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 px-4 pt-2 bg-slate-50/30 dark:bg-slate-900 text-xs font-medium overflow-x-auto">
+        <button
+          (click)="detailTab.set('identity')"
+          [class.border-blue-600]="detailTab() === 'identity'"
+          [class.text-blue-700]="detailTab() === 'identity'"
+          [class.dark:text-blue-300]="detailTab() === 'identity'"
+          class="px-3 py-2 border-b-2 border-transparent font-bold cursor-pointer transition-colors whitespace-nowrap flex items-center gap-1.5"
+        >
+          <app-svg-icon name="user" [size]="14"></app-svg-icon>
+          <span>1. Informations Sociétaire / Entité</span>
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold"
+            [class.bg-blue-100]="getApplicationType() === 'PME'"
+            [class.text-blue-900]="getApplicationType() === 'PME'"
+            [class.bg-emerald-100]="getApplicationType() !== 'PME'"
+            [class.text-emerald-900]="getApplicationType() !== 'PME'">
+            {{ getApplicationType() === 'PME' ? 'PME' : 'Salarié' }}
+          </span>
+        </button>
+
+        <button
+          (click)="detailTab.set('financials')"
+          [class.border-blue-600]="detailTab() === 'financials'"
+          [class.text-blue-700]="detailTab() === 'financials'"
+          [class.dark:text-blue-300]="detailTab() === 'financials'"
+          class="px-3 py-2 border-b-2 border-transparent font-bold cursor-pointer transition-colors whitespace-nowrap flex items-center gap-1.5"
+        >
+          <app-svg-icon name="dollar-sign" [size]="14"></app-svg-icon>
+          <span>2. Profil Financier & Garanties</span>
+        </button>
+
+        <button
+          (click)="detailTab.set('scoring')"
+          [class.border-purple-600]="detailTab() === 'scoring'"
+          [class.text-purple-700]="detailTab() === 'scoring'"
+          [class.dark:text-purple-300]="detailTab() === 'scoring'"
+          class="px-3 py-2 border-b-2 border-transparent font-bold cursor-pointer transition-colors whitespace-nowrap flex items-center gap-1.5"
+        >
+          <app-svg-icon name="cpu" [size]="14"></app-svg-icon>
+          <span>3. Scoring ML & 5 Piliers BCEAO</span>
+        </button>
+
+        <button
+          (click)="detailTab.set('arbitration')"
+          [class.border-purple-600]="detailTab() === 'arbitration'"
+          [class.text-purple-700]="detailTab() === 'arbitration'"
+          [class.dark:text-purple-300]="detailTab() === 'arbitration'"
+          class="px-3 py-2 border-b-2 border-transparent font-bold cursor-pointer transition-colors whitespace-nowrap flex items-center gap-1.5"
+        >
+          <app-svg-icon name="check-circle" [size]="14"></app-svg-icon>
+          <span>4. Arbitrage & Décision du Comité</span>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-5 flex-1 overflow-y-auto space-y-4">
+        <div *ngIf="loadingDetail()" class="py-12">
+          <app-spinner size="md" label="Chargement des données du dossier..."></app-spinner>
+        </div>
+
+        <ng-container *ngIf="!loadingDetail()">
+          <!-- ── VOLET 1 : FICHE SOCIÉTAIRE & ENTITÉ (INFORMATIONS COMPLÈTES) ── -->
+          <div *ngIf="detailTab() === 'identity'" class="space-y-4 animate-fade-in">
+            <!-- 1.1 Fiche d'Instruction & Profil d'Adhésion Kafo Jiginew (Renseignée par l'Agent) -->
+            <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+              <div class="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <div class="p-1.5 rounded-lg bg-blue-600 text-white shrink-0">
+                    <app-svg-icon name="user" [size]="16"></app-svg-icon>
+                  </div>
+                  <div>
+                    <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono">
+                      Fiche Officielle d'Instruction & Identification Sociétaire
+                    </h4>
+                    <p class="text-[11px] text-slate-500">
+                      Renseignée lors de l'enquête de terrain par l'agent : <strong>{{ selectedApproval()?.agent_name || selectedApp()?.agent_name || 'Agent Référent' }}</strong>
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-blue-100 text-blue-900 dark:bg-blue-900/60 dark:text-blue-200">
+                    {{ getApplicationType() === 'PME' ? 'Profil PME / Entreprise' : 'Profil Particulier / Salarié' }}
+                  </span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                    Guichet {{ getBranchCode() }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Bloc État Civil & Données de Base Demandeur / Entité -->
+              <div class="p-4 border-b border-slate-100 dark:border-slate-800 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div class="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
+                  <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Demandeur / Représentant</span>
+                  <p class="font-bold text-slate-900 dark:text-white mt-0.5">
+                    {{ selectedApproval()?.applicant_name || selectedApp()?.applicant_name }}
+                  </p>
+                </div>
+                <div class="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
+                  <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">N° Compte Kafo Jiginew</span>
+                  <p class="font-mono font-bold text-blue-700 dark:text-blue-400 mt-0.5">
+                    {{ selectedApproval()?.account_number || selectedApp()?.account_number || 'En cours' }}
+                  </p>
+                </div>
+                <div class="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
+                  <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Téléphone</span>
+                  <p class="font-mono font-semibold text-slate-900 dark:text-white mt-0.5">
+                    {{ selectedApproval()?.applicant_phone || selectedApp()?.applicant_phone || selectedApp()?.applicant?.phone || '+223 70 00 00 00' }}
+                  </p>
+                </div>
+                <div class="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-lg">
+                  <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Secteur d'Activité</span>
+                  <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                    {{ selectedApproval()?.activity_sector || selectedApp()?.activity_sector }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="p-4 space-y-4 text-xs">
+                <!-- Case Particulier / Salarié -->
+                <div *ngIf="getApplicationType() !== 'PME'" class="space-y-4">
+                  <div>
+                    <h5 class="text-[11px] font-bold text-slate-900 dark:text-white uppercase font-mono mb-2 flex items-center gap-1.5">
+                      <app-svg-icon name="briefcase" [size]="13" class="text-blue-600"></app-svg-icon>
+                      <span>1. Situation Professionnelle, Employeur & Quotité</span>
+                    </h5>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Employeur / Structure</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.sal_employer || 'Secteur Public / Privé Enregistré' }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Poste / Fonction</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.sal_position || 'Salarié Titulaire' }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Type de Contrat</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.sal_contract_type || 'CDI' }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Date d'Embauche / Ancienneté</span>
+                        <p class="font-mono font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.sal_hiring_date || 'Plus de 2 ans' }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Salaire Net Mensuel Certifié</span>
+                        <p class="font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+                          {{ formatAmount(selectedApp()?.form_data?.sal_net_salary || (selectedApp()?.requested_amount ? (selectedApp()!.requested_amount * 0.35) : 350000)) }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Quotité Cessible (33% BCEAO)</span>
+                        <p class="font-mono font-bold text-emerald-600 mt-0.5">
+                          {{ formatAmount(selectedApp()?.form_data?.sal_seizable_quota || ((selectedApp()?.requested_amount || 1000000) * 0.12)) }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h5 class="text-[11px] font-bold text-slate-900 dark:text-white uppercase font-mono mb-2 flex items-center gap-1.5">
+                      <app-svg-icon name="shield" [size]="13" class="text-blue-600"></app-svg-icon>
+                      <span>2. Épargne Nantie (DGA) & Caution Solidaire</span>
+                    </h5>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Dépôt de Garantie (DGA)</span>
+                        <p class="font-mono font-bold text-blue-600 mt-0.5">
+                          {{ formatAmount(selectedApp()?.form_data?.sal_dga_deposit || ((selectedApp()?.requested_amount || 1000000) * 0.10)) }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Destination / But du Crédit</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.sal_loan_purpose || 'Amélioration de l\'habitat & équipement' }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Caution Solidaire Renseignée</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.sal_guarantor_name || 'Caution Personne Physique' }}
+                          <span *ngIf="selectedApp()?.form_data?.sal_guarantor_phone" class="text-[10px] text-slate-400 block font-mono">
+                            {{ selectedApp()?.form_data?.sal_guarantor_phone }}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Case PME / Entreprise -->
+                <div *ngIf="getApplicationType() === 'PME'" class="space-y-4">
+                  <div>
+                    <h5 class="text-[11px] font-bold text-slate-900 dark:text-white uppercase font-mono mb-2 flex items-center gap-1.5">
+                      <app-svg-icon name="briefcase" [size]="13" class="text-blue-600"></app-svg-icon>
+                      <span>1. Fiche d'Identité de l'Entreprise & Exploitation</span>
+                    </h5>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Raison Sociale</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.pme_company_name || selectedApp()?.applicant_name }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Forme Juridique</span>
+                        <p class="font-bold text-blue-900 dark:text-blue-300 mt-0.5 font-mono">
+                          {{ selectedApp()?.form_data?.pme_legal_form || 'SARL' }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">N° RCCM / Enregistrement</span>
+                        <p class="font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.pme_registration_number || 'ML-BKO-2024' }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Localisation Siège / Marché</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.pme_headquarters || 'Grand Marché de Bamako' }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Années d'Exercice</span>
+                        <p class="font-mono font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.pme_years_activity || 3 }} ans d'activité
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Débouchés & Marché</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.pme_market_outlets || 'Vente directe & demi-gros' }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h5 class="text-[11px] font-bold text-slate-900 dark:text-white uppercase font-mono mb-2 flex items-center gap-1.5">
+                      <app-svg-icon name="user" [size]="13" class="text-blue-600"></app-svg-icon>
+                      <span>2. Renseignements Promoteur / Dirigeant</span>
+                    </h5>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Nom Promoteur</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.pme_manager_name || selectedApp()?.applicant_name }}
+                        </p>
+                      </div>
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Situation Matrimoniale</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.pme_marital_status || 'Marié(e)' }}
+                        </p>
+                      </div>
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Personnes à Charge</span>
+                        <p class="font-mono font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.pme_dependents || 4 }} personnes
+                        </p>
+                      </div>
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Domicile</span>
+                        <p class="font-semibold text-slate-900 dark:text-white mt-0.5">
+                          {{ selectedApp()?.form_data?.pme_manager_residence || 'Bamako' }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h5 class="text-[11px] font-bold text-slate-900 dark:text-white uppercase font-mono mb-2 flex items-center gap-1.5">
+                      <app-svg-icon name="dollar-sign" [size]="13" class="text-blue-600"></app-svg-icon>
+                      <span>3. Bilan Patrimonial & Actifs du Promoteur</span>
+                    </h5>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Valeur du Stock Déclaré</span>
+                        <p class="font-mono font-bold text-emerald-600 mt-0.5">
+                          {{ formatAmount(selectedApp()?.form_data?.pme_stock_value || ((selectedApp()?.requested_amount || 1000000) * 1.4)) }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Fonds Propres & Capitaux</span>
+                        <p class="font-mono font-bold text-blue-600 mt-0.5">
+                          {{ formatAmount(selectedApp()?.form_data?.pme_equity_capital || ((selectedApp()?.requested_amount || 1000000) * 2.2)) }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Dettes Fournisseurs</span>
+                        <p class="font-mono font-bold text-amber-600 mt-0.5">
+                          {{ formatAmount(selectedApp()?.form_data?.pme_supplier_debts || 0) }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Valeur Terrains & Bâtiments</span>
+                        <p class="font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+                          {{ formatAmount(selectedApp()?.form_data?.pme_land_buildings_value || 0) }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Véhicules & Matériels</span>
+                        <p class="font-mono font-bold text-slate-900 dark:text-white mt-0.5">
+                          {{ formatAmount(selectedApp()?.form_data?.pme_vehicles_value || 0) }}
+                        </p>
+                      </div>
+
+                      <div class="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                        <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">DGA Épargne Nantie</span>
+                        <p class="font-mono font-bold text-blue-600 mt-0.5">
+                          {{ formatAmount(selectedApp()?.form_data?.pme_cash_savings_dga || 0) }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Avis & Recommandation de l'Agent Instructeur -->
+                <div class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-200 dark:border-slate-800">
+                  <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                    Avis & Recommandation de l'Agent Instructeur ({{ selectedApproval()?.agent_name || selectedApp()?.agent_name || 'Agent Référent' }})
+                  </span>
+                  <p class="text-xs text-slate-700 dark:text-slate-300 mt-1 italic leading-relaxed">
+                    « {{ selectedApp()?.form_data?.sal_agent_recommendation || selectedApp()?.form_data?.pme_agent_recommendation || 'Dossier instruit et vérifié conforme aux exigences d\'octroi.' }} »
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Documents Complémentaires & Historique des Demandes du Comité -->
+            <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+              <div class="p-3 bg-amber-50/60 dark:bg-amber-950/30 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <app-svg-icon name="folder" [size]="14" class="text-amber-600"></app-svg-icon>
+                  <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase font-mono">
+                    Pièces Justificatives & Demandes de Complément ({{ (selectedApp()?.form_data?.document_requests || []).length }})
+                  </h4>
+                </div>
+
+                <button
+                  (click)="openDocRequestModal()"
+                  class="btn-secondary text-xs py-1 px-2.5 text-amber-700 border-amber-300 hover:bg-amber-100 cursor-pointer font-bold flex items-center gap-1"
+                >
+                  <app-svg-icon name="plus" [size]="11"></app-svg-icon>
+                  <span>Demander une Pièce</span>
+                </button>
+              </div>
+
+              <div *ngIf="!(selectedApp()?.form_data?.document_requests?.length)" class="p-4 text-center text-xs text-slate-400">
+                Aucune demande de pièce complémentaire n'a été émise sur ce dossier.
+              </div>
+
+              <div *ngIf="selectedApp()?.form_data?.document_requests?.length" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-mono">
+                <div *ngFor="let req of selectedApp()?.form_data?.document_requests" class="p-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="font-bold text-slate-900 dark:text-white font-sans">{{ req.document_name }}</span>
+                      <span
+                        class="px-2 py-0.5 rounded text-[10px] font-bold uppercase"
+                        [class.bg-amber-100]="req.status === 'PENDING'"
+                        [class.text-amber-800]="req.status === 'PENDING'"
+                        [class.bg-emerald-100]="req.status === 'PROVIDED'"
+                        [class.text-emerald-800]="req.status === 'PROVIDED'"
+                      >
+                        {{ req.status === 'PROVIDED' ? '✓ Reçu / Uploade' : '⏳ En attente agent' }}
+                      </span>
+                    </div>
+                    <p *ngIf="req.description" class="text-[11px] text-slate-500 font-sans mt-0.5">{{ req.description }}</p>
+                    <p *ngIf="req.provided_file_name" class="text-[10px] text-emerald-600 font-mono mt-0.5">
+                      Fichier fourni : <strong>{{ req.provided_file_name }}</strong> (le {{ req.provided_at | date:'short' }})
+                    </p>
+                  </div>
+
+                  <div class="text-right text-[10px] text-slate-400">
+                    <div>Émis le {{ req.requested_at | date:'short' }}</div>
+                    <div>Par {{ req.requested_by }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── VOLET 2 : PROFIL FINANCIER & GARANTIES ──────────────── -->
+          <div *ngIf="detailTab() === 'financials'" class="space-y-4 animate-fade-in">
+            <!-- Key Financial Indicators -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Revenus Mensuels</span>
+                <p class="text-sm font-bold font-mono text-slate-900 dark:text-white mt-1">
+                  {{ formatAmount(extractedData()?.monthly_revenue || 450000) }}
+                </p>
+              </div>
+
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Charges Mensuelles</span>
+                <p class="text-sm font-bold font-mono text-slate-900 dark:text-white mt-1">
+                  {{ formatAmount(extractedData()?.monthly_expenses || 180000) }}
+                </p>
+              </div>
+
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Reste à Vivre</span>
+                <p class="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+                  {{ formatAmount((extractedData()?.monthly_revenue || 450000) - (extractedData()?.monthly_expenses || 180000)) }}
+                </p>
+              </div>
+
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Régularité Revenus</span>
+                <p class="text-sm font-bold font-mono text-purple-900 dark:text-purple-300 mt-1">
+                  {{ extractedData()?.revenue_regularity_months || 12 }} mois consécutifs
+                </p>
+              </div>
+            </div>
+
+            <!-- Multi-Guarantees Section -->
+            <div class="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h4 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <app-svg-icon name="shield" [size]="14" class="text-emerald-600"></app-svg-icon>
+                  <span>Biens & Garanties Apportés ({{ guarantees().length }})</span>
+                </h4>
+                <span class="text-xs font-mono font-bold text-emerald-600">
+                  Couverture : {{ (selectedApproval()?.guarantee_coverage_ratio || 0) * 100 | number:'1.0-0' }}%
+                </span>
+              </div>
+
+              <div *ngIf="guarantees().length === 0" class="p-4 text-center text-xs text-slate-400">
+                Aucune garantie matérielle enregistrée sur ce dossier.
+              </div>
+
+              <table *ngIf="guarantees().length > 0" class="w-full text-xs text-left">
+                <thead class="bg-slate-50/50 dark:bg-slate-800/40 text-[10px] font-mono uppercase text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th class="py-2 px-3">Type de Garantie</th>
+                    <th class="py-2 px-3">Description du Bien</th>
+                    <th class="py-2 px-3 text-right">Valeur Estimée</th>
+                    <th class="py-2 px-3 text-right">Valeur Retenue (70%)</th>
+                    <th class="py-2 px-3">Justificatif</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                  <tr *ngFor="let g of guarantees()">
+                    <td class="py-2.5 px-3 font-semibold text-slate-900 dark:text-white capitalize">
+                      {{ g.guarantee_type }}
+                    </td>
+                    <td class="py-2.5 px-3 font-sans text-slate-700 dark:text-slate-300">
+                      {{ g.description }}
+                    </td>
+                    <td class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-300">
+                      {{ formatAmount(g.estimated_value) }}
+                    </td>
+                    <td class="py-2.5 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                      {{ formatAmount(g.retained_value || (g.estimated_value * 0.7)) }}
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400 text-[10px]">
+                      {{ g.proof_reference || 'Certifié conforme' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Existing Debts Section -->
+            <div class="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+              <div class="p-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h4 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <app-svg-icon name="dollar-sign" [size]="14" class="text-amber-600"></app-svg-icon>
+                  <span>Dettes & Engagements en Cours ({{ debts().length }})</span>
+                </h4>
+              </div>
+
+              <div *ngIf="debts().length === 0" class="p-4 text-center text-xs text-slate-400">
+                Aucune dette en cours déclarée par l'emprunteur (endettement zéro).
+              </div>
+
+              <table *ngIf="debts().length > 0" class="w-full text-xs text-left">
+                <thead class="bg-slate-50/50 dark:bg-slate-800/40 text-[10px] font-mono uppercase text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th class="py-2 px-3">Créancier</th>
+                    <th class="py-2 px-3">Type Dette</th>
+                    <th class="py-2 px-3 text-right">Mensualité</th>
+                    <th class="py-2 px-3 text-right">Capital Restant Dû</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                  <tr *ngFor="let d of debts()">
+                    <td class="py-2.5 px-3 font-semibold text-slate-900 dark:text-white">{{ d.creditor_name }}</td>
+                    <td class="py-2.5 px-3 text-[11px]">{{ d.is_internal ? 'Interne (Même IMF)' : 'Externe' }}</td>
+                    <td class="py-2.5 px-3 text-right font-bold text-amber-600">{{ formatAmount(d.monthly_payment) }}</td>
+                    <td class="py-2.5 px-3 text-right">{{ formatAmount(d.remaining_amount) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Quick Link to Volet 1 Identity -->
+            <div class="flex items-center justify-between p-3.5 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 rounded-xl text-xs">
+              <span class="text-slate-600 dark:text-slate-300">
+                Consulter la fiche détaillée, l'état civil, l'employeur et les pièces justificatives :
+              </span>
+              <button
+                (click)="detailTab.set('identity')"
+                class="btn-secondary text-xs py-1.5 px-3 text-blue-700 dark:text-blue-300 border-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer font-bold flex items-center gap-1.5"
+              >
+                <span>Voir la Fiche Sociétaire</span>
+                <app-svg-icon name="arrow-right" [size]="12"></app-svg-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- ── VOLET 3 : SCORING ML & 5 PILIERS BCEAO ───────────────── -->
+          <div *ngIf="detailTab() === 'scoring'" class="space-y-4 animate-fade-in">
+            <!-- Score Card Summary -->
+            <div class="p-4 bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-xl flex items-center justify-between">
+              <div>
+                <span class="text-xs font-mono font-bold text-purple-900 dark:text-purple-300 uppercase">
+                  Score de Solvabilité Prudentiel
+                </span>
+                <div class="flex items-baseline gap-2 mt-1">
+                  <span class="text-3xl font-black font-mono text-purple-950 dark:text-white">
+                    {{ normalizeScore(selectedApproval()?.score) }}
+                  </span>
+                  <span class="text-sm font-mono text-slate-500 font-bold">/ 100</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">
+                  Niveau de risque évalué : <strong class="text-slate-800 dark:text-slate-200">{{ getRiskLabel(selectedApproval()?.risk_level) }}</strong>
+                </p>
+              </div>
+
+              <div class="text-right space-y-1">
+                <span class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase"
+                  [class.bg-emerald-100]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'approved'"
+                  [class.text-emerald-800]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'approved'"
+                  [class.bg-amber-100]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'adjusted'"
+                  [class.text-amber-800]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'adjusted'"
+                  [class.bg-rose-100]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'rejected'"
+                  [class.text-rose-800]="(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) === 'rejected'"
+                >
+                  {{ getDecisionLabel(selectedApproval()?.recommended_decision || selectedApproval()?.algorithmic_decision) }}
+                </span>
+                <p class="text-[11px] text-slate-400 font-mono">Modèle XGBoost / BCEAO v2.4</p>
+              </div>
+            </div>
+
+            <!-- 5 Pillars Breakdown (BCEAO Prudentiel) -->
+            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-white dark:bg-slate-900 space-y-3">
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white font-mono uppercase">
+                Décomposition des 5 Piliers d'Éligibilité BCEAO
+              </h4>
+
+              <!-- Pilier 1: Solvabilité Financière (30%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">1. Solvabilité Financière & Reste à Vivre</span>
+                  <span class="font-mono font-bold text-purple-900 dark:text-purple-300">27 / 30 pts</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-purple-600 h-full rounded-full" style="width: 90%"></div>
+                </div>
+              </div>
+
+              <!-- Pilier 2: Garanties & Couverture (20%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">2. Garanties Matérielles & Sûretés Réelles</span>
+                  <span class="font-mono font-bold text-emerald-600">
+                    {{ (selectedApproval()?.guarantee_coverage_ratio || 0) >= 1 ? '20' : '15' }} / 20 pts
+                  </span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-emerald-500 h-full rounded-full" [style.width.%]="(selectedApproval()?.guarantee_coverage_ratio || 0) >= 1 ? 100 : 75"></div>
+                </div>
+              </div>
+
+              <!-- Pilier 3: Historique & Régularité (20%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">3. Régularité de Revenus & Historique de Prêt</span>
+                  <span class="font-mono font-bold text-blue-600">18 / 20 pts</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-blue-500 h-full rounded-full" style="width: 90%"></div>
+                </div>
+              </div>
+
+              <!-- Pilier 4: Stabilité Socio-Professionnelle (15%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">4. Ancienneté d'Activité & Localisation Guichet</span>
+                  <span class="font-mono font-bold text-amber-600">14 / 15 pts</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-amber-500 h-full rounded-full" style="width: 93%"></div>
+                </div>
+              </div>
+
+              <!-- Pilier 5: Données Alternatives (15%) -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-700 dark:text-slate-300 font-semibold">5. Données Alternatives (Mobile Money & Tontine)</span>
+                  <span class="font-mono font-bold text-indigo-600">13 / 15 pts</span>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div class="bg-indigo-500 h-full rounded-full" style="width: 86%"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Explainability & AI Summary -->
+            <div class="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-lg text-xs space-y-1">
+              <div class="font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                <app-svg-icon name="info" [size]="13" class="text-purple-600"></app-svg-icon>
+                <span>Avis & Commentaires Explicatifs de l'Intelligence Artificielle</span>
+              </div>
+              <p class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                Le demandeur présente une excellente capacité de remboursement avec un reste à vivre net suffisant.
+                Les garanties apportées couvrent les exigences prudentielles. Aucun incident de paiement n'a été détecté.
+              </p>
+            </div>
+          </div>
+
+          <!-- ── VOLET 3 : ARBITRAGE DU COMITÉ DE CRÉDIT ─────────────── -->
+          <div *ngIf="detailTab() === 'arbitration'" class="space-y-4 animate-fade-in">
+
+            <!-- ── A. ÉTAT OFFICIEL SCELLÉ (Dossier Déjà Statué) ─────── -->
+            <div *ngIf="isDecided(selectedApproval()?.status || selectedApp()?.status) && !isEditingDecision()" class="space-y-4">
+              <!-- Official Decision Banner -->
+              <div
+                class="p-4 rounded-xl border flex items-start justify-between shadow-xs"
+                [class.bg-emerald-50/70]="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                [class.border-emerald-200]="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                [class.dark:bg-emerald-950/30]="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                [class.dark:border-emerald-900]="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                [class.bg-rose-50/70]="isRejected(selectedApproval()?.status || selectedApp()?.status)"
+                [class.border-rose-200]="isRejected(selectedApproval()?.status || selectedApp()?.status)"
+                [class.dark:bg-rose-950/30]="isRejected(selectedApproval()?.status || selectedApp()?.status)"
+                [class.dark:border-rose-900]="isRejected(selectedApproval()?.status || selectedApp()?.status)"
+              >
+                <div class="flex items-start gap-3">
+                  <div
+                    class="p-2 rounded-lg text-white"
+                    [class.bg-emerald-600]="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                    [class.bg-rose-600]="isRejected(selectedApproval()?.status || selectedApp()?.status)"
+                  >
+                    <app-svg-icon [name]="isApproved(selectedApproval()?.status || selectedApp()?.status) ? 'check-circle' : 'x-circle'" [size]="22"></app-svg-icon>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h4
+                        class="text-sm font-bold uppercase font-mono tracking-wide"
+                        [class.text-emerald-950]="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                        [class.dark:text-emerald-200]="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                        [class.text-rose-950]="isRejected(selectedApproval()?.status || selectedApp()?.status)"
+                        [class.dark:text-rose-200]="isRejected(selectedApproval()?.status || selectedApp()?.status)"
+                      >
+                        {{ isApproved(selectedApproval()?.status || selectedApp()?.status) ? 'Dossier Statué — Prêt Accordé par la Direction' : 'Dossier Statué — Demande Rejetée' }}
+                      </h4>
+                      <span
+                        class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase"
+                        [class.bg-emerald-200]="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                        [class.text-emerald-900]="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                        [class.bg-rose-200]="isRejected(selectedApproval()?.status || selectedApp()?.status)"
+                        [class.text-rose-900]="isRejected(selectedApproval()?.status || selectedApp()?.status)"
+                      >
+                        {{ isApproved(selectedApproval()?.status || selectedApp()?.status) ? 'Accord Définitif' : 'Refus Notifié' }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                      Décision officielle scellée en séance de Comité de Crédit et archivée sur le registre d'audit BCEAO.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="text-right font-mono text-[11px] text-slate-500">
+                  <span>Piste d'audit BCEAO</span>
+                  <div class="font-bold text-slate-700 dark:text-slate-300">Conforme UEMOA</div>
+                </div>
+              </div>
+
+              <!-- Conditions Accordées Cards -->
+              <div *ngIf="isApproved(selectedApproval()?.status || selectedApp()?.status)" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
+                  <span class="text-[10px] font-mono uppercase font-bold text-slate-400">Montant Accordé Définitif</span>
+                  <div class="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+                    {{ formatAmount(selectedApp()?.approved_amount || selectedApproval()?.approved_amount || arbitrationAmount()) }}
+                  </div>
+                  <div class="mt-1">
+                    <span
+                      *ngIf="(selectedApp()?.approved_amount || selectedApproval()?.approved_amount || arbitrationAmount()) !== (selectedApproval()?.requested_amount || selectedApp()?.requested_amount)"
+                      class="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 inline-block"
+                    >
+                      Ajusté (Demandé : {{ formatAmount(selectedApproval()?.requested_amount || selectedApp()?.requested_amount) }})
+                    </span>
+                    <span
+                      *ngIf="(selectedApp()?.approved_amount || selectedApproval()?.approved_amount || arbitrationAmount()) === (selectedApproval()?.requested_amount || selectedApp()?.requested_amount)"
+                      class="text-[10px] font-mono text-slate-400"
+                    >
+                      100% de la quotité demandée
+                    </span>
+                  </div>
+                </div>
+
+                <div class="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
+                  <span class="text-[10px] font-mono uppercase font-bold text-slate-400">Durée Validée</span>
+                  <div class="text-xl font-black font-mono text-slate-900 dark:text-white mt-1">
+                    {{ selectedApp()?.requested_duration_months || selectedApproval()?.approved_duration_months || selectedApproval()?.requested_duration_months || arbitrationDuration() }} mois
+                  </div>
+                  <span class="text-[10px] font-mono text-slate-400 block mt-1">
+                    Échéancier mensuel standard
+                  </span>
+                </div>
+
+                <div class="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs">
+                  <span class="text-[10px] font-mono uppercase font-bold text-slate-400">Mensualité Estimée</span>
+                  <div class="text-xl font-black font-mono text-blue-600 dark:text-blue-400 mt-1">
+                    ~{{ formatAmount(calculateEstimatedMonthly(selectedApp()?.approved_amount || selectedApproval()?.approved_amount || arbitrationAmount(), selectedApp()?.requested_duration_months || arbitrationDuration())) }}
+                  </div>
+                  <span class="text-[10px] font-mono text-slate-400 block mt-1">
+                    Principal + Intérêts Kafo Jiginew
+                  </span>
+                </div>
+              </div>
+
+              <!-- Motifs & Observations de la Direction -->
+              <div class="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
+                <span class="text-xs font-mono font-bold uppercase text-slate-500">
+                  Motifs & Observations Enregistrés par la Direction
+                </span>
+                <p class="text-xs font-medium text-slate-800 dark:text-slate-200 italic leading-relaxed">
+                  « {{ selectedApp()?.committee_notes || selectedApproval()?.committee_notes || arbitrationNotes() }} »
+                </p>
+              </div>
+
+              <!-- Actions pour Dossier Statué (Récépissé & Demande doc & Modifier) -->
+              <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div class="flex items-center gap-2">
+                  <button
+                    *ngIf="isApproved(selectedApproval()?.status || selectedApp()?.status)"
+                    (click)="viewReceipt(selectedApproval()?.id || selectedApp()?.id)"
+                    class="btn-primary text-xs py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white cursor-pointer font-bold shadow-xs flex items-center gap-1.5"
+                  >
+                    <app-svg-icon name="printer" [size]="14"></app-svg-icon>
+                    <span>Imprimer le Récépissé Officiel</span>
+                  </button>
+
+                  <button
+                    (click)="openDocRequestModal()"
+                    class="btn-secondary text-xs py-2 px-3 text-amber-700 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer font-bold flex items-center gap-1.5"
+                    title="Demander un document complémentaire à l'agent"
+                  >
+                    <app-svg-icon name="file-text" [size]="14"></app-svg-icon>
+                    <span>Demander un Nouveau Fichier / Pièce</span>
+                  </button>
+                </div>
+
+                <button
+                  (click)="isEditingDecision.set(true)"
+                  class="btn-secondary text-xs py-2 px-3 text-purple-700 border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 cursor-pointer font-bold flex items-center gap-1.5"
+                  title="Modifier ou réarbitrer ce dossier"
+                >
+                  <app-svg-icon name="edit" [size]="13"></app-svg-icon>
+                  <span>Réarbitrer / Modifier la Décision</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ── B. FORMULAIRE INTERACTIF (En attente ou En mode Réarbitrage) ─ -->
+            <div *ngIf="!isDecided(selectedApproval()?.status || selectedApp()?.status) || isEditingDecision()" class="space-y-4">
+              <div class="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-3">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase font-mono">
+                    {{ isEditingDecision() ? 'MODIFICATION DE L\'ARBITRAGE DU COMITÉ' : 'SÉANCE D\'ARBITRAGE ET SIGNATURE DE LA DIRECTION' }}
+                  </h4>
+                  <span *ngIf="isEditingDecision()" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-100 text-purple-900 border border-purple-300">
+                    Mode Réajustement Actif
+                  </span>
+                </div>
+                <p class="text-xs text-slate-600 dark:text-slate-300">
+                  {{ isEditingDecision() ? 'Ajustez le montant ou la durée validée ci-dessous. Le changement sera répercuté instantanément.' : 'Vous disposez de l\'autorité finale d\'octroi pour valider ou ajuster les conditions du prêt.' }}
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Montant Accordé Définitif (FCFA)
+                    </label>
+                    <input
+                      type="number"
+                      step="50000"
+                      [ngModel]="arbitrationAmount()"
+                      (ngModelChange)="arbitrationAmount.set($event)"
+                      class="form-input text-sm font-mono font-bold w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                    />
+                    <span class="text-[10px] text-slate-400">Demandé initial : {{ formatAmount(selectedApproval()?.requested_amount || selectedApp()?.requested_amount) }}</span>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Durée Validée (Mois)
+                    </label>
+                    <input
+                      type="number"
+                      [ngModel]="arbitrationDuration()"
+                      (ngModelChange)="arbitrationDuration.set($event)"
+                      class="form-input text-sm font-mono font-bold w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                    />
+                    <span class="text-[10px] text-slate-400">Durée demandée initiale : {{ selectedApproval()?.requested_duration_months || selectedApp()?.requested_duration_months || 12 }} mois</span>
+                  </div>
+                </div>
+
+                <!-- Simulation Mensualité en direct -->
+                <div class="p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center justify-between text-xs font-mono">
+                  <span class="text-slate-500 font-sans">Simulation échéance validée :</span>
+                  <span class="font-bold text-emerald-700 dark:text-emerald-400">
+                    ~{{ formatAmount(calculateEstimatedMonthly(arbitrationAmount(), arbitrationDuration())) }} / mois (sur {{ arbitrationDuration() }} mois)
+                  </span>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Motifs & Observations de la Direction (Piste d'Audit BCEAO)
+                  </label>
+                  <textarea
+                    rows="3"
+                    [ngModel]="arbitrationNotes()"
+                    (ngModelChange)="arbitrationNotes.set($event)"
+                    class="form-textarea text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+                  ></textarea>
+                </div>
+              </div>
+
+              <!-- Arbitration Action Buttons -->
+              <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+                <button
+                  *ngIf="!isEditingDecision()"
+                  (click)="openDocRequestModal()"
+                  class="btn-secondary text-xs py-2 px-3 text-amber-700 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer font-bold flex items-center gap-1.5 mr-auto"
+                  title="Demander une pièce complémentaire"
+                >
+                  <app-svg-icon name="file-text" [size]="14"></app-svg-icon>
+                  <span>Demander un Nouveau Fichier</span>
+                </button>
+
+                <button
+                  *ngIf="isEditingDecision()"
+                  (click)="isEditingDecision.set(false)"
+                  class="btn-secondary text-xs py-2 px-4 cursor-pointer font-bold"
+                >
+                  Annuler la modification
+                </button>
+
+                <button
+                  *ngIf="!isEditingDecision()"
+                  (click)="confirmReject()"
+                  [disabled]="processingDecision()"
+                  class="btn-secondary text-xs py-2 px-4 text-rose-700 border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer font-bold flex items-center gap-1.5"
+                >
+                  <app-svg-icon name="x" [size]="14"></app-svg-icon>
+                  <span>Rejeter Définitivement</span>
+                </button>
+
+                <button
+                  (click)="confirmApprove()"
+                  [disabled]="processingDecision() || arbitrationAmount() <= 0"
+                  class="btn-primary text-xs py-2 px-5 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer font-bold shadow-md flex items-center gap-1.5"
+                >
+                  <app-svg-icon name="check" [size]="14"></app-svg-icon>
+                  <span *ngIf="!isEditingDecision()">Accorder le Prêt ({{ formatAmount(arbitrationAmount()) }})</span>
+                  <span *ngIf="isEditingDecision()">Enregistrer le Réarbitrage ({{ formatAmount(arbitrationAmount()) }})</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+        <span class="text-[11px] font-mono text-slate-400">
+          Système Sécurisé OpenScore Finance • BCEAO UEMOA
+        </span>
+        <button (click)="closeDetailModal()" class="btn-secondary text-xs cursor-pointer">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ACTION CONFIRMATION MODAL (Accorder / Rejeter) ───────────────── -->
+  <div *ngIf="showActionModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-lg flex items-center justify-center font-bold border"
+            [class.bg-emerald-50]="actionType() === 'approve'"
+            [class.text-emerald-700]="actionType() === 'approve'"
+            [class.border-emerald-200]="actionType() === 'approve'"
+            [class.bg-rose-50]="actionType() === 'reject'"
+            [class.text-rose-700]="actionType() === 'reject'"
+            [class.border-rose-200]="actionType() === 'reject'"
+          >
+            <app-svg-icon [name]="actionType() === 'approve' ? 'check' : 'x'" [size]="16"></app-svg-icon>
+          </div>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">
+            {{ actionType() === 'approve' ? 'Accorder le Prêt' : 'Refuser la Demande' }}
+          </h3>
+        </div>
+        <button (click)="closeActionModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Dossier Summary -->
+      <div *ngIf="actionItem()" class="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg text-xs space-y-1 font-mono">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Dossier :</span>
+          <strong class="text-slate-900 dark:text-white">{{ actionItem()?.reference }}</strong>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Emprunteur :</span>
+          <span class="font-bold text-slate-900 dark:text-white">{{ actionItem()?.applicant_name }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Montant Demandé :</span>
+          <span class="font-bold text-blue-700 dark:text-blue-400">{{ formatAmount(actionItem()?.requested_amount) }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">Score Solvabilité :</span>
+          <span class="font-bold text-emerald-600">{{ normalizeScore(actionItem()?.score) }}/100</span>
+        </div>
+      </div>
+
+      <!-- Form for Approve -->
+      <div *ngIf="actionType() === 'approve'" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Montant Accordé Définitif (FCFA) *</label>
+          <input
+            type="number"
+            step="50000"
+            [ngModel]="actionAmount()"
+            (ngModelChange)="actionAmount.set($event)"
+            class="form-input text-xs w-full font-mono font-bold dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Durée Validée (Mois)</label>
+          <input
+            type="number"
+            [ngModel]="actionDuration()"
+            (ngModelChange)="actionDuration.set($event)"
+            class="form-input text-xs w-full font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Observations d'Octroi</label>
+          <textarea
+            rows="2"
+            [ngModel]="actionNotes()"
+            (ngModelChange)="actionNotes.set($event)"
+            class="form-textarea text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Form for Reject -->
+      <div *ngIf="actionType() === 'reject'" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Motif du Refus (Piste d'audit BCEAO) *</label>
+          <textarea
+            rows="3"
+            [ngModel]="actionNotes()"
+            (ngModelChange)="actionNotes.set($event)"
+            placeholder="Précisez le motif du rejet..."
+            class="form-textarea text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <button (click)="closeActionModal()" [disabled]="processingAction()" class="btn-secondary text-xs cursor-pointer">
+          Annuler
+        </button>
+        <button
+          (click)="executeAction()"
+          [disabled]="processingAction() || (actionType() === 'approve' && actionAmount() <= 0)"
+          class="btn-primary text-xs py-2 px-4 font-bold text-white cursor-pointer shadow-sm flex items-center gap-1.5 rounded-lg"
+          [class.bg-emerald-700]="actionType() === 'approve'"
+          [class.hover:bg-emerald-800]="actionType() === 'approve'"
+          [class.bg-rose-700]="actionType() === 'reject'"
+          [class.hover:bg-rose-800]="actionType() === 'reject'"
+        >
+          <app-svg-icon [name]="actionType() === 'approve' ? 'check' : 'x'" [size]="13"></app-svg-icon>
+          <span>{{ processingAction() ? 'Traitement...' : (actionType() === 'approve' ? 'Confirmer l\'Accord' : 'Confirmer le Rejet') }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL : RAPPORTS & PV DE COMITÉ ─────────────────────────────── -->
+  <div *ngIf="showReportsModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+    <div class="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center">
+            <app-svg-icon name="file-text" [size]="16"></app-svg-icon>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Procès-Verbaux & Rapports de Comité</h3>
+            <p class="text-[11px] text-slate-500 font-mono">Archivage officiel conforme aux directives prudentielles BCEAO / Kafo Jiginew</p>
+          </div>
+        </div>
+        <button (click)="closeReportsModal()" class="text-slate-400 hover:text-slate-600 p-1 text-sm cursor-pointer">✕</button>
+      </div>
+
+      <!-- Toolbar within modal -->
+      <div class="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <span class="text-xs font-mono text-slate-600 dark:text-slate-300 font-semibold">
+          {{ committeeReports().length }} document(s) archivé(s)
+        </span>
+        <button
+          (click)="showNewReportForm.set(!showNewReportForm())"
+          class="btn-primary text-xs py-1.5 px-3 bg-blue-700 hover:bg-blue-800 text-white font-bold cursor-pointer rounded-lg flex items-center gap-1.5"
+        >
+          <app-svg-icon [name]="showNewReportForm() ? 'x' : 'plus'" [size]="12"></app-svg-icon>
+          <span>{{ showNewReportForm() ? 'Fermer le formulaire' : 'Nouveau PV / Rapport' }}</span>
+        </button>
+      </div>
+
+      <!-- Body / Scroll Area -->
+      <div class="p-4 overflow-y-auto space-y-4 text-xs">
+        <!-- New Report Form -->
+        <div *ngIf="showNewReportForm()" class="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 space-y-3">
+          <h4 class="font-bold text-blue-950 dark:text-blue-200 text-xs flex items-center gap-1.5">
+            <app-svg-icon name="plus-circle" [size]="14" class="text-blue-600"></app-svg-icon>
+            <span>Enregistrer un Procès-Verbal de Séance</span>
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Intitulé de la Séance *</label>
+              <input
+                type="text"
+                [ngModel]="newReportTitle()"
+                (ngModelChange)="newReportTitle.set($event)"
+                placeholder="Ex: Session Extraordinaire Comité de Crédit #14"
+                class="form-input text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+              />
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Date de Séance *</label>
+              <input
+                type="date"
+                [ngModel]="newReportDate()"
+                (ngModelChange)="newReportDate.set($event)"
+                class="form-input text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Nom du Document PDF</label>
+            <input
+              type="text"
+              [ngModel]="newReportFileName()"
+              (ngModelChange)="newReportFileName.set($event)"
+              class="form-input text-xs w-full font-mono dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+            />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Synthèse & Décisions Validées</label>
+            <textarea
+              rows="2"
+              [ngModel]="newReportNotes()"
+              (ngModelChange)="newReportNotes.set($event)"
+              placeholder="Ex: Arbitrage sur les quotités des dossiers maraîchers et PME..."
+              class="form-textarea text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+            ></textarea>
+          </div>
+          <div class="flex justify-end gap-2 pt-1">
+            <button (click)="showNewReportForm.set(false)" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+            <button
+              (click)="submitNewReport()"
+              [disabled]="submittingReport()"
+              class="btn-primary text-xs py-1.5 px-3 bg-blue-700 hover:bg-blue-800 text-white font-bold cursor-pointer rounded-lg flex items-center gap-1.5"
+            >
+              <span>{{ submittingReport() ? 'Enregistrement...' : 'Archiver le PV' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Reports List -->
+        <div *ngIf="loadingReports()" class="py-8 flex justify-center">
+          <app-spinner></app-spinner>
+        </div>
+
+        <div *ngIf="!loadingReports() && committeeReports().length === 0" class="py-8 text-center text-slate-400">
+          <app-svg-icon name="file-text" [size]="32" class="mx-auto mb-2 opacity-50"></app-svg-icon>
+          <p>Aucun procès-verbal de séance archivé pour le moment.</p>
+        </div>
+
+        <div *ngIf="!loadingReports() && committeeReports().length > 0" class="space-y-2.5">
+          <div
+            *ngFor="let rep of committeeReports()"
+            class="p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-colors flex items-center justify-between gap-3 bg-white dark:bg-slate-950"
+          >
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center shrink-0">
+                <app-svg-icon name="file-text" [size]="18"></app-svg-icon>
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900 dark:text-white">{{ rep.title }}</h4>
+                <div class="flex items-center gap-2 text-[11px] text-slate-500 font-mono mt-0.5">
+                  <span>Séance : {{ rep.meeting_date }}</span>
+                  <span>•</span>
+                  <span>Signataire : {{ rep.uploader_name || 'Comité de Direction' }}</span>
+                </div>
+                <p *ngIf="rep.notes" class="text-[11px] text-slate-600 dark:text-slate-400 mt-1 italic">{{ rep.notes }}</p>
+              </div>
+            </div>
+            <div class="shrink-0 flex items-center gap-2">
+              <span class="badge bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-mono px-2 py-0.5 rounded">
+                PDF Conforme
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+        <button (click)="closeReportsModal()" class="btn-secondary text-xs cursor-pointer">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL DEMANDE DE DOCUMENT COMPLÉMENTAIRE (Comité -> Agent) ────── -->
+  <div *ngIf="showDocRequestModal()" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl max-w-md w-full p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 flex items-center justify-center font-bold border border-amber-200">
+            <app-svg-icon name="file-text" [size]="16"></app-svg-icon>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Demande de Pièce Complémentaire</h3>
+            <p class="text-[10px] text-slate-400">Notification directe transmise sur le guichet de l'agent</p>
+          </div>
+        </div>
+        <button (click)="closeDocRequestModal()" class="text-slate-400 hover:text-slate-600 cursor-pointer">
+          <app-svg-icon name="x" [size]="14"></app-svg-icon>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            Intitulé de la pièce demandée *
+          </label>
+          <input
+            type="text"
+            [ngModel]="docRequestName()"
+            (ngModelChange)="docRequestName.set($event)"
+            placeholder="ex: Relevé bancaire des 3 derniers mois, Titre foncier..."
+            class="form-input text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          />
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            Instructions / Motifs pour l'agent instructeur
+          </label>
+          <textarea
+            rows="3"
+            [ngModel]="docRequestDesc()"
+            (ngModelChange)="docRequestDesc.set($event)"
+            placeholder="Précisez pourquoi cette pièce est requise par la Direction..."
+            class="form-textarea text-xs w-full dark:bg-slate-950 dark:border-slate-700 dark:text-white"
+          ></textarea>
+        </div>
+
+        <div class="p-2.5 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] text-amber-800 dark:text-amber-300">
+          Cette demande apparaîtra immédiatement en alerte prioritaire sur le tableau de bord de l'agent avec un bouton de téléversement direct.
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <button (click)="closeDocRequestModal()" class="btn-secondary text-xs cursor-pointer">Annuler</button>
+        <button
+          (click)="submitDocRequest()"
+          [disabled]="submittingDocRequest() || !docRequestName().trim()"
+          class="btn-primary text-xs py-2 px-4 bg-amber-700 hover:bg-amber-800 text-white font-bold cursor-pointer rounded-lg flex items-center gap-1.5"
+        >
+          <app-svg-icon name="send" [size]="12"></app-svg-icon>
+          <span>{{ submittingDocRequest() ? 'Envoi...' : 'Transmettre la demande' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
